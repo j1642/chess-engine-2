@@ -25,28 +25,28 @@ func TestKnightBBs(t *testing.T) {
 			// file B
 			square: 57,
 			expected: uint64(math.Pow(2, 57-17) + math.Pow(2, 57-15) +
-				2<<(57-6-1)),
+				1<<(57-6)),
 			actual: bbs[57],
 		},
 		{
 			// file G
 			square: 6,
 			expected: uint64(math.Pow(2, 6+17) + math.Pow(2, 6+15) +
-				2<<(6+6-1)),
+				1<<(6+6)),
 			actual: bbs[6],
 		},
 		{
 			// file H
 			square: 55,
 			expected: uint64(math.Pow(2, 55-17) + math.Pow(2, 55+6) +
-				2<<(55-10-1)),
+				1<<(55-10)),
 			actual: bbs[55],
 		},
 		{
 			// center of board
 			square: 20,
 			expected: uint64(math.Pow(2, 20+17) + math.Pow(2, 20+15) +
-				math.Pow(2, 20-17) + math.Pow(2, 20-15) + 2<<(20-10-1) +
+				math.Pow(2, 20-17) + math.Pow(2, 20-15) + 1<<(20-10) +
 				math.Pow(2, 20+6) + math.Pow(2, 20+10) + math.Pow(2, 20-6)),
 			actual: bbs[20],
 		},
