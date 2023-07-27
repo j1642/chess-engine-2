@@ -2,7 +2,7 @@ package pieces
 
 import (
 	_ "fmt"
-	"math"
+	_ "math"
 )
 
 // bb = bit board
@@ -122,7 +122,7 @@ func MakeKnightBBs() [64]uint64 {
 				continue
 			}
 			//fmt.Println(math.Pow(2, float64(sq + d)), d)
-			bb += uint64(math.Pow(2, float64(sq+d)))
+			bb += 1 << (sq + d)
 		}
 
 		bbs[sq] = bb
