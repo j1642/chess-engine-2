@@ -116,16 +116,41 @@ func MakeKnightBBs() [64]uint64 {
 		   }
 		*/
 
-		var bb uint64
 		for _, d := range directions {
 			if sq+d < 0 || sq+d > 63 {
 				continue
 			}
 			//fmt.Println(math.Pow(2, float64(sq + d)), d)
-			bb += 1 << (sq + d)
+			bbs[sq] += 1 << (sq + d)
+		}
+	}
+
+	return bbs
+}
+
+func makeKingBBs() [64]uint64 {
+	bbs := [64]uint64{}
+	directions := []int{}
+	files := makeFiles()
+
+	for sq := 0; sq < 64; sq++ {
+		switch {
+		// file A
+		case containsN(sq, files[0]):
+			directions = []int{8, 9, 1, -7, -8}
+		// file H
+		case containsN(sq, files[3]):
+			directions = []int{8, 7, -1, -9, -8}
+		default:
+			directions = []int{7, 8, 9, -1, 1, -9, -8, -7}
 		}
 
-		bbs[sq] = bb
+		for _, d := range directions {
+			if sq+d < 0 || sq+d > 63 {
+				continue
+			}
+			bbs[sq] += 1 << (sq + d)
+		}
 	}
 
 	return bbs
