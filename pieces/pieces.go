@@ -155,3 +155,38 @@ func makeKingBBs() [64]uint64 {
 
 	return bbs
 }
+
+func makeSlidingAttackBBs() [8][64]uint64 {
+	bbs := [8][64]uint64{}
+	files := makeFiles()
+	// TODO: make containsN() generic to remove wasted zeroes.
+	// Or use slices instead of arrays.
+	fileAForbidden := [8]int{-9, -1, 7, 0, 0, 0, 0, 0}
+	fileHForbidden := [8]int{9, 1, -7, 0, 0, 0, 0, 0}
+
+	// Clockwise ordering
+	for i, dir := range [8]int{8, 9, 1, -7, -8, -9, -1, 7} {
+		for sq := 0; sq < 64; sq++ {
+			if containsN(sq, files[0]) && containsN(dir, fileAForbidden) {
+				continue
+			} else if containsN(sq, files[3]) && containsN(dir, fileHForbidden) {
+				continue
+			}
+
+			for j := 1; j < 8; j++ {
+				newSq := j*dir + sq
+				if newSq < 0 || newSq > 63 {
+					break
+				}
+				bbs[i][sq] += 1 << newSq
+				// Found board edge
+				if dir != 8 && dir != -8 &&
+					(containsN(newSq, files[0]) || containsN(newSq, files[3])) {
+					break
+				}
+			}
+		}
+	}
+
+	return bbs
+}
