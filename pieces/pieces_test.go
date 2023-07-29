@@ -9,6 +9,7 @@ type bbTestCase struct {
 	square   int
 	expected uint64
 	actual   uint64
+	name     string
 }
 
 func TestKnightBBs(t *testing.T) {
@@ -20,6 +21,7 @@ func TestKnightBBs(t *testing.T) {
 			square:   0,
 			expected: uint64(math.Pow(2, 17) + math.Pow(2, 10)),
 			actual:   bbs[0],
+			name:     "knight",
 		},
 		{
 			// file B
@@ -27,6 +29,7 @@ func TestKnightBBs(t *testing.T) {
 			expected: uint64(math.Pow(2, 57-17) + math.Pow(2, 57-15) +
 				1<<(57-6)),
 			actual: bbs[57],
+			name:   "knight",
 		},
 		{
 			// file G
@@ -34,6 +37,7 @@ func TestKnightBBs(t *testing.T) {
 			expected: uint64(math.Pow(2, 6+17) + math.Pow(2, 6+15) +
 				1<<(6+6)),
 			actual: bbs[6],
+			name:   "knight",
 		},
 		{
 			// file H
@@ -41,6 +45,7 @@ func TestKnightBBs(t *testing.T) {
 			expected: uint64(math.Pow(2, 55-17) + math.Pow(2, 55+6) +
 				1<<(55-10)),
 			actual: bbs[55],
+			name:   "knight",
 		},
 		{
 			// center of board
@@ -49,17 +54,18 @@ func TestKnightBBs(t *testing.T) {
 				math.Pow(2, 20-17) + math.Pow(2, 20-15) + 1<<(20-10) +
 				math.Pow(2, 20+6) + math.Pow(2, 20+10) + math.Pow(2, 20-6)),
 			actual: bbs[20],
+			name:   "knight",
 		},
 	}
 
-	runBBTest(t, tests, "knight")
+	runBBTest(t, tests)
 }
 
-func runBBTest(t *testing.T, tests []bbTestCase, piece string) {
+func runBBTest(t *testing.T, tests []bbTestCase) {
 	for _, tt := range tests {
 		if tt.actual != tt.expected {
 			t.Errorf("incorrect bitboard moves for a %v on square %d.\nexpected:\n%b, %T\ngot:\n%b, %T",
-				piece, tt.square, tt.expected, tt.expected, tt.actual, tt.actual)
+				tt.name, tt.square, tt.expected, tt.expected, tt.actual, tt.actual)
 		}
 	}
 }
@@ -71,11 +77,13 @@ func TestKingBBs(t *testing.T) {
 			square:   0,
 			expected: uint64(1<<8 + 1<<9 + 1<<1),
 			actual:   bbs[0],
+			name:     "king",
 		},
 		{
 			square:   7,
 			expected: uint64(1<<(7-1) + 1<<(7+8) + 1<<(7+7)),
 			actual:   bbs[7],
+			name:     "king",
 		},
 		{
 			square: 1,
@@ -85,6 +93,7 @@ func TestKingBBs(t *testing.T) {
 				1<<(1+8) +
 				1<<(1+9)),
 			actual: bbs[1],
+			name:   "king",
 		},
 		{
 			square: 62,
