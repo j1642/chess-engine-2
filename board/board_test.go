@@ -1,7 +1,6 @@
 package board
 
 import (
-	"math"
 	"testing"
 )
 
@@ -14,10 +13,10 @@ func TestNew(t *testing.T) {
 		t.Errorf("initial wToMove: want=1, got=%d", cb.WToMove)
 	}
 
-	if cb.WPieces != uint64(1)<<16-1 {
+	if cb.WPieces != uint64(1<<16)-1 {
 		t.Errorf("initial wPieces: want=65535, got=%d", cb.WPieces)
 	}
-	if cb.WPawns != uint64(1)<<16-1-(uint64(1)<<8-1) {
+	if cb.WPawns != uint64(1<<16)-1-(1<<8-1) {
 		t.Errorf("initial wPawns: want=%b, got=%b", 65279, cb.WPawns)
 	}
 
@@ -28,11 +27,11 @@ func TestNew(t *testing.T) {
 			wPiecesUnion)
 	}
 
-	bPieces := uint64(1)<<63 - 1 + uint64(1)<<63 - (uint64(1)<<48 - 1)
+	bPieces := uint64(1<<63) - 1 + 1<<63 - (1<<48 - 1)
 	if cb.BPieces != bPieces {
 		t.Errorf("initial bPieces: want=%b\n, got=%b", bPieces, cb.BPieces)
 	}
-	bPawns := uint64(1)<<56 - 1 - (uint64(1)<<48 - 1)
+	bPawns := uint64(1<<56) - 1 - (1<<48 - 1)
 	if cb.BPawns != bPawns {
 		t.Errorf("initial bPawns: want=%b\n, got=%b", bPawns, cb.BPawns)
 	}
@@ -41,7 +40,7 @@ func TestNew(t *testing.T) {
 		cb.BQueens | cb.BKing
 	if cb.BPieces != bPiecesUnion {
 		t.Errorf("bPieces != union of all black pieces. want=%b,\ngot=%b",
-			uint64(1)<<63-1+uint64(1)<<63-(uint64(1)<<48-1), bPiecesUnion)
+			uint64(1<<63)-1+(1<<63)-(1<<48-1), bPiecesUnion)
 	}
 }
 
@@ -68,40 +67,36 @@ func TestKnightBBs(t *testing.T) {
 		{
 			// file A
 			square:   0,
-			expected: uint64(math.Pow(2, 17) + math.Pow(2, 10)),
+			expected: uint64(1)<<17 + 1<<10,
 			actual:   bbs[0],
 			name:     "knight",
 		},
 		{
 			// file B
-			square: 57,
-			expected: uint64(math.Pow(2, 57-17) + math.Pow(2, 57-15) +
-				1<<(57-6)),
-			actual: bbs[57],
-			name:   "knight",
+			square:   57,
+			expected: uint64(1)<<(57-17) + 1<<(57-15) + 1<<(57-6),
+			actual:   bbs[57],
+			name:     "knight",
 		},
 		{
 			// file G
-			square: 6,
-			expected: uint64(math.Pow(2, 6+17) + math.Pow(2, 6+15) +
-				1<<(6+6)),
-			actual: bbs[6],
-			name:   "knight",
+			square:   6,
+			expected: uint64(1)<<(6+17) + 1<<(6+15) + 1<<(6+6),
+			actual:   bbs[6],
+			name:     "knight",
 		},
 		{
 			// file H
-			square: 55,
-			expected: uint64(math.Pow(2, 55-17) + math.Pow(2, 55+6) +
-				1<<(55-10)),
-			actual: bbs[55],
-			name:   "knight",
+			square:   55,
+			expected: uint64(1)<<(55-17) + 1<<(55+6) + 1<<(55-10),
+			actual:   bbs[55],
+			name:     "knight",
 		},
 		{
 			// center of board
 			square: 20,
-			expected: uint64(math.Pow(2, 20+17) + math.Pow(2, 20+15) +
-				math.Pow(2, 20-17) + math.Pow(2, 20-15) + 1<<(20-10) +
-				math.Pow(2, 20+6) + math.Pow(2, 20+10) + math.Pow(2, 20-6)),
+			expected: uint64(1)<<(20+17) + 1<<(20+15) + 1<<(20-17) + 1<<(20-15) +
+				1<<(20-10) + 1<<(20+6) + 1<<(20+10) + 1<<(20-6),
 			actual: bbs[20],
 			name:   "knight",
 		},

@@ -30,15 +30,15 @@ func New() *Board {
 		WToMove: 1,
 
 		WPieces:  uint64(1)<<16 - 1,
-		WPawns:   uint64(1)<<16 - 1 - (uint64(1)<<8 - 1),
+		WPawns:   uint64(1)<<16 - 1 - (1<<8 - 1),
 		WKnights: uint64(1<<1 + 1<<6),
 		WBishops: uint64(1<<2 + 1<<5),
 		WRooks:   uint64(1<<0 + 1<<7),
 		WQueens:  uint64(1 << 3),
 		WKing:    uint64(1 << 4),
 
-		BPieces:  uint64(1)<<63 - 1 + uint64(1)<<63 - (uint64(1)<<48 - 1),
-		BPawns:   uint64(1)<<56 - 1 - (uint64(1)<<48 - 1),
+		BPieces:  uint64(1)<<63 - 1 + 1<<63 - (1<<48 - 1),
+		BPawns:   uint64(1)<<56 - 1 - (1<<48 - 1),
 		BKnights: uint64(1<<57 + 1<<62),
 		BBishops: uint64(1<<58 + 1<<61),
 		BRooks:   uint64(1<<56 + 1<<63),
