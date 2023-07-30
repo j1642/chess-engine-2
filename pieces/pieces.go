@@ -82,6 +82,15 @@ func getBishopMoves(square int, cb *board.Board) uint64 {
 	return moves
 }
 
+func getQueenMoves(square int, cb *board.Board) uint64 {
+	return getRookMoves(square, cb) | getBishopMoves(square, cb)
+}
+
+func getKingMoves(square int, cb *board.Board) uint64 {
+	// TODO: King cannot move to squares attacked by opponent.
+	return cb.KAttacks[square]
+}
+
 func binSearch(n int, nums [8]int) bool {
 	l := 0
 	r := len(nums) - 1
