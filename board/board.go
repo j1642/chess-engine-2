@@ -74,7 +74,7 @@ fuenc getFiles() [4]map[int]bool {
 }
 */
 
-func containsN(n int, nums [8]int) bool {
+func ContainsN(n int, nums [8]int) bool {
 	for _, num := range nums {
 		if n == num {
 			return true
@@ -111,13 +111,13 @@ func MakeKnightBBs() [64]uint64 {
 
 	for sq := 0; sq < 64; sq++ {
 		switch {
-		case containsN(sq, files[0]):
+		case ContainsN(sq, files[0]):
 			directions = []int{17, 10, -6, -15}
-		case containsN(sq, files[1]):
+		case ContainsN(sq, files[1]):
 			directions = []int{17, 15, 10, -6, -17, -15}
-		case containsN(sq, files[2]):
+		case ContainsN(sq, files[2]):
 			directions = []int{17, 15, -17, -15, 6, -10}
-		case containsN(sq, files[3]):
+		case ContainsN(sq, files[3]):
 			directions = []int{15, -17, 6, -10}
 		default:
 			directions = []int{17, 15, 10, -6, -17, -15, 6, -10}
@@ -170,10 +170,10 @@ func makeKingBBs() [64]uint64 {
 	for sq := 0; sq < 64; sq++ {
 		switch {
 		// file A
-		case containsN(sq, files[0]):
+		case ContainsN(sq, files[0]):
 			directions = []int{8, 9, 1, -7, -8}
 		// file H
-		case containsN(sq, files[3]):
+		case ContainsN(sq, files[3]):
 			directions = []int{8, 7, -1, -9, -8}
 		default:
 			directions = []int{7, 8, 9, -1, 1, -9, -8, -7}
@@ -193,7 +193,7 @@ func makeKingBBs() [64]uint64 {
 func makeSlidingAttackBBs() [8][64]uint64 {
 	bbs := [8][64]uint64{}
 	files := getFiles()
-	// TODO: make containsN() generic to remove wasted zeroes.
+	// TODO: make ContainsN() generic to remove wasted zeroes.
 	// Or use slices instead of arrays.
 	fileAForbidden := [8]int{-9, -1, 7, 0, 0, 0, 0, 0}
 	fileHForbidden := [8]int{9, 1, -7, 0, 0, 0, 0, 0}
@@ -201,9 +201,9 @@ func makeSlidingAttackBBs() [8][64]uint64 {
 	// Movement directions are ordered clockwise.
 	for i, dir := range [8]int{8, 9, 1, -7, -8, -9, -1, 7} {
 		for sq := 0; sq < 64; sq++ {
-			if containsN(sq, files[0]) && containsN(dir, fileAForbidden) {
+			if ContainsN(sq, files[0]) && ContainsN(dir, fileAForbidden) {
 				continue
-			} else if containsN(sq, files[3]) && containsN(dir, fileHForbidden) {
+			} else if ContainsN(sq, files[3]) && ContainsN(dir, fileHForbidden) {
 				continue
 			}
 
@@ -215,7 +215,7 @@ func makeSlidingAttackBBs() [8][64]uint64 {
 				bbs[i][sq] += 1 << newSq
 				// Found board edge
 				if dir != 8 && dir != -8 &&
-					(containsN(newSq, files[0]) || containsN(newSq, files[3])) {
+					(ContainsN(newSq, files[0]) || ContainsN(newSq, files[3])) {
 					break
 				}
 			}
