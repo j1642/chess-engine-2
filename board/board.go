@@ -1,24 +1,15 @@
 package board
 
 type Board struct {
-	// TODO: Avoid branching by using knights[wToMove][square]
 	WToMove int // 1 or 0, true or false
 
-	WPieces  uint64
-	WPawns   uint64
-	WKnights uint64
-	WBishops uint64
-	WRooks   uint64
-	WQueens  uint64
-	WKing    uint64
-
-	BPieces  uint64
-	BPawns   uint64
-	BKnights uint64
-	BBishops uint64
-	BRooks   uint64
-	BQueens  uint64
-	BKing    uint64
+	BwPieces  [2]uint64
+	BwPawns   [2]uint64
+	BwKnights [2]uint64
+	BwBishops [2]uint64
+	BwRooks   [2]uint64
+	BwQueens  [2]uint64
+	BwKing    [2]uint64
 
 	PAttacks       [2][64]uint64
 	NAttacks       [64]uint64
@@ -33,21 +24,13 @@ func New() *Board {
 	return &Board{
 		WToMove: 1,
 
-		WPieces:  uint64(1)<<16 - 1,
-		WPawns:   uint64(1)<<16 - 1 - (1<<8 - 1),
-		WKnights: uint64(1<<1 + 1<<6),
-		WBishops: uint64(1<<2 + 1<<5),
-		WRooks:   uint64(1<<0 + 1<<7),
-		WQueens:  uint64(1 << 3),
-		WKing:    uint64(1 << 4),
-
-		BPieces:  uint64(1)<<63 - 1 + 1<<63 - (1<<48 - 1),
-		BPawns:   uint64(1)<<56 - 1 - (1<<48 - 1),
-		BKnights: uint64(1<<57 + 1<<62),
-		BBishops: uint64(1<<58 + 1<<61),
-		BRooks:   uint64(1<<56 + 1<<63),
-		BQueens:  uint64(1 << 59),
-		BKing:    uint64(1 << 60),
+		BwPieces:  [2]uint64{1<<63 - 1 + 1<<63 - (1<<48 - 1), 1<<16 - 1},
+		BwPawns:   [2]uint64{1<<56 - 1 - (1<<48 - 1), 1<<16 - 1 - (1<<8 - 1)},
+		BwKnights: [2]uint64{1<<57 + 1<<62, 1<<1 + 1<<6},
+		BwBishops: [2]uint64{1<<58 + 1<<61, 1<<2 + 1<<5},
+		BwRooks:   [2]uint64{1<<56 + 1<<63, 1<<0 + 1<<7},
+		BwQueens:  [2]uint64{1 << 59, 1 << 3},
+		BwKing:    [2]uint64{1 << 60, 1 << 4},
 
 		PAttacks:       makePawnBBs(),
 		NAttacks:       MakeKnightBBs(),
