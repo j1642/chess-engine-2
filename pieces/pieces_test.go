@@ -244,6 +244,23 @@ func TestMovePiece(t *testing.T) {
 	}
 }
 
+func TestPromotePawn(t *testing.T) {
+	// TODO: mock user input to test other promotePawn() branch
+	cb := &board.Board{
+		WToMove:  1,
+		BwPawns:  [2]uint64{1 << 1, 1 << 63},
+		BwQueens: [2]uint64{0, 0},
+	}
+	promotePawn(uint64(1<<63), cb, "q")
+
+	if cb.BwPawns[1] != uint64(0) {
+		t.Errorf("pawn did not promote: want=0, got=%b", cb.BwPawns[1])
+	}
+	if cb.BwQueens[1] != uint64(1<<63) {
+		t.Error("promoted queen not present")
+	}
+}
+
 func TestBinSearch(t *testing.T) {
 	nums := [8]int{0, 0, 0, 1, 2, 3, 4, 5}
 	if !binSearch(1, nums) {

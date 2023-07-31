@@ -1,11 +1,14 @@
 package pieces
 
 import (
+	"bufio"
 	"engine2/board"
 	"fmt"
 	_ "log"
 	_ "math"
 	"math/bits"
+	"os"
+	"strings"
 )
 
 /* bb = bit board, cb = chessboard
@@ -16,7 +19,7 @@ and the opposite for negative directions.
 
 // TODO: Investigate performance impact of branching in move gen.
 
-func movePiece(from, to int, cb *board.Board) {
+func movePiece(from, to int, cb *board.Board, promoteTo ...string) {
 	// TODO: Refactor. Maybe by making a parent array board.occupied.
 	isValid, piece := isValidMove(from, to, cb)
 	if !isValid {
@@ -40,6 +43,7 @@ func movePiece(from, to int, cb *board.Board) {
 		cb.BwQueens[cb.WToMove] ^= fromBB + toBB
 	case piece == "k":
 		cb.BwKing[cb.WToMove] ^= fromBB + toBB
+		cb.KingSquare[cb.WToMove] = to
 	default:
 		panic("empty or invalid piece type")
 	}
@@ -65,7 +69,46 @@ func movePiece(from, to int, cb *board.Board) {
 		}
 	}
 
+	if len(promoteTo) == 1 || (piece == "p" && (to < 8 || to > 55)) {
+		promotePawn(toBB, cb, promoteTo[0])
+	}
+
 	cb.WToMove ^= 1
+}
+
+func promotePawn(toBB uint64, cb *board.Board, promoteTo ...string) {
+	if len(promoteTo) == 1 {
+		switch {
+		case promoteTo[0] == "q":
+			cb.BwQueens[cb.WToMove] ^= toBB
+		case promoteTo[0] == "n":
+			cb.BwKnights[cb.WToMove] ^= toBB
+		case promoteTo[0] == "b":
+			cb.BwBishops[cb.WToMove] ^= toBB
+		case promoteTo[0] == "r":
+			cb.BwRooks[cb.WToMove] ^= toBB
+		default:
+			panic("invalid promoteTo")
+		}
+	} else {
+		fmt.Print("promote pawn to N, B, R, or Q: ")
+		scanner := bufio.NewScanner(os.Stdin)
+		scanner.Scan()
+		err := scanner.Err()
+		if err != nil {
+			panic(err)
+		}
+		userPromote := strings.ToLower(scanner.Text())
+
+		if userPromote == "q" || userPromote == "n" || userPromote == "b" || userPromote == "r" {
+			promotePawn(toBB, cb, userPromote)
+		} else {
+			fmt.Println("invalid promotion type, try again")
+			promotePawn(toBB, cb)
+		}
+	}
+
+	cb.BwPawns[cb.WToMove] ^= toBB
 }
 
 func isValidMove(from, to int, cb *board.Board) (bool, string) {
