@@ -3,6 +3,7 @@ package pieces
 import (
 	"engine2/board"
 	"fmt"
+	_ "log"
 	_ "math"
 	"math/bits"
 )
@@ -16,12 +17,54 @@ and the opposite for negative directions.
 // TODO: Investigate performance impact of branching in move gen.
 
 func movePiece(from, to int, cb *board.Board) {
+	// TODO: Refactor. Maybe by making a parent array board.occupied.
 	isValid, piece := isValidMove(from, to, cb)
 	if !isValid {
-		fmt.Printf("invalid move for %v: to=%d, from=%d\n", piece, to, from)
+		fmt.Printf("invalid move for %v: from=%d, to=%d\n", piece, from, to)
+		return
 	}
-	// Determine if there is a capture.
-	//toBB := uint64(1<<to)
+	fromBB := uint64(1 << from)
+	toBB := uint64(1 << to)
+
+	cb.BwPieces[cb.WToMove] ^= fromBB + toBB
+	switch {
+	case piece == "p":
+		cb.BwPawns[cb.WToMove] ^= fromBB + toBB
+	case piece == "n":
+		cb.BwKnights[cb.WToMove] ^= fromBB + toBB
+	case piece == "b":
+		cb.BwBishops[cb.WToMove] ^= fromBB + toBB
+	case piece == "r":
+		cb.BwRooks[cb.WToMove] ^= fromBB + toBB
+	case piece == "q":
+		cb.BwQueens[cb.WToMove] ^= fromBB + toBB
+	case piece == "k":
+		cb.BwKing[cb.WToMove] ^= fromBB + toBB
+	default:
+		panic("empty or invalid piece type")
+	}
+
+	// Is this a capture (of a non-king piece)?
+	opponent := 1 ^ cb.WToMove
+	if toBB&(cb.BwPieces[opponent]^cb.BwKing[opponent]) != 0 {
+		cb.BwPieces[opponent] ^= toBB
+
+		switch {
+		case toBB&cb.BwPawns[opponent] != 0:
+			cb.BwPawns[opponent] ^= toBB
+		case toBB&cb.BwKnights[opponent] != 0:
+			cb.BwKnights[opponent] ^= toBB
+		case toBB&cb.BwBishops[opponent] != 0:
+			cb.BwBishops[opponent] ^= toBB
+		case toBB&cb.BwRooks[opponent] != 0:
+			cb.BwRooks[opponent] ^= toBB
+		case toBB&cb.BwQueens[opponent] != 0:
+			cb.BwQueens[opponent] ^= toBB
+		default:
+			panic("no captured piece bitboard matches")
+		}
+	}
+
 	cb.WToMove ^= 1
 }
 
@@ -89,11 +132,8 @@ func isValidMove(from, to int, cb *board.Board) (bool, string) {
 		}
 		piece = "k"
 	default:
-		fmt.Printf("invalid move: no piece of color %v on that square\n", cb.WToMove)
-		fmt.Printf("wRooks: %b\n", cb.BwRooks[1])
-		fmt.Printf("WtoMove: %b\n", cb.WToMove)
-		fmt.Printf("fromBB: %b\n", fromBB)
-		return false, piece
+		fmt.Printf("invalid move: no piece of color %v on square %d\n", cb.WToMove, from)
+		return false, ""
 	}
 	return true, piece
 }
@@ -130,6 +170,10 @@ func getRookMoves(square int, cb *board.Board) uint64 {
 	}
 
 	return moves
+}
+
+func getKnightMoves(square int, cb *board.Board) uint64 {
+	return cb.NAttacks[square]
 }
 
 func getBishopMoves(square int, cb *board.Board) uint64 {

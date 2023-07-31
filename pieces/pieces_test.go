@@ -198,6 +198,52 @@ func TestIsValidMove(t *testing.T) {
 	runValidMoveTests(t, tests)
 }
 
+func TestMovePiece(t *testing.T) {
+	cb := board.New()
+	movePiece(8, 16, cb)
+
+	if cb.WToMove != 0 {
+		t.Errorf("WToMove: want=0, got=%d", cb.WToMove)
+	}
+	if cb.BwPawns[1] != uint64(1<<17)-1-1<<8-(1<<8-1) {
+		t.Errorf("wPawns: want=\n%b,\ngot=\n%b\n",
+			uint64(1<<17)-1-1<<8-(1<<8-1), cb.BwPawns[1])
+	}
+	if cb.BwPieces[1] != uint64(1<<17)-1-1<<8 {
+		t.Errorf("wPieces: want=\n%b,\ngot=\n%b",
+			uint64(1<<17)-1-1<<8, cb.BwPieces[1])
+	}
+	movePiece(57, 42, cb)
+	movePiece(16, 24, cb)
+	// Waiting move by ng8
+	movePiece(62, 45, cb)
+	movePiece(24, 32, cb)
+
+	movePiece(42, 32, cb)
+
+	if cb.WToMove != 1 {
+		t.Errorf("WToMove: want=1, got=%d", cb.WToMove)
+	}
+	if cb.BwPawns[1] != uint64(1<<16)-1-1<<8-(1<<8-1) {
+		t.Errorf("wPawns: want=\n%b,\ngot=\n%b\n",
+			uint64(1<<16)-1-1<<8-(1<<8-1), cb.BwPawns[1])
+	}
+	if cb.BwPieces[1] != uint64(1<<16)-1-1<<8 {
+		t.Errorf("wPieces: want=\n%b,\ngot=\n%b",
+			uint64(1<<16)-1-1<<8, cb.BwPieces[1])
+	}
+
+	if cb.BwKnights[0] != uint64(1<<45+1<<32) {
+		t.Errorf("bKnights: want=\n%b,\ngot=\n%b",
+			uint64(1<<45+1<<32), cb.BwKnights[0])
+	}
+	bPieces := ^uint64(0) - (1<<48 - 1) + 1<<32 + 1<<45 - 1<<57 - 1<<62
+	if cb.BwPieces[0] != bPieces {
+		t.Errorf("bPieces: want=\n%b,\ngot=\n%b",
+			bPieces, cb.BwPieces[0])
+	}
+}
+
 func TestBinSearch(t *testing.T) {
 	nums := [8]int{0, 0, 0, 1, 2, 3, 4, 5}
 	if !binSearch(1, nums) {

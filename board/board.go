@@ -1,6 +1,7 @@
 package board
 
 type Board struct {
+	// TODO: move occupancies into one array? Possible memory speed boost
 	WToMove int // 1 or 0, true or false
 
 	BwPieces  [2]uint64
