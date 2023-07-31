@@ -54,10 +54,60 @@ type bbTestCase struct {
 func runMoveBBTests(t *testing.T, tests []bbTestCase) {
 	for _, tt := range tests {
 		if tt.actual != tt.expected {
-			t.Errorf("incorrect bitboard moves for a %v on square %d.\nexpected:\n%b, %T\ngot:\n%b, %T",
+			t.Errorf("incorrect bitboard for %v on square %d.\nexpected:\n%b, %T\ngot:\n%b, %T",
 				tt.name, tt.square, tt.expected, tt.expected, tt.actual, tt.actual)
 		}
 	}
+}
+
+func TestPawnAttackBBs(t *testing.T) {
+	bbs := makePawnBBs()
+	tests := []bbTestCase{
+		{
+			square:   8,
+			expected: uint64(1 << 17),
+			actual:   bbs[1][8],
+			name:     "wPawn",
+		},
+		{
+			square:   8,
+			expected: uint64(1 << 1),
+			actual:   bbs[0][8],
+			name:     "bPawn",
+		},
+		{
+			square:   15,
+			expected: uint64(1 << 22),
+			actual:   bbs[1][15],
+			name:     "wPawn",
+		},
+		{
+			square:   15,
+			expected: uint64(1 << 6),
+			actual:   bbs[0][15],
+			name:     "bPawn",
+		},
+		{
+			square:   28,
+			expected: uint64(1<<37 + 1<<35),
+			actual:   bbs[1][28],
+			name:     "wPawn",
+		},
+		{
+			square:   28,
+			expected: uint64(1<<21 + 1<<19),
+			actual:   bbs[0][28],
+			name:     "bPawn",
+		},
+		{
+			square:   100,
+			expected: uint64(0),
+			actual:   bbs[1][5] + bbs[1][60] + bbs[0][0] + bbs[0][60],
+			name:     "pawns on 1st and 8th ranks",
+		},
+	}
+
+	runMoveBBTests(t, tests)
 }
 
 func TestKnightBBs(t *testing.T) {

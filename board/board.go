@@ -20,9 +20,13 @@ type Board struct {
 	BQueens  uint64
 	BKing    uint64
 
+	PAttacks       [2][64]uint64
 	NAttacks       [64]uint64
 	KAttacks       [64]uint64
 	SlidingAttacks [8][64]uint64
+
+	WKSquare int
+	BKSquare int
 }
 
 func New() *Board {
@@ -45,9 +49,13 @@ func New() *Board {
 		BQueens:  uint64(1 << 59),
 		BKing:    uint64(1 << 60),
 
+		PAttacks:       makePawnBBs(),
 		NAttacks:       MakeKnightBBs(),
 		KAttacks:       makeKingBBs(),
 		SlidingAttacks: makeSlidingAttackBBs(),
+
+		WKSquare: 4,
+		BKSquare: 60,
 	}
 }
 
@@ -90,6 +98,27 @@ func containsN(n int, nums [8]int) bool {
 		}
 	}
 	return false
+}
+
+func makePawnBBs() [2][64]uint64 {
+	// First index is isWhite: 1 for white pawns, 0 for black pawns.
+	bbs := [2][64]uint64{}
+
+	for sq := 8; sq < 56; sq++ {
+		switch {
+		case sq%8 == 0:
+			bbs[1][sq] += 1 << (sq + 9)
+			bbs[0][sq] += 1 << (sq - 7)
+		case sq%8 == 7:
+			bbs[1][sq] += 1 << (sq + 7)
+			bbs[0][sq] += 1 << (sq - 9)
+		default:
+			bbs[1][sq] += 1<<(sq+7) + 1<<(sq+9)
+			bbs[0][sq] += 1<<(sq-7) + 1<<(sq-9)
+		}
+	}
+
+	return bbs
 }
 
 func MakeKnightBBs() [64]uint64 {
