@@ -17,8 +17,8 @@ type Board struct {
 	KAttacks       [64]uint64
 	SlidingAttacks [8][64]uint64
 
-	WKSquare int
-	BKSquare int
+	KingSquare   [2]int
+	CastleRights [2][2]int // [b, w][queenside, kingside]
 }
 
 func New() *Board {
@@ -38,8 +38,8 @@ func New() *Board {
 		KAttacks:       makeKingBBs(),
 		SlidingAttacks: makeSlidingAttackBBs(),
 
-		WKSquare: 4,
-		BKSquare: 60,
+		KingSquare:   [2]int{4, 60},
+		CastleRights: [2][2]int{{1, 1}, {1, 1}},
 	}
 }
 
