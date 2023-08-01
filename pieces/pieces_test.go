@@ -154,7 +154,7 @@ func TestIsValidMove(t *testing.T) {
 			expected: true,
 			actual:   firstVal(isValidMove(7, 63, cb)),
 		},
-		// Rook passing edge
+		// Rook/queen crossing board edge
 		{
 			from: 7, to: 8,
 			cb:       cb,
@@ -167,12 +167,6 @@ func TestIsValidMove(t *testing.T) {
 			cb:       cb,
 			expected: true,
 			actual:   firstVal(isValidMove(3, 7, cb)),
-		},
-		{
-			from: 7, to: 8,
-			cb:       cb,
-			expected: false,
-			actual:   firstVal(isValidMove(7, 8, cb)),
 		},
 		{
 			from: 7, to: 16,
