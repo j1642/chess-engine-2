@@ -4,7 +4,7 @@ import (
 	"bufio"
 	"engine2/board"
 	"fmt"
-	_ "log"
+	"log"
 	_ "math"
 	"math/bits"
 	"os"
@@ -97,13 +97,7 @@ func promotePawn(toBB uint64, cb *board.Board, promoteTo ...string) {
 		}
 	} else {
 		fmt.Print("promote pawn to N, B, R, or Q: ")
-		scanner := bufio.NewScanner(os.Stdin)
-		scanner.Scan()
-		err := scanner.Err()
-		if err != nil {
-			panic(err)
-		}
-		userPromote := strings.ToLower(scanner.Text())
+		userPromote := getUserInput()
 
 		if userPromote == "q" || userPromote == "n" || userPromote == "b" || userPromote == "r" {
 			promotePawn(toBB, cb, userPromote)
@@ -114,6 +108,17 @@ func promotePawn(toBB uint64, cb *board.Board, promoteTo ...string) {
 	}
 
 	cb.BwPawns[cb.WToMove] ^= toBB
+}
+
+func getUserInput() string {
+	scanner := bufio.NewScanner(os.Stdin)
+	scanner.Scan()
+	err := scanner.Err()
+	if err != nil {
+		log.Println("failed to get input:", err)
+		return getUserInput()
+	}
+	return strings.ToLower(scanner.Text())
 }
 
 func isValidMove(from, to int, cb *board.Board) (bool, string) {
