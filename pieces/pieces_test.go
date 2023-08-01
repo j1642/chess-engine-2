@@ -287,6 +287,17 @@ func TestPromotePawn(t *testing.T) {
 	}
 }
 
+func TestRead1Bits(t *testing.T) {
+	nums := read1Bits(uint64(0b11001))
+	expected := []int{0, 3, 4}
+
+	for i, num := range nums {
+		if num != expected[i] {
+			t.Errorf("failed to read 1 bits: want=%d, got=%d", expected[i], nums[i])
+		}
+	}
+}
+
 func TestBinSearch(t *testing.T) {
 	nums := [8]int{0, 0, 0, 1, 2, 3, 4, 5}
 	if !binSearch(1, nums) {

@@ -263,6 +263,16 @@ func getKingMoves(square int, cb *board.Board) uint64 {
 	return cb.KAttacks[square]
 }
 
+func read1Bits(bb uint64) []int {
+	// Using TrailingZeros64() seems as fast as bitshifting right while bb>0.
+	squares := []int{}
+	for bb > 0 {
+		squares = append(squares, bits.TrailingZeros64(bb))
+		bb &= bb - 1
+	}
+	return squares
+}
+
 func binSearch(n int, nums [8]int) bool {
 	l := 0
 	r := len(nums) - 1
