@@ -25,8 +25,8 @@ func New() *Board {
 	return &Board{
 		WToMove: 1,
 
-		BwPieces:  [2]uint64{1<<63 - 1 + 1<<63 - (1<<48 - 1), 1<<16 - 1},
-		BwPawns:   [2]uint64{1<<56 - 1 - (1<<48 - 1), 1<<16 - 1 - (1<<8 - 1)},
+		BwPieces:  [2]uint64{0xFFFF000000000000, 0xFFFF},
+		BwPawns:   [2]uint64{0xFF000000000000, 0xFF00},
 		BwKnights: [2]uint64{1<<57 + 1<<62, 1<<1 + 1<<6},
 		BwBishops: [2]uint64{1<<58 + 1<<61, 1<<2 + 1<<5},
 		BwRooks:   [2]uint64{1<<56 + 1<<63, 1<<0 + 1<<7},
