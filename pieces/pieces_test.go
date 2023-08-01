@@ -61,9 +61,10 @@ func TestBishopMoves(t *testing.T) {
 }
 
 type validMoveTestCase struct {
-	from, to         int
-	cb               *board.Board
-	expected, actual bool
+	from, to                   int
+	cb                         *board.Board
+	expected, actual           bool
+	expectedPiece, actualPiece string
 }
 
 func runValidMoveTests(t *testing.T, tests []validMoveTestCase) {
@@ -72,11 +73,19 @@ func runValidMoveTests(t *testing.T, tests []validMoveTestCase) {
 			t.Errorf("move %d to %d: want=%v, got=%v",
 				tt.from, tt.to, tt.expected, tt.actual)
 		}
+		if tt.expectedPiece != tt.actualPiece {
+			t.Errorf("move %d to %d: want=%v, got=%v",
+				tt.from, tt.to, tt.expectedPiece, tt.actualPiece)
+		}
+
 	}
 }
 
 func firstVal(b bool, s string) bool {
 	return b
+}
+func secondVal(b bool, s string) string {
+	return s
 }
 
 func TestIsValidMove(t *testing.T) {
@@ -84,108 +93,131 @@ func TestIsValidMove(t *testing.T) {
 	tests := []validMoveTestCase{
 		{
 			from: -1, to: 0,
-			cb:       cb,
-			expected: false,
-			actual:   firstVal(isValidMove(-1, 0, cb)),
+			cb:            cb,
+			expected:      false,
+			actual:        firstVal(isValidMove(-1, 0, cb)),
+			expectedPiece: "",
+			actualPiece:   secondVal(isValidMove(-1, 0, cb)),
 		},
 		{
 			from: 0, to: 100,
-			cb:       cb,
-			expected: false,
-			actual:   firstVal(isValidMove(0, 100, cb)),
+			cb:            cb,
+			expected:      false,
+			actual:        firstVal(isValidMove(0, 100, cb)),
+			expectedPiece: "",
+			actualPiece:   secondVal(isValidMove(0, 100, cb)),
 		},
 		// No piece present
 		{
 			from: 20, to: 21,
-			cb:       cb,
-			expected: false,
-			actual:   firstVal(isValidMove(20, 21, cb)),
+			cb:            cb,
+			expected:      false,
+			actual:        firstVal(isValidMove(20, 21, cb)),
+			expectedPiece: "",
+			actualPiece:   secondVal(isValidMove(20, 21, cb)),
 		},
 		// Pawn
 		{
-			from: 8, to: 16,
-			cb:       cb,
-			expected: true,
-			actual:   firstVal(isValidMove(8, 16, cb)),
+			from: 8, to: 24,
+			cb:            cb,
+			expected:      true,
+			actual:        firstVal(isValidMove(8, 16, cb)),
+			expectedPiece: "p",
+			actualPiece:   secondVal(isValidMove(8, 16, cb)),
 		},
 		{
 			from: 8, to: 8,
-			cb:       cb,
-			expected: false,
-			actual:   firstVal(isValidMove(8, 8, cb)),
+			cb:            cb,
+			expected:      false,
+			actual:        firstVal(isValidMove(8, 8, cb)),
+			expectedPiece: "",
+			actualPiece:   secondVal(isValidMove(8, 8, cb)),
 		},
 		// Knight
 		{
 			from: 1, to: 18,
-			cb:       cb,
-			expected: true,
-			actual:   firstVal(isValidMove(1, 18, cb)),
+			cb:            cb,
+			expected:      true,
+			actual:        firstVal(isValidMove(1, 18, cb)),
+			expectedPiece: "n",
+			actualPiece:   secondVal(isValidMove(1, 18, cb)),
 		},
 		{
 			from: 6, to: 22,
-			cb:       cb,
-			expected: false,
-			actual:   firstVal(isValidMove(6, 22, cb)),
+			cb:            cb,
+			expected:      false,
+			actual:        firstVal(isValidMove(6, 22, cb)),
+			expectedPiece: "n",
+			actualPiece:   secondVal(isValidMove(6, 22, cb)),
 		},
 		// Bishop
 		{
 			from: 2, to: 47,
-			cb:       cb,
-			expected: true,
-			actual:   firstVal(isValidMove(2, 47, cb)),
+			cb:            cb,
+			expected:      false,
+			actual:        firstVal(isValidMove(2, 47, cb)),
+			expectedPiece: "b",
+			actualPiece:   secondVal(isValidMove(2, 47, cb)),
+		},
+		{
+			from: 2, to: 11,
+			cb:            cb,
+			expected:      false,
+			actual:        firstVal(isValidMove(2, 11, cb)),
+			expectedPiece: "b",
+			actualPiece:   secondVal(isValidMove(2, 11, cb)),
 		},
 		// Bishop passing edge
 		{
 			from: 5, to: 32,
-			cb:       cb,
-			expected: false,
-			actual:   firstVal(isValidMove(5, 32, cb)),
+			cb:            cb,
+			expected:      false,
+			actual:        firstVal(isValidMove(5, 32, cb)),
+			expectedPiece: "b",
+			actualPiece:   secondVal(isValidMove(5, 32, cb)),
 		},
 		// Rook
 		{
 			from: 0, to: 7,
-			cb:       cb,
-			expected: true,
-			actual:   firstVal(isValidMove(0, 7, cb)),
+			cb:            cb,
+			expected:      false,
+			actual:        firstVal(isValidMove(0, 7, cb)),
+			expectedPiece: "r",
+			actualPiece:   secondVal(isValidMove(0, 7, cb)),
 		},
 		{
-			from: 7, to: 63,
-			cb:       cb,
-			expected: true,
-			actual:   firstVal(isValidMove(7, 63, cb)),
+			from: 7, to: 15,
+			cb:            cb,
+			expected:      false,
+			actual:        firstVal(isValidMove(7, 15, cb)),
+			expectedPiece: "r",
+			actualPiece:   secondVal(isValidMove(7, 15, cb)),
 		},
-		// Rook/queen crossing board edge
+		// Rook/queen cannot wrap around the board edge
 		{
 			from: 7, to: 8,
-			cb:       cb,
-			expected: false,
-			actual:   firstVal(isValidMove(7, 8, cb)),
-		},
-		// Queen
-		{
-			from: 3, to: 7,
-			cb:       cb,
-			expected: true,
-			actual:   firstVal(isValidMove(3, 7, cb)),
-		},
-		{
-			from: 7, to: 16,
-			cb:       cb,
-			expected: false,
-			actual:   firstVal(isValidMove(7, 16, cb)),
+			cb:            cb,
+			expected:      false,
+			actual:        firstVal(isValidMove(7, 8, cb)),
+			expectedPiece: "r",
+			actualPiece:   secondVal(isValidMove(7, 8, cb)),
 		},
 		// King
 		{
 			from: 40, to: 39,
-			cb:       cb,
-			expected: false,
-			actual:   firstVal(isValidMove(40, 39, cb)),
+			cb:            cb,
+			expected:      false,
+			actual:        firstVal(isValidMove(40, 39, cb)),
+			expectedPiece: "",
+			actualPiece:   secondVal(isValidMove(40, 39, cb)),
 		},
 		{
 			from: 4, to: 13,
-			cb:       cb,
-			expected: true,
-			actual:   firstVal(isValidMove(4, 13, cb)),
+			cb:            cb,
+			expected:      false,
+			actual:        firstVal(isValidMove(4, 13, cb)),
+			expectedPiece: "k",
+			actualPiece:   secondVal(isValidMove(4, 13, cb)),
 		},
 	}
 

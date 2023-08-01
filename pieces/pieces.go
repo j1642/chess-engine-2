@@ -20,12 +20,17 @@ and the opposite for negative directions.
 // TODO: Investigate performance impact of branching in move gen.
 
 func movePiece(from, to int, cb *board.Board, promoteTo ...string) {
-	// TODO: Refactor. Maybe by making a parent array board.occupied.
+	// TODO: Refactor to remove switch. Maybe make a parent array board.Occupied.
 	isValid, piece := isValidMove(from, to, cb)
 	if !isValid {
-		fmt.Printf("invalid move for %v: from=%d, to=%d\n", piece, from, to)
+		if piece == "" {
+			fmt.Printf("no piece of the proper color on square %d", from)
+		} else {
+			fmt.Printf("invalid move for %v: from=%d, to=%d\n", piece, from, to)
+		}
 		return
 	}
+
 	fromBB := uint64(1 << from)
 	toBB := uint64(1 << to)
 
@@ -112,9 +117,10 @@ func promotePawn(toBB uint64, cb *board.Board, promoteTo ...string) {
 }
 
 func isValidMove(from, to int, cb *board.Board) (bool, string) {
-	// Does not check for check, pins, blocking pieces, or legality of a double
-	// pawn push. Castling is currently always invalid.
 	// Use for user-submitted moves only?
+	// Checks for blocking pieces and disallows captures of friendly pieces.
+	// Does not consider check, pins, or legality of a pawn movement direction.
+	// Castling is currently always invalid.
 	if from < 0 || from > 63 || to < 0 || to > 63 || to == from {
 		return false, ""
 	}
@@ -122,7 +128,6 @@ func isValidMove(from, to int, cb *board.Board) (bool, string) {
 	toBB := uint64(1 << to)
 	diff := to - from
 	var piece string
-
 	// to == from already excluded, no 0 move bugs from pawnDirections.
 	pawnDirections := [2][8]int{{-7, -8, -9, -16, 0, 0, 0, 0},
 		{7, 8, 9, 16, 0, 0, 0, 0},
@@ -131,53 +136,44 @@ func isValidMove(from, to int, cb *board.Board) (bool, string) {
 	switch {
 	case fromBB&cb.BwPawns[cb.WToMove] > 0:
 		if !board.ContainsN(diff, pawnDirections[cb.WToMove]) {
-			fmt.Println("invalid move: pawns cannot move like that")
 			return false, "p"
 		}
 		piece = "p"
 	case fromBB&cb.BwKnights[cb.WToMove] > 0:
 		if toBB&cb.NAttacks[from] == 0 {
-			fmt.Println("invalid move: knights cannot move like that")
 			return false, "n"
 		}
 		piece = "n"
 	case fromBB&cb.BwBishops[cb.WToMove] > 0:
-		if toBB&(cb.SlidingAttacks[1][from]|cb.SlidingAttacks[3][from]|
-			cb.SlidingAttacks[5][from]|cb.SlidingAttacks[7][from]) == 0 {
-			fmt.Println("invalid move: bishops cannot move like that")
+		if toBB&getBishopMoves(from, cb) == 0 {
 			return false, "b"
 		}
 		piece = "b"
 	case fromBB&cb.BwRooks[cb.WToMove] > 0:
-		if toBB&(cb.SlidingAttacks[0][from]|cb.SlidingAttacks[2][from]|
-			cb.SlidingAttacks[4][from]|cb.SlidingAttacks[6][from]) == 0 {
-
-			fmt.Println("invalid move: rooks cannot move like that")
+		if toBB&getRookMoves(from, cb) == 0 {
 			return false, "r"
 		}
 		piece = "r"
 	case fromBB&cb.BwQueens[cb.WToMove] > 0:
 		// Combined bishop and rook checks.
-		if toBB&(cb.SlidingAttacks[1][from]|cb.SlidingAttacks[3][from]|
-			cb.SlidingAttacks[5][from]|cb.SlidingAttacks[7][from]|
-
-			cb.SlidingAttacks[0][from]|cb.SlidingAttacks[2][from]|
-			cb.SlidingAttacks[4][from]|cb.SlidingAttacks[6][from]) == 0 {
-
-			fmt.Println("invalid move: queens cannot move like that")
+		if toBB&(getRookMoves(from, cb)|getBishopMoves(from, cb)) == 0 {
 			return false, "q"
 		}
 		piece = "q"
 	case fromBB&cb.BwKing[cb.WToMove] > 0:
 		if toBB&cb.KAttacks[from] == 0 {
-			fmt.Println("invalid move: kings cannot move like that")
 			return false, "k"
 		}
 		piece = "k"
 	default:
-		fmt.Printf("invalid move: no piece of color %v on square %d\n", cb.WToMove, from)
 		return false, ""
 	}
+
+	// Friendly piece collision
+	if toBB&cb.BwPieces[cb.WToMove] != 0 {
+		return false, piece
+	}
+
 	return true, piece
 }
 
