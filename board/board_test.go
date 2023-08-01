@@ -304,6 +304,25 @@ func TestSlidingAttackBBs(t *testing.T) {
 			actual:   bbs[7][9],
 			name:     "NW ray",
 		},
+		// Moves cannot pass the board edges
+		{
+			square:   7,
+			expected: uint64(0),
+			actual:   bbs[2][7],
+			name:     "E ray",
+		},
+		{
+			square:   56,
+			expected: uint64(0),
+			actual:   bbs[0][56],
+			name:     "N ray",
+		},
+		{
+			square:   7,
+			expected: uint64(0),
+			actual:   bbs[1][7],
+			name:     "NE ray",
+		},
 	}
 
 	runMoveBBTests(t, tests)
