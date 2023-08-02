@@ -30,6 +30,8 @@ func movePiece(from, to int, cb *board.Board, promoteTo ...string) {
 		}
 		return
 	}
+	// TODO: Remove reliance on isValid from rest of func (find piece var in
+	// a new func).
 
 	fromBB := uint64(1 << from)
 	toBB := uint64(1 << to)
@@ -44,11 +46,18 @@ func movePiece(from, to int, cb *board.Board, promoteTo ...string) {
 		cb.BwBishops[cb.WToMove] ^= fromBB + toBB
 	case piece == "r":
 		cb.BwRooks[cb.WToMove] ^= fromBB + toBB
+		if fromBB == 0 || fromBB == 1<<63 {
+			cb.CastleRights[cb.WToMove][0] = false
+		} else if fromBB == 1<<7 || fromBB == 1<<63 {
+			cb.CastleRights[cb.WToMove][1] = false
+		}
 	case piece == "q":
 		cb.BwQueens[cb.WToMove] ^= fromBB + toBB
 	case piece == "k":
 		cb.BwKing[cb.WToMove] ^= fromBB + toBB
 		cb.KingSquare[cb.WToMove] = to
+		cb.CastleRights[cb.WToMove][0] = false
+		cb.CastleRights[cb.WToMove][1] = false
 	default:
 		panic("empty or invalid piece type")
 	}
@@ -66,6 +75,17 @@ func movePiece(from, to int, cb *board.Board, promoteTo ...string) {
 		case toBB&cb.BwBishops[opponent] != 0:
 			cb.BwBishops[opponent] ^= toBB
 		case toBB&cb.BwRooks[opponent] != 0:
+			// TODO: move castling checks to a less-frequented function
+			// int type mixing here seems ok based on investigation
+			if opponent == 0 && toBB == 1<<56 {
+				cb.CastleRights[opponent][0] = false
+			} else if opponent == 0 && toBB == 1<<63 {
+				cb.CastleRights[opponent][1] = false
+			} else if opponent == 1 && toBB == 0 {
+				cb.CastleRights[opponent][0] = false
+			} else if opponent == 1 && toBB == 1<<7 {
+				cb.CastleRights[opponent][1] = false
+			}
 			cb.BwRooks[opponent] ^= toBB
 		case toBB&cb.BwQueens[opponent] != 0:
 			cb.BwQueens[opponent] ^= toBB
@@ -259,8 +279,27 @@ func getQueenMoves(square int, cb *board.Board) uint64 {
 
 func getKingMoves(square int, cb *board.Board) uint64 {
 	// TODO: King cannot move to squares attacked by opponent.
-	// TODO: Castling.
-	return cb.KAttacks[square]
+	moves := cb.KAttacks[square]
+
+	// TODO: A king cannot castle out of, through, or into an attacked square.
+	// CastleRights true when king and rook(s) have not moved or been captured.
+	if cb.WToMove == 0 {
+		if cb.CastleRights[0][0] && (1<<57+1<<58+1<<59)&(cb.BwPieces[0]|cb.BwPieces[1]) == 0 {
+			moves += 1 << 58
+		}
+		if cb.CastleRights[0][1] && (1<<61+1<<62)&(cb.BwPieces[0]|cb.BwPieces[1]) == 0 {
+			moves += 1 << 62
+		}
+	} else {
+		if cb.CastleRights[1][0] && (1+1<<2+1<<3)&(cb.BwPieces[0]|cb.BwPieces[1]) == 0 {
+			moves += 1 << 2
+		}
+		if cb.CastleRights[1][1] && (1<<5+1<<6)&(cb.BwPieces[0]|cb.BwPieces[1]) == 0 {
+			moves += 1 << 6
+		}
+	}
+
+	return moves
 }
 
 func read1Bits(bb uint64) []int {

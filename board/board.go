@@ -18,7 +18,7 @@ type Board struct {
 	SlidingAttacks [8][64]uint64
 
 	KingSquare   [2]int
-	CastleRights [2][2]int // [b, w][queenside, kingside]
+	CastleRights [2][2]bool // [b, w][queenside, kingside]
 }
 
 func New() *Board {
@@ -39,7 +39,7 @@ func New() *Board {
 		SlidingAttacks: makeSlidingAttackBBs(),
 
 		KingSquare:   [2]int{4, 60},
-		CastleRights: [2][2]int{{1, 1}, {1, 1}},
+		CastleRights: [2][2]bool{{true, true}, {true, true}},
 	}
 }
 
