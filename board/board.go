@@ -151,7 +151,7 @@ func getFiles() [4][8]int {
 }
 
 /*
-fuenc getFiles() [4]map[int]bool {
+func getFiles() [4]map[int]bool {
     When only making knight BBs, maps are slower. Keep in case maps become
     faster when used for more pieces.
 
@@ -169,9 +169,13 @@ fuenc getFiles() [4]map[int]bool {
 }
 */
 
-func ContainsN(n int, nums [8]int) bool {
-	for _, num := range nums {
-		if n == num {
+type IntArray interface {
+	[8]int | [3]int
+}
+
+func ContainsN[T IntArray](n int, nums T) bool {
+	for i := 0; i < len(nums); i++ {
+		if n == nums[i] {
 			return true
 		}
 	}
@@ -288,10 +292,8 @@ func MakeKingBBs() [64]uint64 {
 func MakeSlidingAttackBBs() [8][64]uint64 {
 	bbs := [8][64]uint64{}
 	files := getFiles()
-	// TODO: make ContainsN() generic to remove wasted zeroes.
-	// Or use slices instead of arrays.
-	fileAForbidden := [8]int{-9, -1, 7, 0, 0, 0, 0, 0}
-	fileHForbidden := [8]int{9, 1, -7, 0, 0, 0, 0, 0}
+	fileAForbidden := [3]int{-9, -1, 7}
+	fileHForbidden := [3]int{9, 1, -7}
 
 	// Movement directions are ordered clockwise.
 	for i, dir := range [8]int{8, 9, 1, -7, -8, -9, -1, 7} {
