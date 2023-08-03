@@ -179,7 +179,7 @@ func getFiles() [4]map[int]bool {
 */
 
 type IntArray interface {
-	[8]int | [3]int
+	[8]int | [4]int | [3]int
 }
 
 func ContainsN[T IntArray](n int, nums T) bool {

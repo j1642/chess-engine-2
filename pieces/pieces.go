@@ -21,12 +21,18 @@ and the opposite for negative directions.
 
 func movePiece(from, to int, cb *board.Board, promoteTo ...string) {
 	// TODO: Refactor to remove switch. Maybe make a parent array board.Occupied.
-	isValid, piece := isValidMove(from, to, cb)
+	pieceType, err := getPieceType(from, cb)
+	if err != nil {
+		// TODO: Improve? Error is because the square does not exist (too high/low).
+		fmt.Printf("invalid square to move from. square=%d", from)
+		return
+	}
+	isValid := isValidMove(from, to, pieceType, cb)
 	if !isValid {
-		if piece == "" {
+		if pieceType == "" {
 			fmt.Printf("no piece of the proper color on square %d", from)
 		} else {
-			fmt.Printf("invalid move for %v: from=%d, to=%d\n", piece, from, to)
+			fmt.Printf("invalid move for %v: from=%d, to=%d\n", pieceType, from, to)
 		}
 		return
 	}
@@ -38,28 +44,29 @@ func movePiece(from, to int, cb *board.Board, promoteTo ...string) {
 	toBB := uint64(1 << to)
 
 	cb.BwPieces[cb.WToMove] ^= fromBB + toBB
-	switch {
-	case piece == "p":
+	switch pieceType {
+	case "p":
 		cb.BwPawns[cb.WToMove] ^= fromBB + toBB
-	case piece == "n":
+	case "n":
 		cb.BwKnights[cb.WToMove] ^= fromBB + toBB
-	case piece == "b":
+	case "b":
 		cb.BwBishops[cb.WToMove] ^= fromBB + toBB
-	case piece == "r":
+	case "r":
 		cb.BwRooks[cb.WToMove] ^= fromBB + toBB
 		if fromBB == 0 || fromBB == 1<<63 {
 			cb.CastleRights[cb.WToMove][0] = false
 		} else if fromBB == 1<<7 || fromBB == 1<<63 {
 			cb.CastleRights[cb.WToMove][1] = false
 		}
-	case piece == "q":
+	case "q":
 		cb.BwQueens[cb.WToMove] ^= fromBB + toBB
-	case piece == "k":
+	case "k":
 		cb.BwKing[cb.WToMove] ^= fromBB + toBB
 		cb.KingSquare[cb.WToMove] = to
 		cb.CastleRights[cb.WToMove][0] = false
 		cb.CastleRights[cb.WToMove][1] = false
 	default:
+		// This branch should never execute.
 		panic("empty or invalid piece type")
 	}
 
@@ -95,7 +102,7 @@ func movePiece(from, to int, cb *board.Board, promoteTo ...string) {
 		}
 	}
 
-	if len(promoteTo) == 1 || (piece == "p" && (to < 8 || to > 55)) {
+	if len(promoteTo) == 1 || (pieceType == "p" && (to < 8 || to > 55)) {
 		promotePawn(toBB, cb, promoteTo[0])
 	}
 
@@ -142,65 +149,83 @@ func getUserInput() string {
 	return strings.ToLower(scanner.Text())
 }
 
-func isValidMove(from, to int, cb *board.Board) (bool, string) {
+func getPieceType(square int, cb *board.Board) (string, error) {
+	// Return the piece type on a given square, or "" if the square is empty.
+	// Only works for pieces of the moving side, cb.WToMove.
+	if square < 0 || square > 63 {
+		return "", fmt.Errorf("square %d does not exist", square)
+	}
+	squareBB := uint64(1 << square)
+
+	switch {
+	case squareBB&cb.BwPawns[cb.WToMove] != 0:
+		return "p", nil
+	case squareBB&cb.BwKnights[cb.WToMove] != 0:
+		return "n", nil
+	case squareBB&cb.BwBishops[cb.WToMove] != 0:
+		return "b", nil
+	case squareBB&cb.BwRooks[cb.WToMove] != 0:
+		return "r", nil
+	case squareBB&cb.BwQueens[cb.WToMove] != 0:
+		return "q", nil
+	case squareBB&cb.BwKing[cb.WToMove] != 0:
+		return "k", nil
+	default:
+		return "", nil
+	}
+}
+
+func isValidMove(from, to int, pieceType string, cb *board.Board) bool {
 	// Use for user-submitted moves only?
 	// Checks for blocking pieces and disallows captures of friendly pieces.
 	// Does not consider check, pins, or legality of a pawn movement direction.
-	// Castling is currently always invalid.
 	if from < 0 || from > 63 || to < 0 || to > 63 || to == from {
-		return false, ""
+		return false
 	}
-	fromBB := uint64(1 << from)
 	toBB := uint64(1 << to)
 	diff := to - from
-	var piece string
 	// to == from already excluded, no 0 move bugs from pawnDirections.
-	pawnDirections := [2][8]int{{-7, -8, -9, -16, 0, 0, 0, 0},
-		{7, 8, 9, 16, 0, 0, 0, 0},
+	pawnDirections := [2][4]int{{-7, -8, -9, -16},
+		{7, 8, 9, 16},
 	}
 
-	switch {
-	case fromBB&cb.BwPawns[cb.WToMove] > 0:
+	switch pieceType {
+	case "p":
 		if !board.ContainsN(diff, pawnDirections[cb.WToMove]) {
-			return false, "p"
+			return false
 		}
-		piece = "p"
-	case fromBB&cb.BwKnights[cb.WToMove] > 0:
+	case "n":
 		if toBB&cb.NAttacks[from] == 0 {
-			return false, "n"
+			return false
 		}
-		piece = "n"
-	case fromBB&cb.BwBishops[cb.WToMove] > 0:
+	case "b":
 		if toBB&getBishopMoves(from, cb) == 0 {
-			return false, "b"
+			return false
 		}
-		piece = "b"
-	case fromBB&cb.BwRooks[cb.WToMove] > 0:
+	case "r":
 		if toBB&getRookMoves(from, cb) == 0 {
-			return false, "r"
+			return false
 		}
-		piece = "r"
-	case fromBB&cb.BwQueens[cb.WToMove] > 0:
+	case "q":
 		// Combined bishop and rook checks.
 		if toBB&(getRookMoves(from, cb)|getBishopMoves(from, cb)) == 0 {
-			return false, "q"
+			return false
 		}
-		piece = "q"
-	case fromBB&cb.BwKing[cb.WToMove] > 0:
-		if toBB&cb.KAttacks[from] == 0 {
-			return false, "k"
+	case "k":
+		if toBB&getKingMoves(from, cb) == 0 {
+			return false
 		}
-		piece = "k"
+		// pieceType is not valid
 	default:
-		return false, ""
+		return false
 	}
 
 	// Friendly piece collision
 	if toBB&cb.BwPieces[cb.WToMove] != 0 {
-		return false, piece
+		return false
 	}
 
-	return true, piece
+	return true
 }
 
 // Captures and protection are included in move gen.
