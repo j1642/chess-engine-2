@@ -21,18 +21,18 @@ and the opposite for negative directions.
 
 func movePiece(from, to int, cb *board.Board, promoteTo ...string) {
 	// TODO: Refactor to remove switch. Maybe make a parent array board.Occupied.
-	pieceType, err := getPieceType(from, cb)
+	movingType, err := getPieceType(from, cb)
 	if err != nil {
 		// TODO: Improve? Error is because the square does not exist (too high/low).
 		fmt.Printf("invalid square to move from. square=%d", from)
 		return
 	}
-	isValid := isValidMove(from, to, pieceType, cb)
+	isValid := isValidMove(from, to, movingType, cb)
 	if !isValid {
-		if pieceType == "" {
+		if movingType == "" {
 			fmt.Printf("no piece of the proper color on square %d", from)
 		} else {
-			fmt.Printf("invalid move for %v: from=%d, to=%d\n", pieceType, from, to)
+			fmt.Printf("invalid move for %v: from=%d, to=%d\n", movingType, from, to)
 		}
 		return
 	}
@@ -40,13 +40,18 @@ func movePiece(from, to int, cb *board.Board, promoteTo ...string) {
 	// a new func).
 	// TODO: Test losing castling rights
 
+	cb.EpSquare = 100
+
 	fromBB := uint64(1 << from)
 	toBB := uint64(1 << to)
 
 	cb.BwPieces[cb.WToMove] ^= fromBB + toBB
-	switch pieceType {
+	switch movingType {
 	case "p":
 		cb.BwPawns[cb.WToMove] ^= fromBB + toBB
+		if to-from == 16 || to-from == -16 {
+			cb.EpSquare = (to + from) / 2
+		}
 	case "n":
 		cb.BwKnights[cb.WToMove] ^= fromBB + toBB
 	case "b":
@@ -102,7 +107,7 @@ func movePiece(from, to int, cb *board.Board, promoteTo ...string) {
 		}
 	}
 
-	if len(promoteTo) == 1 || (pieceType == "p" && (to < 8 || to > 55)) {
+	if len(promoteTo) == 1 || (movingType == "p" && (to < 8 || to > 55)) {
 		promotePawn(toBB, cb, promoteTo[0])
 	}
 
