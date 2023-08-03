@@ -349,4 +349,13 @@ func TestFromFen(t *testing.T) {
 				fieldTypeFen.Field(i).Name, valFen.Field(i).Interface())
 		}
 	}
+
+	cb, err := FromFen("8/ppppppp1/8/6Pp/6pP/8/PPPPPP2/8 w - a3 0 1")
+	if err != nil {
+		t.Error(err)
+	}
+	if cb.EpSquare != 16 {
+		t.Errorf("cb.EpSquare: want=16, got=%d\n", cb.EpSquare)
+	}
+
 }

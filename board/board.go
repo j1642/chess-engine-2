@@ -128,8 +128,9 @@ func FromFen(fen string) (*Board, error) {
 		case char == '-':
 			cb.EpSquare = 100
 		case 'a' <= char && char <= 'h':
-			factor := 8 * (int(fen[i+firstSpace]-'a') - 1)
-			cb.EpSquare = int(char-'a') * factor
+			// rank 1: square=0+column, rank 2: square=8+column, ...
+			rank := 8 * (int(fen[i+firstSpace+1]-'0') - 1)
+			cb.EpSquare = (int(char - 'a')) + rank
 		}
 	}
 
