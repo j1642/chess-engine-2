@@ -1,6 +1,7 @@
 package board
 
 import (
+	"fmt"
 	"strings"
 )
 
@@ -51,23 +52,29 @@ func New() *Board {
 	}
 }
 
-func FromFen(fen string) *Board {
+func FromFen(fen string) (*Board, error) {
+	// Build a Board from Forsyth-Edwards notation (FEN).
 	/*
 	   TODO: What is a good design for changing board.Board fields based on piece type?
 	   Separate functions seem cluttered,
 	   a map[rune]uint64 is nice for making uint64 but not for changing Board fields,
 	   and switch statements seem too stuck in the details.
 	*/
-	/*
-	   if !strings.Contains(in, " ") {
-	       return cb, fmt.Errorf("invalid FEN string: does not contain spaces")
-	   }*/
-	square := 56
-	cb := &Board{}
 	var color int
-	spaceIndex := strings.IndexAny(fen, " ")
+	cb := &Board{}
+	square := 56
+	firstSpace := strings.IndexByte(fen, ' ')
+	secondSpace := strings.IndexByte(fen[firstSpace+1:], ' ')
 
-	for _, char := range fen[:spaceIndex] {
+	if firstSpace == -1 || secondSpace != 1 {
+		return cb, fmt.Errorf("invalid FEN string")
+	}
+	slashCount := strings.Count(fen, "/")
+	if slashCount != 7 {
+		return cb, fmt.Errorf("invalid FEN slash count. want=7, got=%d", slashCount)
+	}
+
+	for _, char := range fen[:firstSpace] {
 		if 'A' <= char && char <= 'Z' {
 			color = 1
 		} else if 'a' <= char && char <= 'z' {
@@ -102,7 +109,7 @@ func FromFen(fen string) *Board {
 	}
 
 	// TODO: Include move count?
-	for i, char := range fen[spaceIndex:] {
+	for i, char := range fen[firstSpace:] {
 		switch {
 		case char == 'b':
 			cb.WToMove = 0
@@ -116,10 +123,12 @@ func FromFen(fen string) *Board {
 			cb.CastleRights[1][0] = true
 		case char == 'q':
 			cb.CastleRights[0][0] = true
+			// An empty castling field is also represented by '-'. Any EP will later
+			// overwrite this.
 		case char == '-':
 			cb.EpSquare = 100
 		case 'a' <= char && char <= 'h':
-			factor := 8 * (int(fen[i+spaceIndex]-'a') - 1)
+			factor := 8 * (int(fen[i+firstSpace]-'a') - 1)
 			cb.EpSquare = int(char-'a') * factor
 		}
 	}
@@ -134,7 +143,7 @@ func FromFen(fen string) *Board {
 	cb.KAttacks = MakeKingBBs()
 	cb.SlidingAttacks = MakeSlidingAttackBBs()
 
-	return cb
+	return cb, nil
 }
 
 func getFiles() [4][8]int {

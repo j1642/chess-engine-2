@@ -335,7 +335,10 @@ func TestFromFen(t *testing.T) {
 	valNew := reflect.ValueOf(cbNew).Elem()
 	fieldTypeNew := valNew.Type()
 
-	cbFromFen := FromFen("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1")
+	cbFromFen, err := FromFen("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1")
+	if err != nil {
+		t.Error(err)
+	}
 	valFen := reflect.ValueOf(cbFromFen).Elem()
 	fieldTypeFen := valFen.Type()
 
