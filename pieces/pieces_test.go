@@ -13,9 +13,56 @@ type moveTestCase struct {
 func runMoveGenTests(t *testing.T, tests []moveTestCase) {
 	for _, tt := range tests {
 		if tt.expected != tt.actual {
-			t.Errorf("want=\n%b,\ngot=\n%b", tt.expected, tt.actual)
+			t.Errorf("want=%v, got=%v", read1Bits(tt.expected), read1Bits(tt.actual))
 		}
 	}
+}
+
+func TestPawnMoves(t *testing.T) {
+	cb, err := board.FromFen("8/ppppppp1/P7/6Pp/6pP/8/1PPPPP2/8 w - a3 0 1")
+	if err != nil {
+		t.Error(err)
+	}
+
+	wTests := []moveTestCase{
+		{
+			// W double push and e.p. square attack
+			expected: uint64(1<<16 + 1<<17 + 1<<25),
+			actual:   getPawnMoves(9, cb),
+		},
+		{
+			// W blocked
+			expected: uint64(0),
+			actual:   getPawnMoves(31, cb),
+		},
+		{
+			// W partially blocked
+			expected: uint64(1 << 23),
+			actual:   getPawnMoves(15, cb),
+		},
+	}
+
+	cb.WToMove = 0
+	bTests := []moveTestCase{
+		{
+			// B blocked
+			expected: uint64(0),
+			actual:   getPawnMoves(39, cb),
+		},
+		{
+			// B partially blocked
+			expected: uint64(1 << 46),
+			actual:   getPawnMoves(54, cb),
+		},
+		{
+			// B attack and double push
+			expected: uint64(1<<40 + 1<<41 + 1<<33),
+			actual:   getPawnMoves(49, cb),
+		},
+	}
+
+	runMoveGenTests(t, wTests)
+	runMoveGenTests(t, bTests)
 }
 
 func TestRookMoves(t *testing.T) {

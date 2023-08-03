@@ -262,6 +262,35 @@ func getRookMoves(square int, cb *board.Board) uint64 {
 	return moves
 }
 
+func getPawnMoves(square int, cb *board.Board) uint64 {
+	var moves uint64
+	opponent := 1 ^ cb.WToMove
+
+	if square < 8 || square > 55 {
+		panic("pawns can't be on the first or last rank")
+	}
+
+	moves = cb.PAttacks[cb.WToMove][square] & (cb.BwPieces[opponent] | uint64(1<<cb.EpSquare))
+
+	var dir, low, high int
+	if cb.WToMove == 1 {
+		dir = 8
+		low = 7
+		high = 16
+	} else {
+		dir = -8
+		low = 47
+		high = 56
+	}
+	if low < square && square < high {
+		moves |= (1<<(square+dir) | 1<<(square+2*dir)) & ^(cb.BwPieces[0] | cb.BwPieces[1])
+	} else {
+		moves |= 1 << (square + dir) & ^(cb.BwPieces[0] | cb.BwPieces[1])
+	}
+
+	return moves
+}
+
 func getKnightMoves(square int, cb *board.Board) uint64 {
 	return cb.NAttacks[square]
 }
