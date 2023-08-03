@@ -1,5 +1,9 @@
 package board
 
+import (
+	"strings"
+)
+
 type Board struct {
 	// TODO: move occupancies into one array? Possible memory speed boost
 	WToMove int // 1 or 0, true or false
@@ -19,6 +23,8 @@ type Board struct {
 
 	KingSquare   [2]int
 	CastleRights [2][2]bool // [b, w][queenside, kingside]
+
+	EpSquare int
 }
 
 func New() *Board {
@@ -33,14 +39,102 @@ func New() *Board {
 		BwQueens:  [2]uint64{1 << 59, 1 << 3},
 		BwKing:    [2]uint64{1 << 60, 1 << 4},
 
-		PAttacks:       makePawnBBs(),
+		PAttacks:       MakePawnBBs(),
 		NAttacks:       MakeKnightBBs(),
-		KAttacks:       makeKingBBs(),
-		SlidingAttacks: makeSlidingAttackBBs(),
+		KAttacks:       MakeKingBBs(),
+		SlidingAttacks: MakeSlidingAttackBBs(),
 
-		KingSquare:   [2]int{4, 60},
+		KingSquare:   [2]int{60, 4},
 		CastleRights: [2][2]bool{{true, true}, {true, true}},
+
+		EpSquare: 100,
 	}
+}
+
+func FromFen(fen string) *Board {
+	/*
+	   TODO: What is a good design for changing board.Board fields based on piece type?
+	   Separate functions seem cluttered,
+	   a map[rune]uint64 is nice for making uint64 but not for changing Board fields,
+	   and switch statements seem too stuck in the details.
+	*/
+	/*
+	   if !strings.Contains(in, " ") {
+	       return cb, fmt.Errorf("invalid FEN string: does not contain spaces")
+	   }*/
+	square := 56
+	cb := &Board{}
+	var color int
+	spaceIndex := strings.IndexAny(fen, " ")
+
+	for _, char := range fen[:spaceIndex] {
+		if 'A' <= char && char <= 'Z' {
+			color = 1
+		} else if 'a' <= char && char <= 'z' {
+			color = 0
+		} else {
+			color = 100 // placeholder value
+		}
+
+		switch {
+		case '1' <= char && char <= '8':
+			// Negate the "square += 1" at the end of the loop
+			square += int(char-'0') - 1
+		case char == '/':
+			// Negate the "square += 1" at the end of the loop
+			square -= 17
+		case char == 'p' || char == 'P':
+			cb.BwPawns[color] += 1 << square
+		case char == 'n' || char == 'N':
+			cb.BwKnights[color] += 1 << square
+		case char == 'b' || char == 'B':
+			cb.BwBishops[color] += 1 << square
+		case char == 'r' || char == 'R':
+			cb.BwRooks[color] += 1 << square
+		case char == 'q' || char == 'Q':
+			cb.BwQueens[color] += 1 << square
+		case char == 'k' || char == 'K':
+			cb.BwKing[color] += 1 << square
+			cb.KingSquare[color] = square
+		}
+
+		square += 1
+	}
+
+	// TODO: Include move count?
+	for i, char := range fen[spaceIndex:] {
+		switch {
+		case char == 'b':
+			cb.WToMove = 0
+		case char == 'w':
+			cb.WToMove = 1
+		case char == 'K':
+			cb.CastleRights[1][1] = true
+		case char == 'k':
+			cb.CastleRights[0][1] = true
+		case char == 'Q':
+			cb.CastleRights[1][0] = true
+		case char == 'q':
+			cb.CastleRights[0][0] = true
+		case char == '-':
+			cb.EpSquare = 100
+		case 'a' <= char && char <= 'h':
+			factor := 8 * (int(fen[i+spaceIndex]-'a') - 1)
+			cb.EpSquare = int(char-'a') * factor
+		}
+	}
+
+	cb.BwPieces[0] = cb.BwPawns[0] | cb.BwKnights[0] | cb.BwBishops[0] |
+		cb.BwRooks[0] | cb.BwQueens[0] | cb.BwKing[0]
+	cb.BwPieces[1] = cb.BwPawns[1] | cb.BwKnights[1] | cb.BwBishops[1] |
+		cb.BwRooks[1] | cb.BwQueens[1] | cb.BwKing[1]
+
+	cb.PAttacks = MakePawnBBs()
+	cb.NAttacks = MakeKnightBBs()
+	cb.KAttacks = MakeKingBBs()
+	cb.SlidingAttacks = MakeSlidingAttackBBs()
+
+	return cb
 }
 
 func getFiles() [4][8]int {
@@ -84,7 +178,7 @@ func ContainsN(n int, nums [8]int) bool {
 	return false
 }
 
-func makePawnBBs() [2][64]uint64 {
+func MakePawnBBs() [2][64]uint64 {
 	// First index is isWhite: 1 for white pawns, 0 for black pawns.
 	bbs := [2][64]uint64{}
 
@@ -163,7 +257,7 @@ func MakeKnightBBs() [64]uint64 {
 	return bbs
 }
 
-func makeKingBBs() [64]uint64 {
+func MakeKingBBs() [64]uint64 {
 	bbs := [64]uint64{}
 	directions := []int{}
 	files := getFiles()
@@ -191,7 +285,7 @@ func makeKingBBs() [64]uint64 {
 	return bbs
 }
 
-func makeSlidingAttackBBs() [8][64]uint64 {
+func MakeSlidingAttackBBs() [8][64]uint64 {
 	bbs := [8][64]uint64{}
 	files := getFiles()
 	// TODO: make ContainsN() generic to remove wasted zeroes.

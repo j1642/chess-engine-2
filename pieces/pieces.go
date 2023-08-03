@@ -32,6 +32,7 @@ func movePiece(from, to int, cb *board.Board, promoteTo ...string) {
 	}
 	// TODO: Remove reliance on isValid from rest of func (find piece var in
 	// a new func).
+	// TODO: Test losing castling rights
 
 	fromBB := uint64(1 << from)
 	toBB := uint64(1 << to)

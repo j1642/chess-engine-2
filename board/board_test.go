@@ -1,6 +1,8 @@
 package board
 
 import (
+	_ "fmt"
+	"reflect"
 	"testing"
 )
 
@@ -61,7 +63,7 @@ func runMoveBBTests(t *testing.T, tests []bbTestCase) {
 }
 
 func TestPawnAttackBBs(t *testing.T) {
-	bbs := makePawnBBs()
+	bbs := MakePawnBBs()
 	tests := []bbTestCase{
 		{
 			square:   8,
@@ -156,7 +158,7 @@ func TestKnightBBs(t *testing.T) {
 }
 
 func TestKingBBs(t *testing.T) {
-	bbs := makeKingBBs()
+	bbs := MakeKingBBs()
 	tests := []bbTestCase{
 		{
 			square:   0,
@@ -196,7 +198,7 @@ func TestKingBBs(t *testing.T) {
 }
 
 func TestSlidingAttackBBs(t *testing.T) {
-	bbs := makeSlidingAttackBBs()
+	bbs := MakeSlidingAttackBBs()
 	tests := []bbTestCase{
 		{
 			square: 0,
@@ -326,4 +328,22 @@ func TestSlidingAttackBBs(t *testing.T) {
 	}
 
 	runMoveBBTests(t, tests)
+}
+
+func TestFromFen(t *testing.T) {
+	cbNew := New()
+	valNew := reflect.ValueOf(cbNew).Elem()
+	fieldTypeNew := valNew.Type()
+
+	cbFromFen := FromFen("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1")
+	valFen := reflect.ValueOf(cbFromFen).Elem()
+	fieldTypeFen := valFen.Type()
+
+	for i := 0; i < valNew.NumField(); i++ {
+		if valNew.Field(i).Interface() != valFen.Field(i).Interface() {
+			t.Errorf("fromFen failed:  want %s=%v, got %s=%v\n",
+				fieldTypeNew.Field(i).Name, valNew.Field(i).Interface(),
+				fieldTypeFen.Field(i).Name, valFen.Field(i).Interface())
+		}
+	}
 }
