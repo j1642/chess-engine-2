@@ -370,7 +370,7 @@ func getAttackedSquares(cb *board.Board) uint64 {
 	// TODO: Try to refactor without using a switch statement.
 	pieces = read1Bits(cb.BwPawns[cb.WToMove])
 	for _, square := range pieces {
-		// Pawn pushes do not count as attacks.
+		// Do not include pawn pushes.
 		attackSquares |= cb.PAttacks[cb.WToMove][square]
 	}
 	pieces = read1Bits(cb.BwKnights[cb.WToMove])
@@ -391,7 +391,8 @@ func getAttackedSquares(cb *board.Board) uint64 {
 	}
 	pieces = read1Bits(cb.BwKing[cb.WToMove])
 	for _, square := range pieces {
-		attackSquares |= getKingMoves(square, cb)
+		// Do not include castling.
+		attackSquares |= cb.KAttacks[square]
 	}
 
 	return attackSquares
