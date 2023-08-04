@@ -291,6 +291,16 @@ func TestPromotePawn(t *testing.T) {
 	}
 }
 
+func TestGetAttackedSquare(t *testing.T) {
+	cb := board.New()
+
+	expected := uint64(0xFFFF00) + 1<<1 + 1<<2 + 1<<3 + 1<<4 + 1<<5 + 1<<6
+	if getAttackedSquares(cb) != expected {
+		t.Errorf("attacked/defender squares: want=%v, got=%v",
+			read1Bits(expected), read1Bits(getAttackedSquares(cb)))
+	}
+}
+
 func TestRead1Bits(t *testing.T) {
 	nums := read1Bits(uint64(0b11001))
 	expected := []int{0, 3, 4}

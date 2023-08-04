@@ -362,6 +362,41 @@ func getKingMoves(square int, cb *board.Board) uint64 {
 	return moves
 }
 
+func getAttackedSquares(cb *board.Board) uint64 {
+	// TODO: Is there a way to avoid reading 1 bits when accumulating moves?
+	pieces := []int{}
+	attackSquares := uint64(0)
+
+	// TODO: Try to refactor without using a switch statement.
+	pieces = read1Bits(cb.BwPawns[cb.WToMove])
+	for _, square := range pieces {
+		// Pawn pushes do not count as attacks.
+		attackSquares |= cb.PAttacks[cb.WToMove][square]
+	}
+	pieces = read1Bits(cb.BwKnights[cb.WToMove])
+	for _, square := range pieces {
+		attackSquares |= getKnightMoves(square, cb)
+	}
+	pieces = read1Bits(cb.BwBishops[cb.WToMove])
+	for _, square := range pieces {
+		attackSquares |= getBishopMoves(square, cb)
+	}
+	pieces = read1Bits(cb.BwRooks[cb.WToMove])
+	for _, square := range pieces {
+		attackSquares |= getRookMoves(square, cb)
+	}
+	pieces = read1Bits(cb.BwQueens[cb.WToMove])
+	for _, square := range pieces {
+		attackSquares |= getQueenMoves(square, cb)
+	}
+	pieces = read1Bits(cb.BwKing[cb.WToMove])
+	for _, square := range pieces {
+		attackSquares |= getKingMoves(square, cb)
+	}
+
+	return attackSquares
+}
+
 func read1Bits(bb uint64) []int {
 	// Using TrailingZeros64() seems as fast as bitshifting right while bb>0.
 	squares := []int{}
