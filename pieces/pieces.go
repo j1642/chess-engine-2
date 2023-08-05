@@ -47,14 +47,23 @@ func movePiece(from, to int, cb *board.Board, promoteTo ...string) {
 		cb.BwBishops[cb.WToMove] ^= fromBB + toBB
 	case "r":
 		cb.BwRooks[cb.WToMove] ^= fromBB + toBB
-		if fromBB == 0 || fromBB == 1<<63 {
+		if from == 0 || fromBB == 63 {
 			cb.CastleRights[cb.WToMove][0] = false
-		} else if fromBB == 1<<7 || fromBB == 1<<63 {
+		} else if from == 7 || from == 63 {
 			cb.CastleRights[cb.WToMove][1] = false
 		}
 	case "q":
 		cb.BwQueens[cb.WToMove] ^= fromBB + toBB
 	case "k":
+		if to-from == 2 || to-from == -2 {
+			if cb.CastleRights[cb.WToMove][0] && (to == 2 || to == 58) {
+				cb.BwRooks[cb.WToMove] ^= uint64(1<<(to-2) + 1<<(to+1))
+			} else if cb.CastleRights[cb.WToMove][1] && (to == 6 || to == 62) {
+				cb.BwRooks[cb.WToMove] ^= uint64(1<<(to+2) + 1<<(to-1))
+			} else {
+				panic("king moving two squares, but is not castling")
+			}
+		}
 		cb.BwKing[cb.WToMove] ^= fromBB + toBB
 		cb.KingSquare[cb.WToMove] = to
 		cb.CastleRights[cb.WToMove][0] = false
