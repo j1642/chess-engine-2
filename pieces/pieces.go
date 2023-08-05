@@ -27,17 +27,6 @@ func movePiece(from, to int, cb *board.Board, promoteTo ...string) {
 		fmt.Printf("invalid square to move from. square=%d", from)
 		return
 	}
-	isValid := isValidMove(from, to, movingType, cb)
-	if !isValid {
-		if movingType == "" {
-			fmt.Printf("no piece of the proper color on square %d", from)
-		} else {
-			fmt.Printf("invalid move for %v: from=%d, to=%d\n", movingType, from, to)
-		}
-		return
-	}
-	// TODO: Remove reliance on isValid from rest of func (find piece var in
-	// a new func).
 	// TODO: Test losing castling rights
 
 	cb.EpSquare = 100
