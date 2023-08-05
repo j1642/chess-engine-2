@@ -302,7 +302,7 @@ func TestGetAttackedSquare(t *testing.T) {
 }
 
 func TestCastling(t *testing.T) {
-    // Castling moves king and rook, and removes remaining castling rights.
+	// Castling moves king and rook, and removes remaining castling rights.
 	cb, err := board.FromFen("r3k2r/8/8/8/8/8/8/R3K2R w KQkq - 0 1")
 	if err != nil {
 		t.Error(err)
@@ -312,7 +312,7 @@ func TestCastling(t *testing.T) {
 	if cb.BwKing[1] != uint64(1<<2) {
 		t.Errorf("w king did not castle queenside. want=2, got=%v", read1Bits(cb.BwKing[1]))
 	}
-	if cb.BwRooks[1] != uint64(1<<3 + 1<<7) {
+	if cb.BwRooks[1] != uint64(1<<3+1<<7) {
 		t.Errorf("rook did not move for castling. want=[3 7], got=%v", read1Bits(cb.BwRooks[1]))
 	}
 	if cb.CastleRights[1] != [2]bool{false, false} {
@@ -323,7 +323,7 @@ func TestCastling(t *testing.T) {
 	if cb.BwKing[0] != uint64(1<<62) {
 		t.Errorf("b king did not castle kingside. want=62, got=%v", read1Bits(cb.BwKing[0]))
 	}
-	if cb.BwRooks[0] != uint64(1<<56 + 1<<61) {
+	if cb.BwRooks[0] != uint64(1<<56+1<<61) {
 		t.Errorf("rook did not move for castling. want=[56 61], got=%v", read1Bits(cb.BwRooks[0]))
 	}
 	if cb.CastleRights[0] != [2]bool{false, false} {
