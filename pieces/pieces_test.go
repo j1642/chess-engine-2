@@ -361,6 +361,32 @@ func TestCastlingRightsLostByRookMoveAndCapture(t *testing.T) {
 	}
 }
 
+func TestGetKingMoves(t *testing.T) {
+	cb1, err := board.FromFen("3r4/8/8/8/8/8/8/R3KR2 w Q - 0 1")
+	if err != nil {
+		t.Error(err)
+	}
+	tests := []moveTestCase{
+		{
+			// Cannot move into check, castle through check, or move into friendly piece.
+			expected: uint64(1<<12 + 1<<13),
+			actual:   getKingMoves(cb1.KingSquare[1], cb1),
+		},
+	}
+
+	cb2, err := board.FromFen("r3k2r/8/8/8/8/8/8/4R3 b Q - 0 1")
+	if err != nil {
+		t.Error(err)
+	}
+	tests = append(tests, moveTestCase{
+		// Cannot castle out of check.
+		expected: uint64(1<<61 + 1<<53 + 1<<59 + 1<<51),
+		actual:   getKingMoves(cb2.KingSquare[0], cb2),
+	})
+
+	runMoveGenTests(t, tests)
+}
+
 func TestRead1Bits(t *testing.T) {
 	nums := read1Bits(uint64(0b11001))
 	expected := []int{0, 3, 4}
