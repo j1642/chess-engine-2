@@ -59,7 +59,7 @@ func movePiece(from, to int, cb *board.Board, promoteTo ...string) {
 			if cb.CastleRights[cb.WToMove][0] && (to == 2 || to == 58) {
 				cb.BwRooks[cb.WToMove] ^= uint64(1<<(to-2) + 1<<(to+1))
 			} else if cb.CastleRights[cb.WToMove][1] && (to == 6 || to == 62) {
-				cb.BwRooks[cb.WToMove] ^= uint64(1<<(to+2) + 1<<(to-1))
+				cb.BwRooks[cb.WToMove] ^= uint64(1<<(to+1) + 1<<(to-1))
 			} else {
 				panic("king moving two squares, but is not castling")
 			}
