@@ -339,23 +339,30 @@ func getQueenMoves(square int, cb *board.Board) uint64 {
 }
 
 func getKingMoves(square int, cb *board.Board) uint64 {
-	// TODO: King cannot move to squares attacked by opponent.
-	moves := cb.KAttacks[square]
+	// Return legal king moves.
+	cb.WToMove ^= 1
+	opponentAttackedSquares := getAttackedSquares(cb)
+	cb.WToMove ^= 1
 
-	// TODO: A king cannot castle out of, through, or into an attacked square.
-	// CastleRights true when king and rook(s) have not moved or been captured.
+	occupied := cb.BwPieces[0] | cb.BwPieces[1]
+	moves := cb.KAttacks[square] & ^opponentAttackedSquares & ^cb.BwPieces[cb.WToMove]
+
 	if cb.WToMove == 0 {
-		if cb.CastleRights[0][0] && (1<<57+1<<58+1<<59)&(cb.BwPieces[0]|cb.BwPieces[1]) == 0 {
+		if cb.CastleRights[0][0] && (1<<57+1<<58+1<<59)&occupied == 0 &&
+			(1<<58+1<<59+1<<60)&opponentAttackedSquares == 0 {
 			moves += 1 << 58
 		}
-		if cb.CastleRights[0][1] && (1<<61+1<<62)&(cb.BwPieces[0]|cb.BwPieces[1]) == 0 {
+		if cb.CastleRights[0][1] && (1<<61+1<<62)&occupied == 0 &&
+			(1<<60+1<<61+1<<62)&opponentAttackedSquares == 0 {
 			moves += 1 << 62
 		}
 	} else {
-		if cb.CastleRights[1][0] && (1+1<<2+1<<3)&(cb.BwPieces[0]|cb.BwPieces[1]) == 0 {
+		if cb.CastleRights[1][0] && (1+1<<2+1<<3)&occupied == 0 &&
+			(1<<2+1<<3+1<<4)&opponentAttackedSquares == 0 {
 			moves += 1 << 2
 		}
-		if cb.CastleRights[1][1] && (1<<5+1<<6)&(cb.BwPieces[0]|cb.BwPieces[1]) == 0 {
+		if cb.CastleRights[1][1] && (1<<5+1<<6)&occupied == 0 &&
+			(1<<4+1<<5+1<<6)&opponentAttackedSquares == 0 {
 			moves += 1 << 6
 		}
 	}
