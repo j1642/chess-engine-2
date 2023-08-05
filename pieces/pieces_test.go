@@ -301,6 +301,66 @@ func TestGetAttackedSquare(t *testing.T) {
 	}
 }
 
+func TestCastling(t *testing.T) {
+    // Castling moves king and rook, and removes remaining castling rights.
+	cb, err := board.FromFen("r3k2r/8/8/8/8/8/8/R3K2R w KQkq - 0 1")
+	if err != nil {
+		t.Error(err)
+	}
+
+	movePiece(4, 2, cb)
+	if cb.BwKing[1] != uint64(1<<2) {
+		t.Errorf("w king did not castle queenside. want=2, got=%v", read1Bits(cb.BwKing[1]))
+	}
+	if cb.BwRooks[1] != uint64(1<<3 + 1<<7) {
+		t.Errorf("rook did not move for castling. want=[3 7], got=%v", read1Bits(cb.BwRooks[1]))
+	}
+	if cb.CastleRights[1] != [2]bool{false, false} {
+		t.Errorf("w king castle rights: want=[false false], got=%v", cb.CastleRights[1])
+	}
+
+	movePiece(60, 62, cb)
+	if cb.BwKing[0] != uint64(1<<62) {
+		t.Errorf("b king did not castle kingside. want=62, got=%v", read1Bits(cb.BwKing[0]))
+	}
+	if cb.BwRooks[0] != uint64(1<<56 + 1<<61) {
+		t.Errorf("rook did not move for castling. want=[56 61], got=%v", read1Bits(cb.BwRooks[0]))
+	}
+	if cb.CastleRights[0] != [2]bool{false, false} {
+		t.Errorf("b king castle rights: want=[false false], got=%v", cb.CastleRights[0])
+	}
+
+}
+
+func TestCastlingRightsLostByRookMoveAndCapture(t *testing.T) {
+	cb, err := board.FromFen("r3k2r/8/8/8/8/8/8/R3K2R w KQkq - 0 1")
+	if err != nil {
+		t.Error(err)
+	}
+
+	movePiece(0, 56, cb)
+	if cb.BwRooks[1] != uint64(1<<7+1<<56) {
+		t.Errorf("wrong rook squares: want=[7, 56], got=%v", read1Bits(cb.BwRooks[1]))
+	}
+	if cb.CastleRights[1] != [2]bool{false, true} {
+		t.Errorf("w king castle rights: want=[false true], got=%v", cb.CastleRights[1])
+	}
+	if cb.CastleRights[0] != [2]bool{false, true} {
+		t.Errorf("b king castle rights: want=[false true], got=%v", cb.CastleRights[0])
+	}
+
+	movePiece(63, 7, cb)
+	if cb.BwRooks[0] != uint64(1<<7) {
+		t.Errorf("wrong rook squares: want=7, got=%v", read1Bits(cb.BwRooks[0]))
+	}
+	if cb.CastleRights[1] != [2]bool{false, false} {
+		t.Errorf("w king castle rights: want=[false false], got=%v", cb.CastleRights[1])
+	}
+	if cb.CastleRights[0] != [2]bool{false, false} {
+		t.Errorf("b king castle rights: want=[false false], got=%v", cb.CastleRights[0])
+	}
+}
+
 func TestRead1Bits(t *testing.T) {
 	nums := read1Bits(uint64(0b11001))
 	expected := []int{0, 3, 4}
