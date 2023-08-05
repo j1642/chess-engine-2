@@ -73,36 +73,8 @@ func movePiece(from, to int, cb *board.Board, promoteTo ...string) {
 		panic("empty or invalid piece type")
 	}
 
-	// Is this a capture (of a non-king piece)?
-	opponent := 1 ^ cb.WToMove
-	if toBB&(cb.BwPieces[opponent]^cb.BwKing[opponent]) != 0 {
-		cb.BwPieces[opponent] ^= toBB
-
-		switch {
-		case toBB&cb.BwPawns[opponent] != 0:
-			cb.BwPawns[opponent] ^= toBB
-		case toBB&cb.BwKnights[opponent] != 0:
-			cb.BwKnights[opponent] ^= toBB
-		case toBB&cb.BwBishops[opponent] != 0:
-			cb.BwBishops[opponent] ^= toBB
-		case toBB&cb.BwRooks[opponent] != 0:
-			// TODO: move castling checks to a less-frequented function
-			// int type mixing here seems ok based on investigation
-			if opponent == 0 && toBB == 1<<56 {
-				cb.CastleRights[opponent][0] = false
-			} else if opponent == 0 && toBB == 1<<63 {
-				cb.CastleRights[opponent][1] = false
-			} else if opponent == 1 && toBB == 0 {
-				cb.CastleRights[opponent][0] = false
-			} else if opponent == 1 && toBB == 1<<7 {
-				cb.CastleRights[opponent][1] = false
-			}
-			cb.BwRooks[opponent] ^= toBB
-		case toBB&cb.BwQueens[opponent] != 0:
-			cb.BwQueens[opponent] ^= toBB
-		default:
-			panic("no captured piece bitboard matches")
-		}
+	if toBB&(cb.BwPieces[1^cb.WToMove]^cb.BwKing[1^cb.WToMove]) != 0 {
+		capturePiece(toBB, cb)
 	}
 
 	if len(promoteTo) == 1 || (movingType == "p" && (to < 8 || to > 55)) {
@@ -110,6 +82,37 @@ func movePiece(from, to int, cb *board.Board, promoteTo ...string) {
 	}
 
 	cb.WToMove ^= 1
+}
+
+func capturePiece(squareBB uint64, cb *board.Board) {
+	opponent := 1 ^ cb.WToMove
+	cb.BwPieces[opponent] ^= squareBB
+
+	switch {
+	case squareBB&cb.BwPawns[opponent] != 0:
+		cb.BwPawns[opponent] ^= squareBB
+	case squareBB&cb.BwKnights[opponent] != 0:
+		cb.BwKnights[opponent] ^= squareBB
+	case squareBB&cb.BwBishops[opponent] != 0:
+		cb.BwBishops[opponent] ^= squareBB
+	case squareBB&cb.BwRooks[opponent] != 0:
+		// TODO: move castling checks to a less-frequented function
+		// int type mixing here seems ok based on investigation
+		if opponent == 0 && squareBB == 1<<56 {
+			cb.CastleRights[opponent][0] = false
+		} else if opponent == 0 && squareBB == 1<<63 {
+			cb.CastleRights[opponent][1] = false
+		} else if opponent == 1 && squareBB == 0 {
+			cb.CastleRights[opponent][0] = false
+		} else if opponent == 1 && squareBB == 1<<7 {
+			cb.CastleRights[opponent][1] = false
+		}
+		cb.BwRooks[opponent] ^= squareBB
+	case squareBB&cb.BwQueens[opponent] != 0:
+		cb.BwQueens[opponent] ^= squareBB
+	default:
+		panic("no captured piece bitboard matches")
+	}
 }
 
 func promotePawn(toBB uint64, cb *board.Board, promoteTo ...string) {
