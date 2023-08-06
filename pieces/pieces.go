@@ -406,6 +406,57 @@ func getAttackedSquares(cb *board.Board) uint64 {
 	return attackSquares
 }
 
+func getAllMoves(cb *board.Board) [][2]int {
+	allMoves := [][2]int{}
+	pieces := []int{}
+	moves := []int{}
+
+	pieces = read1Bits(cb.BwPawns[cb.WToMove])
+	for _, fromSquare := range pieces {
+		moves = read1Bits(getPawnMoves(fromSquare, cb) & ^cb.BwPieces[cb.WToMove])
+		for _, toSquare := range moves {
+			allMoves = append(allMoves, [2]int{fromSquare, toSquare})
+		}
+	}
+	pieces = read1Bits(cb.BwKnights[cb.WToMove])
+	for _, fromSquare := range pieces {
+		moves = read1Bits(getKnightMoves(fromSquare, cb) & ^cb.BwPieces[cb.WToMove])
+		for _, toSquare := range moves {
+			allMoves = append(allMoves, [2]int{fromSquare, toSquare})
+		}
+	}
+	pieces = read1Bits(cb.BwBishops[cb.WToMove])
+	for _, fromSquare := range pieces {
+		moves = read1Bits(getBishopMoves(fromSquare, cb) & ^cb.BwPieces[cb.WToMove])
+		for _, toSquare := range moves {
+			allMoves = append(allMoves, [2]int{fromSquare, toSquare})
+		}
+	}
+	pieces = read1Bits(cb.BwRooks[cb.WToMove])
+	for _, fromSquare := range pieces {
+		moves = read1Bits(getRookMoves(fromSquare, cb) & ^cb.BwPieces[cb.WToMove])
+		for _, toSquare := range moves {
+			allMoves = append(allMoves, [2]int{fromSquare, toSquare})
+		}
+	}
+	pieces = read1Bits(cb.BwQueens[cb.WToMove])
+	for _, fromSquare := range pieces {
+		moves = read1Bits(getQueenMoves(fromSquare, cb) & ^cb.BwPieces[cb.WToMove])
+		for _, toSquare := range moves {
+			allMoves = append(allMoves, [2]int{fromSquare, toSquare})
+		}
+	}
+	pieces = read1Bits(cb.BwKing[cb.WToMove])
+	for _, fromSquare := range pieces {
+		moves = read1Bits(getKingMoves(fromSquare, cb) & ^cb.BwPieces[cb.WToMove])
+		for _, toSquare := range moves {
+			allMoves = append(allMoves, [2]int{fromSquare, toSquare})
+		}
+	}
+
+	return allMoves
+}
+
 func read1Bits(bb uint64) []int {
 	// Using TrailingZeros64() seems as fast as bitshifting right while bb>0.
 	squares := []int{}

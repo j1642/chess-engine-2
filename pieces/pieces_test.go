@@ -387,6 +387,14 @@ func TestGetKingMoves(t *testing.T) {
 	runMoveGenTests(t, tests)
 }
 
+func TestGetAllMoves(t *testing.T) {
+	cb := board.New()
+	actual := len(getAllMoves(cb))
+	if actual != 20 {
+		t.Errorf("perft(1): want=20, got=%d", actual)
+	}
+}
+
 func TestRead1Bits(t *testing.T) {
 	nums := read1Bits(uint64(0b11001))
 	expected := []int{0, 3, 4}
