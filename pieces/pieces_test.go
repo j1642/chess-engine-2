@@ -418,3 +418,62 @@ func TestBinSearch(t *testing.T) {
 		t.Error("binSearch should not find 6 in nums")
 	}
 }
+
+func perft(depth int, cb *board.Board) int {
+	if depth == 1 {
+		return len(getAllMoves(cb))
+	}
+	nodes := 0
+	moves := getAllMoves(cb)
+
+	for _, toFrom := range moves {
+		pos := board.StorePosition(cb)
+		// TODO: check for pins
+		movePiece(toFrom[0], toFrom[1], cb)
+		nodes += perft(depth-1, cb)
+		board.RestorePosition(pos, cb)
+	}
+
+	return nodes
+}
+
+type perftTestCase struct {
+	name                    string
+	expected, actual, depth int
+}
+
+func TestPerft(t *testing.T) {
+	cb := board.New()
+
+	tests := []perftTestCase{
+		{
+			name:     "perft",
+			depth:    1,
+			expected: 20,
+			actual:   perft(1, cb),
+		},
+		{
+			name:     "perft",
+			depth:    2,
+			expected: 400,
+			actual:   perft(2, cb),
+		},
+		{
+			name:     "perft",
+			depth:    3,
+			expected: 8902,
+			actual:   perft(3, cb),
+		},
+	}
+
+	runPerftTests(t, tests)
+}
+
+func runPerftTests(t *testing.T, tests []perftTestCase) {
+	for _, tt := range tests {
+		if tt.expected != tt.actual {
+			t.Errorf("%s(%d): want=%d, got=%d",
+				tt.name, tt.depth, tt.expected, tt.actual)
+		}
+	}
+}
