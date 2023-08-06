@@ -331,3 +331,54 @@ func MakeSlidingAttackBBs() [8][64]uint64 {
 
 	return bbs
 }
+
+type Position struct {
+	WToMove int
+
+	BwPieces  [2]uint64
+	BwPawns   [2]uint64
+	BwKnights [2]uint64
+	BwBishops [2]uint64
+	BwRooks   [2]uint64
+	BwQueens  [2]uint64
+	BwKing    [2]uint64
+
+	KingSquare   [2]int
+	CastleRights [2][2]bool
+
+	EpSquare int
+}
+
+func StorePosition(cb *Board) *Position {
+	return &Position{
+		WToMove:   cb.WToMove,
+		BwPieces:  cb.BwPieces,
+		BwPawns:   cb.BwPawns,
+		BwKnights: cb.BwKnights,
+		BwBishops: cb.BwBishops,
+		BwRooks:   cb.BwRooks,
+		BwQueens:  cb.BwQueens,
+		BwKing:    cb.BwKing,
+
+		KingSquare:   cb.KingSquare,
+		CastleRights: cb.CastleRights,
+
+		EpSquare: cb.EpSquare,
+	}
+}
+
+func RestorePosition(pos *Position, cb *Board) {
+	cb.WToMove = pos.WToMove
+	cb.BwPieces = pos.BwPieces
+	cb.BwPawns = pos.BwPawns
+	cb.BwKnights = pos.BwKnights
+	cb.BwBishops = pos.BwBishops
+	cb.BwRooks = pos.BwRooks
+	cb.BwQueens = pos.BwQueens
+	cb.BwKing = pos.BwKing
+
+	cb.KingSquare = pos.KingSquare
+	cb.CastleRights = pos.CastleRights
+
+	cb.EpSquare = pos.EpSquare
+}
