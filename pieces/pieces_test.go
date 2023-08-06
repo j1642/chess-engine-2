@@ -374,13 +374,13 @@ func TestGetKingMoves(t *testing.T) {
 		},
 	}
 
-	cb2, err := board.FromFen("r3k2r/8/8/8/8/8/8/4R3 b Q - 0 1")
+	cb2, err := board.FromFen("r3k2r/4R3/3P4/8/8/8/8/8 b Q - 0 1")
 	if err != nil {
 		t.Error(err)
 	}
 	tests = append(tests, moveTestCase{
-		// Cannot castle out of check.
-		expected: uint64(1<<61 + 1<<53 + 1<<59 + 1<<51),
+		// Cannot castle out of check or capture protected piece.
+		expected: uint64(1<<61 + 1<<59),
 		actual:   getKingMoves(cb2.KingSquare[0], cb2),
 	})
 
