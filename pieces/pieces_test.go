@@ -42,6 +42,15 @@ func TestPawnMoves(t *testing.T) {
 			actual:   getPawnMoves(15, cb),
 		},
 	}
+	cb1, err := board.FromFen("8/3k4/8/8/8/N7/PPPPPPPP/R1BQKBNR w - - 0 1")
+	if err != nil {
+		t.Error(err)
+	}
+
+	wTests = append(wTests, moveTestCase{
+		expected: uint64(0),
+		actual:   getPawnMoves(8, cb1),
+	})
 
 	cb.WToMove = 0
 	bTests := []moveTestCase{

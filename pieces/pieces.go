@@ -294,10 +294,12 @@ func getPawnMoves(square int, cb *board.Board) uint64 {
 		low = 47
 		high = 56
 	}
-	if low < square && square < high {
-		moves |= (1<<(square+dir) | 1<<(square+2*dir)) & ^(cb.BwPieces[0] | cb.BwPieces[1])
+	occupied := cb.BwPieces[0] | cb.BwPieces[1]
+
+	if low < square && square < high && 1<<(square+dir)&occupied == 0 {
+		moves |= (1<<(square+dir) + 1<<(square+2*dir)) & ^occupied
 	} else {
-		moves |= 1 << (square + dir) & ^(cb.BwPieces[0] | cb.BwPieces[1])
+		moves |= 1 << (square + dir) & ^occupied
 	}
 
 	return moves
