@@ -2,8 +2,11 @@ package pieces
 
 import (
 	"engine2/board"
+	"fmt"
 	_ "fmt"
+	"strings"
 	"testing"
+	_ "time"
 )
 
 type moveTestCase struct {
@@ -564,24 +567,51 @@ func TestBinSearch(t *testing.T) {
 }
 
 func perft(depth int, cb *board.Board) int {
-	if depth == 1 {
-		// TODO: check for pins
-		return len(getAllMoves(cb))
+	if depth == 0 {
+		return 1
 	}
 	nodes := 0
 	moves := getAllMoves(cb)
-	var pos *board.Position
+	pos := board.StorePosition(cb)
 
 	for _, toFrom := range moves {
-		// TODO: move StorePosition out of loop?
-		pos = board.StorePosition(cb)
-		// TODO: check for pins here too
 		movePiece(toFrom[0], toFrom[1], cb)
-		nodes += perft(depth-1, cb)
+		attackedSquares := getAttackedSquares(cb)
+		if cb.BwKing[1^cb.WToMove]&attackedSquares == 0 {
+			nodes += perft(depth-1, cb)
+		}
 		board.RestorePosition(pos, cb)
 	}
 
 	return nodes
+}
+
+func divide(depth int, cb *board.Board, ranksFiles ...[]string) {
+	ranks := []string{"1", "2", "3", "4", "5", "6", "7", "8"}
+	files := []string{"a", "b", "c", "d", "e", "f", "g", "h"}
+
+	totalNodes := 0
+	moves := getAllMoves(cb)
+	var pos *board.Position
+
+	pos = board.StorePosition(cb)
+	for _, toFrom := range moves {
+		nodes := 0
+		movePiece(toFrom[0], toFrom[1], cb)
+		attackedSquares := getAttackedSquares(cb)
+		if cb.BwKing[1^cb.WToMove]&attackedSquares == 0 {
+			nodes += perft(depth-1, cb)
+		}
+		board.RestorePosition(pos, cb)
+
+		toAlgNotation := strings.Join([]string{files[toFrom[0]%8], ranks[toFrom[0]/8]}, "")
+		fromAlgNotation := strings.Join([]string{files[toFrom[1]%8], ranks[toFrom[1]/8]}, "")
+
+		fmt.Printf("%s%s: %d\n", toAlgNotation, fromAlgNotation, nodes)
+		totalNodes += nodes
+
+	}
+	fmt.Println("Total nodes:", totalNodes)
 }
 
 type perftTestCase struct {
@@ -591,29 +621,24 @@ type perftTestCase struct {
 
 func TestPerft(t *testing.T) {
 	cb := board.New()
-	cb1 := board.New()
+	//cb1 := board.New()
 
 	tests := []perftTestCase{
 		{
 			name:     "perft",
-			depth:    1,
-			expected: 20,
-			actual:   perft(1, cb),
+			depth:    4,
+			expected: 197_281,
+			actual:   perft(4, cb),
 		},
-		{
-			name:     "perft",
-			depth:    2,
-			expected: 400,
-			actual:   perft(2, cb),
-		},
-		{
-			name:     "perft",
-			depth:    3,
-			expected: 8902,
-			actual:   perft(3, cb1),
-		},
+		/*
+			{
+				name:     "perft",
+				depth:    5,
+				expected: 4_865_609,
+				actual:   perft(5, cb),
+			},
+		*/
 	}
-
 	runPerftTests(t, tests)
 }
 
