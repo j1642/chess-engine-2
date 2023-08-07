@@ -21,6 +21,7 @@ and the opposite for negative directions.
 
 func movePiece(from, to int, cb *board.Board, promoteTo ...string) {
 	// TODO: Refactor to remove switch. Maybe make a parent array board.Occupied.
+	// TODO: make struct {to, from, type} to speed up makeMove()
 	movingType, err := getPieceType(from, cb)
 	if err != nil {
 		// TODO: Improve? Error is because the square does not exist (too high/low).
@@ -411,50 +412,137 @@ func getAllMoves(cb *board.Board) [][2]int {
 	pieces := []int{}
 	moves := []int{}
 
-	pieces = read1Bits(cb.BwPawns[cb.WToMove])
-	for _, fromSquare := range pieces {
-		moves = read1Bits(getPawnMoves(fromSquare, cb) & ^cb.BwPieces[cb.WToMove])
-		for _, toSquare := range moves {
-			allMoves = append(allMoves, [2]int{fromSquare, toSquare})
-		}
+	var capturesBlocks uint64
+	var attackerCount int
+
+	cb.WToMove ^= 1
+	attackedSquares := getAttackedSquares(cb)
+	cb.WToMove ^= 1
+	if cb.BwKing[cb.WToMove]&attackedSquares != 0 {
+		capturesBlocks, attackerCount = getCheckingSquares(cb)
 	}
-	pieces = read1Bits(cb.BwKnights[cb.WToMove])
-	for _, fromSquare := range pieces {
-		moves = read1Bits(getKnightMoves(fromSquare, cb) & ^cb.BwPieces[cb.WToMove])
-		for _, toSquare := range moves {
-			allMoves = append(allMoves, [2]int{fromSquare, toSquare})
-		}
-	}
-	pieces = read1Bits(cb.BwBishops[cb.WToMove])
-	for _, fromSquare := range pieces {
-		moves = read1Bits(getBishopMoves(fromSquare, cb) & ^cb.BwPieces[cb.WToMove])
-		for _, toSquare := range moves {
-			allMoves = append(allMoves, [2]int{fromSquare, toSquare})
-		}
-	}
-	pieces = read1Bits(cb.BwRooks[cb.WToMove])
-	for _, fromSquare := range pieces {
-		moves = read1Bits(getRookMoves(fromSquare, cb) & ^cb.BwPieces[cb.WToMove])
-		for _, toSquare := range moves {
-			allMoves = append(allMoves, [2]int{fromSquare, toSquare})
-		}
-	}
-	pieces = read1Bits(cb.BwQueens[cb.WToMove])
-	for _, fromSquare := range pieces {
-		moves = read1Bits(getQueenMoves(fromSquare, cb) & ^cb.BwPieces[cb.WToMove])
-		for _, toSquare := range moves {
-			allMoves = append(allMoves, [2]int{fromSquare, toSquare})
-		}
-	}
+
 	pieces = read1Bits(cb.BwKing[cb.WToMove])
 	for _, fromSquare := range pieces {
 		moves = read1Bits(getKingMoves(fromSquare, cb) & ^cb.BwPieces[cb.WToMove])
 		for _, toSquare := range moves {
 			allMoves = append(allMoves, [2]int{fromSquare, toSquare})
 		}
+		// If attackerCount > 1 and king has no moves, it is checkmate.
+		if attackerCount > 1 {
+			return allMoves
+		}
+	}
+
+	// TODO: make a function to replace each move gen block
+	pieces = read1Bits(cb.BwPawns[cb.WToMove])
+	for _, fromSquare := range pieces {
+		moves = read1Bits(getPawnMoves(fromSquare, cb) & ^cb.BwPieces[cb.WToMove])
+		for _, toSquare := range moves {
+			if capturesBlocks == 0 {
+				allMoves = append(allMoves, [2]int{fromSquare, toSquare})
+			} else {
+				if 1<<toSquare&capturesBlocks != 0 {
+					allMoves = append(allMoves, [2]int{fromSquare, toSquare})
+				}
+			}
+		}
+	}
+	pieces = read1Bits(cb.BwKnights[cb.WToMove])
+	for _, fromSquare := range pieces {
+		moves = read1Bits(getKnightMoves(fromSquare, cb) & ^cb.BwPieces[cb.WToMove])
+		for _, toSquare := range moves {
+			if capturesBlocks == 0 {
+				allMoves = append(allMoves, [2]int{fromSquare, toSquare})
+			} else {
+				if 1<<toSquare&capturesBlocks != 0 {
+					allMoves = append(allMoves, [2]int{fromSquare, toSquare})
+				}
+			}
+		}
+	}
+	pieces = read1Bits(cb.BwBishops[cb.WToMove])
+	for _, fromSquare := range pieces {
+		moves = read1Bits(getBishopMoves(fromSquare, cb) & ^cb.BwPieces[cb.WToMove])
+		for _, toSquare := range moves {
+			if capturesBlocks == 0 {
+				allMoves = append(allMoves, [2]int{fromSquare, toSquare})
+			} else {
+				if 1<<toSquare&capturesBlocks != 0 {
+					allMoves = append(allMoves, [2]int{fromSquare, toSquare})
+				}
+			}
+		}
+	}
+	pieces = read1Bits(cb.BwRooks[cb.WToMove])
+	for _, fromSquare := range pieces {
+		moves = read1Bits(getRookMoves(fromSquare, cb) & ^cb.BwPieces[cb.WToMove])
+		for _, toSquare := range moves {
+			if capturesBlocks == 0 {
+				allMoves = append(allMoves, [2]int{fromSquare, toSquare})
+			} else {
+				if 1<<toSquare&capturesBlocks != 0 {
+					allMoves = append(allMoves, [2]int{fromSquare, toSquare})
+				}
+			}
+		}
+	}
+	pieces = read1Bits(cb.BwQueens[cb.WToMove])
+	for _, fromSquare := range pieces {
+		moves = read1Bits(getQueenMoves(fromSquare, cb) & ^cb.BwPieces[cb.WToMove])
+		for _, toSquare := range moves {
+			if capturesBlocks == 0 {
+				allMoves = append(allMoves, [2]int{fromSquare, toSquare})
+			} else {
+				if 1<<toSquare&capturesBlocks != 0 {
+					allMoves = append(allMoves, [2]int{fromSquare, toSquare})
+				}
+			}
+		}
 	}
 
 	return allMoves
+}
+
+func getCheckingSquares(cb *board.Board) (uint64, int) {
+	// Return squares pieces other than the king can move to escape check and
+	// the number of pieces checking the king.
+	opponent := 1 ^ cb.WToMove
+	attackerCount := 0
+
+	knightAttackers := getKnightMoves(cb.KingSquare[cb.WToMove], cb) & cb.BwKnights[opponent]
+	diagAttackers := getBishopMoves(cb.KingSquare[cb.WToMove], cb) & cb.BwPieces[opponent]
+	orthogAttackers := getRookMoves(cb.KingSquare[cb.WToMove], cb) & cb.BwPieces[opponent]
+
+	// There should be 0 or 1 attackers in each attack group.
+	if knightAttackers != 0 {
+		attackerCount += 1
+	}
+	if orthogAttackers != 0 {
+		attackerCount += 1
+	}
+	if diagAttackers != 0 {
+		attackerCount += 1
+	}
+
+	// Temporary sanity checks.
+	if cb.BwKing[opponent]&(diagAttackers|orthogAttackers) != 0 {
+		panic("king is checking the other king")
+	}
+	if orthogAttackers&cb.BwPawns[opponent] != 0 {
+		panic("pawn push is checking the king")
+	}
+	if len(read1Bits(orthogAttackers)) > 1 {
+		panic(">1 piece is checking king orthogonally")
+	}
+	if len(read1Bits(diagAttackers)) > 1 {
+		panic(">1 piece is checking king diagonally")
+	}
+	if len(read1Bits(knightAttackers)) > 1 {
+		panic(">1 knights are checking the king")
+	}
+
+	return knightAttackers | orthogAttackers | diagAttackers, attackerCount
 }
 
 func read1Bits(bb uint64) []int {

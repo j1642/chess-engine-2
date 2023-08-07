@@ -387,12 +387,45 @@ func TestGetKingMoves(t *testing.T) {
 	runMoveGenTests(t, tests)
 }
 
-func TestGetAllMoves(t *testing.T) {
-	cb := board.New()
-	actual := len(getAllMoves(cb))
-	if actual != 20 {
-		t.Errorf("perft(1): want=20, got=%d", actual)
+type allMovesTestCase struct {
+	expected, actual [][2]int
+}
+
+func runGetAllMovesTests(t *testing.T, tests []allMovesTestCase) {
+	for _, tt := range tests {
+		for i, move := range tt.expected {
+			if move != tt.actual[i] {
+				t.Errorf("allMoves: want=%v, got=%v", tt.expected[i], tt.actual[i])
+			}
+		}
 	}
+}
+
+func TestGetAllMoves(t *testing.T) {
+	cb, err := board.FromFen("R5rR/8/8/8/8/8/8/RNBQ2K1 w - - 0 1")
+	if err != nil {
+		t.Error(err)
+	}
+	tests := []allMovesTestCase{
+		{
+			// One checking piece which can be captured.
+			expected: [][2]int{{6, 5}, {6, 7}, {6, 13}, {6, 15}, {56, 62}, {63, 62}},
+			actual:   getAllMoves(cb),
+		},
+	}
+
+	cb1, err := board.FromFen("R5rR/8/8/8/8/8/5b2/RNBQ2K1 w - - 0 1")
+	if err != nil {
+		t.Error(err)
+	}
+
+	tests = append(tests, allMovesTestCase{
+		// Two checking pieces, so only the king can move.
+		expected: [][2]int{{6, 5}, {6, 7}, {6, 13}, {6, 15}},
+		actual:   getAllMoves(cb1),
+	})
+
+	runGetAllMovesTests(t, tests)
 }
 
 func TestRead1Bits(t *testing.T) {
@@ -425,9 +458,11 @@ func perft(depth int, cb *board.Board) int {
 	}
 	nodes := 0
 	moves := getAllMoves(cb)
+	var pos *board.Position
 
 	for _, toFrom := range moves {
-		pos := board.StorePosition(cb)
+		// TODO: move StorePosition out of loop?
+		pos = board.StorePosition(cb)
 		// TODO: check for pins
 		movePiece(toFrom[0], toFrom[1], cb)
 		nodes += perft(depth-1, cb)
