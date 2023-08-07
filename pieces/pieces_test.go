@@ -2,6 +2,7 @@ package pieces
 
 import (
 	"engine2/board"
+	_ "fmt"
 	"testing"
 )
 
@@ -393,11 +394,103 @@ type allMovesTestCase struct {
 
 func runGetAllMovesTests(t *testing.T, tests []allMovesTestCase) {
 	for _, tt := range tests {
+		//fmt.Printf("expected: %v\n", tt.expected)
+		//fmt.Printf("actual: %v\n", tt.actual)
 		for i, move := range tt.expected {
 			if move != tt.actual[i] {
 				t.Errorf("allMoves: want=%v, got=%v", tt.expected[i], tt.actual[i])
 			}
 		}
+	}
+}
+
+func TestFillFromTo(t *testing.T) {
+	expected := uint64(1 << 8)
+	actual := fillFromTo(0, 8, 8)
+	if expected != actual {
+		t.Errorf("fillFromTo: want=[8], got=%v", read1Bits(actual))
+	}
+	expected = uint64(1<<8 + 1<<16)
+	actual = fillFromTo(0, 16, 8)
+	if expected != actual {
+		t.Errorf("fillFromTo: want=[8 16], got=%v", read1Bits(actual))
+	}
+	expected = uint64(1<<53 + 1<<46 + 1<<39)
+	actual = fillFromTo(60, 39, -7)
+	if expected != actual {
+		t.Errorf("fillFromTo: want=[39 46 53], got=%v", read1Bits(actual))
+	}
+}
+
+type intIntTestCase struct {
+	expected, actual int
+}
+
+func TestFindDirection(t *testing.T) {
+	tests := []intIntTestCase{
+		// Roughly clockwise
+		{
+			expected: 8,
+			actual:   findDirection(9, 17),
+		},
+		{
+			expected: 9,
+			actual:   findDirection(9, 18),
+		},
+		{
+			expected: 1,
+			actual:   findDirection(9, 10),
+		},
+		{
+			expected: 1,
+			actual:   findDirection(0, 7),
+		},
+		{
+			expected: -1,
+			actual:   findDirection(7, 0),
+		},
+		{
+			expected: -7,
+			actual:   findDirection(9, 2),
+		},
+		{
+			expected: -8,
+			actual:   findDirection(9, 1),
+		},
+		{
+			expected: -9,
+			actual:   findDirection(9, 0),
+		},
+		{
+			expected: -1,
+			actual:   findDirection(9, 8),
+		},
+		{
+			expected: 7,
+			actual:   findDirection(9, 16),
+		},
+	}
+
+	for _, tt := range tests {
+		if tt.expected != tt.actual {
+			t.Errorf("findDirection: want=%d, got=%d", tt.expected, tt.actual)
+		}
+	}
+}
+
+func TestGetCheckingSquares(t *testing.T) {
+	cb, err := board.FromFen("R5rR/8/8/8/8/8/8/RNBQ2K1 w - - 0 1")
+	if err != nil {
+		t.Error(err)
+	}
+	capturesBlockers, attackerCount := getCheckingSquares(cb)
+	if attackerCount != 1 {
+		t.Errorf("wrong attackerCount: want=1, got=%d", attackerCount)
+	}
+	expectedCapturesBlockers := uint64(1<<62 + 1<<54 + 1<<46 + 1<<38 + 1<<30 + 1<<22 + 1<<14)
+	if capturesBlockers != expectedCapturesBlockers {
+		t.Errorf("wrong capturesBlockers: want=%v, got=%v",
+			read1Bits(expectedCapturesBlockers), read1Bits(capturesBlockers))
 	}
 }
 
@@ -408,8 +501,8 @@ func TestGetAllMoves(t *testing.T) {
 	}
 	tests := []allMovesTestCase{
 		{
-			// One checking piece which can be captured.
-			expected: [][2]int{{6, 5}, {6, 7}, {6, 13}, {6, 15}, {56, 62}, {63, 62}},
+			// One checking piece which can be captured or blocked.
+			expected: [][2]int{{6, 5}, {6, 7}, {6, 13}, {6, 15}, {2, 38}, {56, 62}, {63, 62}, {3, 30}},
 			actual:   getAllMoves(cb),
 		},
 	}
@@ -418,11 +511,20 @@ func TestGetAllMoves(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-
 	tests = append(tests, allMovesTestCase{
 		// Two checking pieces, so only the king can move.
 		expected: [][2]int{{6, 5}, {6, 7}, {6, 13}, {6, 15}},
 		actual:   getAllMoves(cb1),
+	})
+
+	cb2, err := board.FromFen("rnbqkbnr/ppppp1pp/5p2/7Q/8/4P3/PPPP1PPP/RNB1KBNR b KQkq - 0 1")
+	if err != nil {
+		t.Error(err)
+	}
+	tests = append(tests, allMovesTestCase{
+		// Only one move is possible: pawn blocks check.
+		expected: [][2]int{{54, 46}},
+		actual:   getAllMoves(cb2),
 	})
 
 	runGetAllMovesTests(t, tests)
@@ -454,6 +556,7 @@ func TestBinSearch(t *testing.T) {
 
 func perft(depth int, cb *board.Board) int {
 	if depth == 1 {
+		// TODO: check for pins
 		return len(getAllMoves(cb))
 	}
 	nodes := 0
@@ -463,7 +566,7 @@ func perft(depth int, cb *board.Board) int {
 	for _, toFrom := range moves {
 		// TODO: move StorePosition out of loop?
 		pos = board.StorePosition(cb)
-		// TODO: check for pins
+		// TODO: check for pins here too
 		movePiece(toFrom[0], toFrom[1], cb)
 		nodes += perft(depth-1, cb)
 		board.RestorePosition(pos, cb)
@@ -479,6 +582,7 @@ type perftTestCase struct {
 
 func TestPerft(t *testing.T) {
 	cb := board.New()
+	cb1 := board.New()
 
 	tests := []perftTestCase{
 		{
@@ -497,7 +601,7 @@ func TestPerft(t *testing.T) {
 			name:     "perft",
 			depth:    3,
 			expected: 8902,
-			actual:   perft(3, cb),
+			actual:   perft(3, cb1),
 		},
 	}
 

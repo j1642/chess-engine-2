@@ -28,6 +28,11 @@ func movePiece(from, to int, cb *board.Board, promoteTo ...string) {
 		fmt.Printf("invalid square to move from. square=%d", from)
 		return
 	}
+	// Temporary check for perft
+	if !isValidMove(from, to, movingType, cb) {
+		fmt.Println(from, to, movingType)
+		panic("illegal move")
+	}
 	// TODO: Test losing castling rights
 
 	cb.EpSquare = 100
@@ -487,26 +492,12 @@ func getCheckingSquares(cb *board.Board) (uint64, int) {
 	diagAttackers := getBishopMoves(cb.KingSquare[cb.WToMove], cb) & cb.BwPieces[opponent]
 	orthogAttackers := getRookMoves(cb.KingSquare[cb.WToMove], cb) & cb.BwPieces[opponent]
 
-	// There should be 0 or 1 attackers in each attack group.
-	if knightAttackers != 0 {
-		attackerCount += 1
-	}
-	if orthogAttackers != 0 {
-		attackerCount += 1
-	}
-	if diagAttackers != 0 {
-		attackerCount += 1
-	}
-
 	// Temporary sanity checks.
 	if cb.BwKing[opponent]&(diagAttackers|orthogAttackers) != 0 {
 		panic("king is checking the other king")
 	}
 	if orthogAttackers&cb.BwPawns[opponent] != 0 {
 		panic("pawn push is checking the king")
-	}
-	if len(read1Bits(orthogAttackers)) > 1 {
-		panic(">1 piece is checking king orthogonally")
 	}
 	if len(read1Bits(diagAttackers)) > 1 {
 		panic(">1 piece is checking king diagonally")
@@ -515,7 +506,76 @@ func getCheckingSquares(cb *board.Board) (uint64, int) {
 		panic(">1 knights are checking the king")
 	}
 
+	// There should be 0 or 1 attackers in each attack group.
+	// Add interposition squares if any exist.
+	if knightAttackers != 0 {
+		attackerCount += 1
+	}
+	if orthogAttackers != 0 {
+		attackerCount += 1
+		attackerSquares := read1Bits(orthogAttackers)
+		if len(attackerSquares) > 1 {
+			panic(">1 piece is checking king orthogonally")
+		}
+		dir := findDirection(cb.KingSquare[cb.WToMove], attackerSquares[0])
+		orthogAttackers = fillFromTo(cb.KingSquare[cb.WToMove], attackerSquares[0], dir)
+
+	}
+	if diagAttackers != 0 {
+		attackerCount += 1
+		attackerSquares := read1Bits(diagAttackers)
+		if len(attackerSquares) > 1 {
+			panic(">1 piece is checking king diagonally")
+		}
+		dir := findDirection(cb.KingSquare[cb.WToMove], attackerSquares[0])
+		diagAttackers = fillFromTo(cb.KingSquare[cb.WToMove], attackerSquares[0], dir)
+	}
+
 	return knightAttackers | orthogAttackers | diagAttackers, attackerCount
+}
+
+func fillFromTo(from, to, direction int) uint64 {
+	// Return a bitboard excluding the 'from' square and including the 'to' square.
+	bb := uint64(0)
+	for sq := from + direction; sq != to; sq += direction {
+		bb += 1 << sq
+	}
+	bb += 1 << to
+
+	return bb
+}
+
+func findDirection(from, to int) int {
+	// Assumes (from, to) is an orthogonal or diagonal move.
+	var dir int
+	diff := to - from
+	// TODO: Change to lookup table for files, or use bitboards.
+	files := board.GetFiles()
+
+	switch {
+	case diff%8 == 0:
+		dir = 8
+	case diff%9 == 0:
+		dir = 9
+	case -6 <= diff && diff <= 6:
+		dir = 1
+	case diff%7 == 0:
+		fromInAFile := board.ContainsN(from, files[0])
+		fromInHFile := board.ContainsN(from, files[3])
+		toInAFile := board.ContainsN(to, files[0])
+		toInHFile := board.ContainsN(to, files[3])
+		if (fromInAFile && toInHFile) || (fromInHFile && toInAFile) {
+			dir = 1
+		} else {
+			dir = 7
+		}
+	default:
+		panic("invalid toSquare-fromSquare difference")
+	}
+	if diff < 0 {
+		dir *= -1
+	}
+	return dir
 }
 
 func read1Bits(bb uint64) []int {
