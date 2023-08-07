@@ -499,39 +499,33 @@ func getCheckingSquares(cb *board.Board) (uint64, int) {
 	if orthogAttackers&cb.BwPawns[opponent] != 0 {
 		panic("pawn push is checking the king")
 	}
-	if len(read1Bits(diagAttackers)) > 1 {
-		panic(">1 piece is checking king diagonally")
-	}
 	if len(read1Bits(knightAttackers)) > 1 {
 		panic(">1 knights are checking the king")
 	}
 
 	// There should be 0 or 1 attackers in each attack group.
-	// Add interposition squares if any exist.
 	if knightAttackers != 0 {
 		attackerCount += 1
 	}
-	if orthogAttackers != 0 {
-		attackerCount += 1
-		attackerSquares := read1Bits(orthogAttackers)
-		if len(attackerSquares) > 1 {
-			panic(">1 piece is checking king orthogonally")
-		}
-		dir := findDirection(cb.KingSquare[cb.WToMove], attackerSquares[0])
-		orthogAttackers = fillFromTo(cb.KingSquare[cb.WToMove], attackerSquares[0], dir)
 
-	}
-	if diagAttackers != 0 {
-		attackerCount += 1
-		attackerSquares := read1Bits(diagAttackers)
-		if len(attackerSquares) > 1 {
-			panic(">1 piece is checking king diagonally")
+	panicMsgs := []string{">1 piece is checking king orthogonally",
+		">1 piece is checking king diagonally"}
+	attackers := []uint64{orthogAttackers, diagAttackers}
+
+	// Add interposition squares if any exist.
+	for i, attacker := range attackers {
+		if attacker != 0 {
+			attackerCount += 1
+			attackerSquare := read1Bits(attacker)
+			if len(attackerSquare) > 1 {
+				panic(panicMsgs[i])
+			}
+			dir := findDirection(cb.KingSquare[cb.WToMove], attackerSquare[0])
+			attackers[i] = fillFromTo(cb.KingSquare[cb.WToMove], attackerSquare[0], dir)
 		}
-		dir := findDirection(cb.KingSquare[cb.WToMove], attackerSquares[0])
-		diagAttackers = fillFromTo(cb.KingSquare[cb.WToMove], attackerSquares[0], dir)
 	}
 
-	return knightAttackers | orthogAttackers | diagAttackers, attackerCount
+	return knightAttackers | attackers[0] | attackers[1], attackerCount
 }
 
 func fillFromTo(from, to, direction int) uint64 {
