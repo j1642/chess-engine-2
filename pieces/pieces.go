@@ -222,8 +222,8 @@ func isValidMove(from, to int, pieceType string, cb *board.Board) bool {
 		if toBB&getKingMoves(from, cb) == 0 {
 			return false
 		}
-		// pieceType is not valid
 	default:
+		// pieceType is not valid
 		return false
 	}
 
@@ -434,62 +434,35 @@ func getAllMoves(cb *board.Board) [][2]int {
 		}
 	}
 
-	// TODO: make a function to replace each move gen block
-	pieces = read1Bits(cb.BwPawns[cb.WToMove])
-	for _, fromSquare := range pieces {
-		moves = read1Bits(getPawnMoves(fromSquare, cb) & ^cb.BwPieces[cb.WToMove])
-		for _, toSquare := range moves {
-			if capturesBlocks == 0 {
-				allMoves = append(allMoves, [2]int{fromSquare, toSquare})
-			} else {
-				if 1<<toSquare&capturesBlocks != 0 {
-					allMoves = append(allMoves, [2]int{fromSquare, toSquare})
-				}
-			}
-		}
-	}
-	pieces = read1Bits(cb.BwKnights[cb.WToMove])
-	for _, fromSquare := range pieces {
-		moves = read1Bits(getKnightMoves(fromSquare, cb) & ^cb.BwPieces[cb.WToMove])
-		for _, toSquare := range moves {
-			if capturesBlocks == 0 {
-				allMoves = append(allMoves, [2]int{fromSquare, toSquare})
-			} else {
-				if 1<<toSquare&capturesBlocks != 0 {
-					allMoves = append(allMoves, [2]int{fromSquare, toSquare})
-				}
-			}
-		}
-	}
-	pieces = read1Bits(cb.BwBishops[cb.WToMove])
-	for _, fromSquare := range pieces {
-		moves = read1Bits(getBishopMoves(fromSquare, cb) & ^cb.BwPieces[cb.WToMove])
-		for _, toSquare := range moves {
-			if capturesBlocks == 0 {
-				allMoves = append(allMoves, [2]int{fromSquare, toSquare})
-			} else {
-				if 1<<toSquare&capturesBlocks != 0 {
-					allMoves = append(allMoves, [2]int{fromSquare, toSquare})
-				}
-			}
-		}
-	}
-	pieces = read1Bits(cb.BwRooks[cb.WToMove])
-	for _, fromSquare := range pieces {
-		moves = read1Bits(getRookMoves(fromSquare, cb) & ^cb.BwPieces[cb.WToMove])
-		for _, toSquare := range moves {
-			if capturesBlocks == 0 {
-				allMoves = append(allMoves, [2]int{fromSquare, toSquare})
-			} else {
-				if 1<<toSquare&capturesBlocks != 0 {
-					allMoves = append(allMoves, [2]int{fromSquare, toSquare})
-				}
-			}
-		}
-	}
-	pieces = read1Bits(cb.BwQueens[cb.WToMove])
-	for _, fromSquare := range pieces {
-		moves = read1Bits(getQueenMoves(fromSquare, cb) & ^cb.BwPieces[cb.WToMove])
+	allMoves = append(allMoves,
+		getPieceMoveList(cb.BwPawns[cb.WToMove], capturesBlocks, getPawnMoves, cb)...,
+	)
+	allMoves = append(allMoves,
+		getPieceMoveList(cb.BwKnights[cb.WToMove], capturesBlocks, getKnightMoves, cb)...,
+	)
+	allMoves = append(allMoves,
+		getPieceMoveList(cb.BwBishops[cb.WToMove], capturesBlocks, getBishopMoves, cb)...,
+	)
+	allMoves = append(allMoves,
+		getPieceMoveList(cb.BwRooks[cb.WToMove], capturesBlocks, getRookMoves, cb)...,
+	)
+	allMoves = append(allMoves,
+		getPieceMoveList(cb.BwQueens[cb.WToMove], capturesBlocks, getQueenMoves, cb)...,
+	)
+
+	return allMoves
+}
+
+type moveGenFunc func(int, *board.Board) uint64
+
+func getPieceMoveList(piecesBB, capturesBlocks uint64, moveGen moveGenFunc,
+	cb *board.Board) [][2]int {
+	// Return slice of all moves, given piece locations and their move gen
+	// function.
+	allMoves := [][2]int{}
+
+	for _, fromSquare := range read1Bits(piecesBB) {
+		moves := read1Bits(moveGen(fromSquare, cb) & ^cb.BwPieces[cb.WToMove])
 		for _, toSquare := range moves {
 			if capturesBlocks == 0 {
 				allMoves = append(allMoves, [2]int{fromSquare, toSquare})
