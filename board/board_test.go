@@ -63,7 +63,7 @@ func runMoveBBTests(t *testing.T, tests []bbTestCase) {
 }
 
 func TestPawnAttackBBs(t *testing.T) {
-	bbs := MakePawnBBs()
+	bbs := makePawnBBs()
 	tests := []bbTestCase{
 		{
 			square:   8,
@@ -113,7 +113,7 @@ func TestPawnAttackBBs(t *testing.T) {
 }
 
 func TestKnightBBs(t *testing.T) {
-	bbs := MakeKnightBBs()
+	bbs := makeKnightBBs()
 
 	tests := []bbTestCase{
 		{
@@ -158,7 +158,7 @@ func TestKnightBBs(t *testing.T) {
 }
 
 func TestKingBBs(t *testing.T) {
-	bbs := MakeKingBBs()
+	bbs := makeKingBBs()
 	tests := []bbTestCase{
 		{
 			square:   0,
@@ -198,7 +198,7 @@ func TestKingBBs(t *testing.T) {
 }
 
 func TestSlidingAttackBBs(t *testing.T) {
-	bbs := MakeSlidingAttackBBs()
+	bbs := makeSlidingAttackBBs()
 	tests := []bbTestCase{
 		{
 			square: 0,

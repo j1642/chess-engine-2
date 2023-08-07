@@ -40,10 +40,10 @@ func New() *Board {
 		BwQueens:  [2]uint64{1 << 59, 1 << 3},
 		BwKing:    [2]uint64{1 << 60, 1 << 4},
 
-		PAttacks:       MakePawnBBs(),
-		NAttacks:       MakeKnightBBs(),
-		KAttacks:       MakeKingBBs(),
-		SlidingAttacks: MakeSlidingAttackBBs(),
+		PAttacks:       makePawnBBs(),
+		NAttacks:       makeKnightBBs(),
+		KAttacks:       makeKingBBs(),
+		SlidingAttacks: makeSlidingAttackBBs(),
 
 		KingSquare:   [2]int{60, 4},
 		CastleRights: [2][2]bool{{true, true}, {true, true}},
@@ -139,15 +139,15 @@ func FromFen(fen string) (*Board, error) {
 	cb.BwPieces[1] = cb.BwPawns[1] | cb.BwKnights[1] | cb.BwBishops[1] |
 		cb.BwRooks[1] | cb.BwQueens[1] | cb.BwKing[1]
 
-	cb.PAttacks = MakePawnBBs()
-	cb.NAttacks = MakeKnightBBs()
-	cb.KAttacks = MakeKingBBs()
-	cb.SlidingAttacks = MakeSlidingAttackBBs()
+	cb.PAttacks = makePawnBBs()
+	cb.NAttacks = makeKnightBBs()
+	cb.KAttacks = makeKingBBs()
+	cb.SlidingAttacks = makeSlidingAttackBBs()
 
 	return cb, nil
 }
 
-func getFiles() [4][8]int {
+func GetFiles() [4][8]int {
 	fileA, fileB, fileG, fileH := [8]int{}, [8]int{}, [8]int{}, [8]int{}
 
 	for i := 0; i < 8; i++ {
@@ -192,7 +192,7 @@ func ContainsN[T IntArray](n int, nums T) bool {
 	return false
 }
 
-func MakePawnBBs() [2][64]uint64 {
+func makePawnBBs() [2][64]uint64 {
 	// First index is isWhite: 1 for white pawns, 0 for black pawns.
 	bbs := [2][64]uint64{}
 
@@ -213,10 +213,10 @@ func MakePawnBBs() [2][64]uint64 {
 	return bbs
 }
 
-func MakeKnightBBs() [64]uint64 {
+func makeKnightBBs() [64]uint64 {
 	bbs := [64]uint64{}
 	directions := []int{}
-	files := getFiles()
+	files := GetFiles()
 
 	for sq := 0; sq < 64; sq++ {
 		switch {
@@ -271,10 +271,10 @@ func MakeKnightBBs() [64]uint64 {
 	return bbs
 }
 
-func MakeKingBBs() [64]uint64 {
+func makeKingBBs() [64]uint64 {
 	bbs := [64]uint64{}
 	directions := []int{}
-	files := getFiles()
+	files := GetFiles()
 
 	for sq := 0; sq < 64; sq++ {
 		switch {
@@ -299,9 +299,9 @@ func MakeKingBBs() [64]uint64 {
 	return bbs
 }
 
-func MakeSlidingAttackBBs() [8][64]uint64 {
+func makeSlidingAttackBBs() [8][64]uint64 {
 	bbs := [8][64]uint64{}
-	files := getFiles()
+	files := GetFiles()
 	fileAForbidden := [3]int{-9, -1, 7}
 	fileHForbidden := [3]int{9, 1, -7}
 
