@@ -358,7 +358,7 @@ func getKingMoves(square int, cb *board.Board) uint64 {
 			moves += 1 << 62
 		}
 	} else {
-		if cb.CastleRights[1][0] && (1+1<<2+1<<3)&occupied == 0 &&
+		if cb.CastleRights[1][0] && (1<<1+1<<2+1<<3)&occupied == 0 &&
 			(1<<2+1<<3+1<<4)&opponentAttackedSquares == 0 {
 			moves += 1 << 2
 		}
