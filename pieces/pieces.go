@@ -18,6 +18,7 @@ and the opposite for negative directions.
 */
 
 // TODO: Investigate performance impact of branching in move gen.
+//      - branching effects in getRookMoves() not obvious with perft(5)
 
 type move struct {
 	from, to  int
@@ -39,12 +40,19 @@ func movePiece(move move, cb *board.Board) {
 	fromBB := uint64(1 << move.from)
 	toBB := uint64(1 << move.to)
 
+	if toBB&(cb.BwPieces[1^cb.WToMove]^cb.BwKing[1^cb.WToMove]) != 0 {
+		capturePiece(toBB, cb)
+	}
+
 	cb.BwPieces[cb.WToMove] ^= fromBB + toBB
 	switch move.piece {
 	case "p":
 		cb.BwPawns[cb.WToMove] ^= fromBB + toBB
 		if move.to-move.from == 16 || move.to-move.from == -16 {
 			cb.EpSquare = (move.to + move.from) / 2
+		}
+		if move.to < 8 || move.to > 55 {
+			promotePawn(toBB, cb, move.promoteTo)
 		}
 	case "n":
 		cb.BwKnights[cb.WToMove] ^= fromBB + toBB
@@ -76,14 +84,6 @@ func movePiece(move move, cb *board.Board) {
 	default:
 		// This branch should never execute.
 		panic("empty or invalid piece type")
-	}
-
-	if toBB&(cb.BwPieces[1^cb.WToMove]^cb.BwKing[1^cb.WToMove]) != 0 {
-		capturePiece(toBB, cb)
-	}
-
-	if move.piece == "p" && (move.to < 8 || move.to > 55) {
-		promotePawn(toBB, cb, move.promoteTo)
 	}
 
 	cb.WToMove ^= 1
