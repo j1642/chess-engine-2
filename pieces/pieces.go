@@ -19,33 +19,32 @@ and the opposite for negative directions.
 
 // TODO: Investigate performance impact of branching in move gen.
 
-func movePiece(from, to int, cb *board.Board, promoteTo ...string) {
+type move struct {
+	from, to  int
+	piece     string
+	promoteTo string
+}
+
+func movePiece(move move, cb *board.Board) {
 	// TODO: Refactor to remove switch. Maybe make a parent array board.Occupied.
-	// TODO: make struct {to, from, type} to speed up makeMove()
-	movingType, err := getPieceType(from, cb)
-	if err != nil {
-		// TODO: Improve? Error is because the square does not exist (too high/low).
-		fmt.Printf("invalid square to move from. square=%d", from)
-		return
-	}
+
 	// Temporary check for perft
-	if !isValidMove(from, to, movingType, cb) {
-		fmt.Println(from, to, movingType)
+	if !isValidMove(move.from, move.to, move.piece, cb) {
+		fmt.Println(move.from, move.to, move.piece)
 		panic("illegal move")
 	}
-	// TODO: Test losing castling rights
 
 	cb.EpSquare = 100
 
-	fromBB := uint64(1 << from)
-	toBB := uint64(1 << to)
+	fromBB := uint64(1 << move.from)
+	toBB := uint64(1 << move.to)
 
 	cb.BwPieces[cb.WToMove] ^= fromBB + toBB
-	switch movingType {
+	switch move.piece {
 	case "p":
 		cb.BwPawns[cb.WToMove] ^= fromBB + toBB
-		if to-from == 16 || to-from == -16 {
-			cb.EpSquare = (to + from) / 2
+		if move.to-move.from == 16 || move.to-move.from == -16 {
+			cb.EpSquare = (move.to + move.from) / 2
 		}
 	case "n":
 		cb.BwKnights[cb.WToMove] ^= fromBB + toBB
@@ -53,25 +52,25 @@ func movePiece(from, to int, cb *board.Board, promoteTo ...string) {
 		cb.BwBishops[cb.WToMove] ^= fromBB + toBB
 	case "r":
 		cb.BwRooks[cb.WToMove] ^= fromBB + toBB
-		if from == 0 || fromBB == 63 {
+		if move.from == 0 || fromBB == 63 {
 			cb.CastleRights[cb.WToMove][0] = false
-		} else if from == 7 || from == 63 {
+		} else if move.from == 7 || move.from == 63 {
 			cb.CastleRights[cb.WToMove][1] = false
 		}
 	case "q":
 		cb.BwQueens[cb.WToMove] ^= fromBB + toBB
 	case "k":
-		if to-from == 2 || to-from == -2 {
-			if cb.CastleRights[cb.WToMove][0] && (to == 2 || to == 58) {
-				cb.BwRooks[cb.WToMove] ^= uint64(1<<(to-2) + 1<<(to+1))
-			} else if cb.CastleRights[cb.WToMove][1] && (to == 6 || to == 62) {
-				cb.BwRooks[cb.WToMove] ^= uint64(1<<(to+1) + 1<<(to-1))
+		if move.to-move.from == 2 || move.to-move.from == -2 {
+			if cb.CastleRights[cb.WToMove][0] && (move.to == 2 || move.to == 58) {
+				cb.BwRooks[cb.WToMove] ^= uint64(1<<(move.to-2) + 1<<(move.to+1))
+			} else if cb.CastleRights[cb.WToMove][1] && (move.to == 6 || move.to == 62) {
+				cb.BwRooks[cb.WToMove] ^= uint64(1<<(move.to+1) + 1<<(move.to-1))
 			} else {
 				panic("king moving two squares, but is not castling")
 			}
 		}
 		cb.BwKing[cb.WToMove] ^= fromBB + toBB
-		cb.KingSquare[cb.WToMove] = to
+		cb.KingSquare[cb.WToMove] = move.to
 		cb.CastleRights[cb.WToMove][0] = false
 		cb.CastleRights[cb.WToMove][1] = false
 	default:
@@ -83,8 +82,8 @@ func movePiece(from, to int, cb *board.Board, promoteTo ...string) {
 		capturePiece(toBB, cb)
 	}
 
-	if len(promoteTo) == 1 || (movingType == "p" && (to < 8 || to > 55)) {
-		promotePawn(toBB, cb, promoteTo[0])
+	if move.piece == "p" && (move.to < 8 || move.to > 55) {
+		promotePawn(toBB, cb, move.promoteTo)
 	}
 
 	cb.WToMove ^= 1
@@ -414,8 +413,8 @@ func getAttackedSquares(cb *board.Board) uint64 {
 	return attackSquares
 }
 
-func getAllMoves(cb *board.Board) [][2]int {
-	allMoves := [][2]int{}
+func getAllMoves(cb *board.Board) []move {
+	allMoves := []move{}
 	pieces := []int{}
 	moves := []int{}
 
@@ -433,7 +432,7 @@ func getAllMoves(cb *board.Board) [][2]int {
 	for _, fromSquare := range pieces {
 		moves = read1Bits(getKingMoves(fromSquare, cb) & ^cb.BwPieces[cb.WToMove])
 		for _, toSquare := range moves {
-			allMoves = append(allMoves, [2]int{fromSquare, toSquare})
+			allMoves = append(allMoves, move{fromSquare, toSquare, "k", ""})
 		}
 		// If attackerCount > 1 and king has no moves, it is checkmate.
 		if attackerCount > 1 {
@@ -442,19 +441,19 @@ func getAllMoves(cb *board.Board) [][2]int {
 	}
 
 	allMoves = append(allMoves,
-		getPieceMoveList(cb.BwPawns[cb.WToMove], capturesBlocks, getPawnMoves, cb)...,
+		getPieceMoveList(cb.BwPawns[cb.WToMove], capturesBlocks, "p", getPawnMoves, cb)...,
 	)
 	allMoves = append(allMoves,
-		getPieceMoveList(cb.BwKnights[cb.WToMove], capturesBlocks, getKnightMoves, cb)...,
+		getPieceMoveList(cb.BwKnights[cb.WToMove], capturesBlocks, "n", getKnightMoves, cb)...,
 	)
 	allMoves = append(allMoves,
-		getPieceMoveList(cb.BwBishops[cb.WToMove], capturesBlocks, getBishopMoves, cb)...,
+		getPieceMoveList(cb.BwBishops[cb.WToMove], capturesBlocks, "b", getBishopMoves, cb)...,
 	)
 	allMoves = append(allMoves,
-		getPieceMoveList(cb.BwRooks[cb.WToMove], capturesBlocks, getRookMoves, cb)...,
+		getPieceMoveList(cb.BwRooks[cb.WToMove], capturesBlocks, "r", getRookMoves, cb)...,
 	)
 	allMoves = append(allMoves,
-		getPieceMoveList(cb.BwQueens[cb.WToMove], capturesBlocks, getQueenMoves, cb)...,
+		getPieceMoveList(cb.BwQueens[cb.WToMove], capturesBlocks, "q", getQueenMoves, cb)...,
 	)
 
 	return allMoves
@@ -462,20 +461,20 @@ func getAllMoves(cb *board.Board) [][2]int {
 
 type moveGenFunc func(int, *board.Board) uint64
 
-func getPieceMoveList(piecesBB, capturesBlocks uint64, moveGen moveGenFunc,
-	cb *board.Board) [][2]int {
+func getPieceMoveList(piecesBB, capturesBlocks uint64, piece string,
+	moveGen moveGenFunc, cb *board.Board) []move {
 	// Return slice of all moves, given piece locations and their move gen
 	// function.
-	allMoves := [][2]int{}
+	allMoves := []move{}
 
 	for _, fromSquare := range read1Bits(piecesBB) {
 		moves := read1Bits(moveGen(fromSquare, cb) & ^cb.BwPieces[cb.WToMove])
 		for _, toSquare := range moves {
 			if capturesBlocks == 0 {
-				allMoves = append(allMoves, [2]int{fromSquare, toSquare})
+				allMoves = append(allMoves, move{fromSquare, toSquare, piece, ""})
 			} else {
 				if 1<<toSquare&capturesBlocks != 0 {
-					allMoves = append(allMoves, [2]int{fromSquare, toSquare})
+					allMoves = append(allMoves, move{fromSquare, toSquare, piece, ""})
 				}
 			}
 		}
