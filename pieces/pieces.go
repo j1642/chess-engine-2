@@ -489,18 +489,21 @@ func getCheckingSquares(cb *board.Board) (uint64, int) {
 	opponent := 1 ^ cb.WToMove
 	attackerCount := 0
 
+	// TODO: remove king from possible attackers
 	knightAttackers := getKnightMoves(cb.KingSquare[cb.WToMove], cb) & cb.BwKnights[opponent]
-	diagAttackers := getBishopMoves(cb.KingSquare[cb.WToMove], cb) & cb.BwPieces[opponent]
-	orthogAttackers := getRookMoves(cb.KingSquare[cb.WToMove], cb) & cb.BwPieces[opponent]
+	diagAttackers := getBishopMoves(cb.KingSquare[cb.WToMove], cb) &
+		(cb.BwPawns[opponent] | cb.BwBishops[opponent] | cb.BwQueens[opponent] |
+			cb.BwKing[opponent])
+	orthogAttackers := getRookMoves(cb.KingSquare[cb.WToMove], cb) &
+		(cb.BwRooks[opponent] | cb.BwQueens[opponent] | cb.BwKing[opponent])
 
-	// Temporary sanity checks.
+		// TODO: Remove temporary sanity checks.
 	if cb.BwKing[opponent]&(diagAttackers|orthogAttackers) != 0 {
+		cb.Print()
 		panic("king is checking the other king")
 	}
-	if orthogAttackers&cb.BwPawns[opponent] != 0 {
-		panic("pawn push is checking the king")
-	}
 	if len(read1Bits(knightAttackers)) > 1 {
+		cb.Print()
 		panic(">1 knights are checking the king")
 	}
 
@@ -517,12 +520,24 @@ func getCheckingSquares(cb *board.Board) (uint64, int) {
 	for i, attacker := range attackers {
 		if attacker != 0 {
 			attackerCount += 1
-			attackerSquare := read1Bits(attacker)
-			if len(attackerSquare) > 1 {
-				panic(panicMsgs[i])
+			attackerSquares := read1Bits(attacker)
+			if len(attackerSquares) > 1 {
+				if i == 1 {
+					// TODO: Refactor excluding pawns not in range of the king
+					for _, attackerSquare := range attackerSquares {
+						diff := attackerSquare - cb.KingSquare[cb.WToMove]
+						if cb.BwPawns[opponent]&1<<attackerSquare != 0 &&
+							diff*diff != 81 && diff*diff != 49 {
+							// "checking" piece is a far away pawn
+							attackers[i] -= 1 << attackerSquare
+						}
+					}
+				} else {
+					panic(panicMsgs[i])
+				}
 			}
-			dir := findDirection(cb.KingSquare[cb.WToMove], attackerSquare[0])
-			attackers[i] = fillFromTo(cb.KingSquare[cb.WToMove], attackerSquare[0], dir)
+			dir := findDirection(cb.KingSquare[cb.WToMove], attackerSquares[0])
+			attackers[i] = fillFromTo(cb.KingSquare[cb.WToMove], attackerSquares[0], dir)
 		}
 	}
 

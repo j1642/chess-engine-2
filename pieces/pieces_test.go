@@ -632,14 +632,12 @@ func TestPerft(t *testing.T) {
 			expected: 197_281,
 			actual:   perft(4, cb),
 		},
-		/*
-			{
-				name:     "perft",
-				depth:    5,
-				expected: 4_865_609,
-				actual:   perft(5, cb),
-			},
-		*/
+		{
+			name:     "perft",
+			depth:    5,
+			expected: 4_865_609,
+			actual:   perft(5, cb),
+		},
 	}
 	runPerftTests(t, tests)
 }
