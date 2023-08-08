@@ -2,6 +2,7 @@ package board
 
 import (
 	"fmt"
+	"math/bits"
 	"strings"
 )
 
@@ -381,4 +382,46 @@ func RestorePosition(pos *Position, cb *Board) {
 	cb.CastleRights = pos.CastleRights
 
 	cb.EpSquare = pos.EpSquare
+}
+
+func (cb *Board) Print() {
+	// Possibly destructive to original cb.
+	squares := [64]string{}
+	copied := StorePosition(cb)
+
+	pieces := [6]uint64{
+		copied.BwPawns[0] + copied.BwPawns[1],
+		copied.BwKnights[0] + copied.BwKnights[1],
+		copied.BwBishops[0] + copied.BwBishops[1],
+		copied.BwRooks[0] + copied.BwRooks[1],
+		copied.BwQueens[0] + copied.BwQueens[1],
+		copied.BwKing[0] + copied.BwKing[1],
+	}
+	symbols := [6]string{"p", "n", "b", "r", "q", "k"}
+
+	for i, piece := range pieces {
+		for piece != 0 {
+			squares[bits.TrailingZeros64(piece)] = symbols[i]
+			piece &= piece - 1
+		}
+	}
+
+	for i, symbol := range squares {
+		if copied.BwPieces[1]&uint64(1<<i) != 0 {
+			squares[i] = strings.ToUpper(symbol)
+		}
+	}
+
+	for i := 56; i != 7; i++ {
+		if squares[i] == "" {
+			fmt.Print("- ")
+		} else {
+			fmt.Printf("%s ", squares[i])
+		}
+		if i%8 == 7 {
+			i -= 16
+			fmt.Println()
+		}
+	}
+	fmt.Print(squares[7], "\n")
 }
