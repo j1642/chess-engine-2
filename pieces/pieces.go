@@ -404,11 +404,8 @@ func getAttackedSquares(cb *board.Board) uint64 {
 	for _, square := range pieces {
 		attackSquares |= getQueenMoves(square, cb)
 	}
-	pieces = read1Bits(cb.BwKing[cb.WToMove])
-	for _, square := range pieces {
-		// Do not include castling.
-		attackSquares |= cb.KAttacks[square]
-	}
+	// Do not include castling.
+	attackSquares |= cb.KAttacks[cb.KingSquare[cb.WToMove]]
 
 	return attackSquares
 }
