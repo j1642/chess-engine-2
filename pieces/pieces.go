@@ -413,7 +413,7 @@ func getAttackedSquares(cb *board.Board) uint64 {
 func getAllMoves(cb *board.Board) []move {
 	var capturesBlocks uint64
 	var attackerCount int
-	allMoves := []move{}
+	allMoves := make([]move, 0, 35)
 
 	cb.WToMove ^= 1
 	attackedSquares := getAttackedSquares(cb)
