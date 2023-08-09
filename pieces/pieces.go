@@ -511,18 +511,23 @@ func getCheckingSquares(cb *board.Board) (uint64, int) {
 	// Add interposition squares if any exist.
 	for i, attacker := range attackers {
 		if attacker != 0 {
-			attackerCount += 1
 			attackerSquares := read1Bits(attacker)
+			attackerCount += len(attackerSquares)
 			if len(attackerSquares) > 1 {
 				if i == 1 {
 					// TODO: Refactor excluding pawns not in range of the king
 					for _, attackerSquare := range attackerSquares {
 						diff := attackerSquare - cb.KingSquare[cb.WToMove]
-						if cb.BwPawns[opponent]&1<<attackerSquare != 0 &&
+						if cb.BwPawns[opponent]&uint64(1<<attackerSquare) != 0 &&
 							diff*diff != 81 && diff*diff != 49 {
 							// "checking" piece is a far away pawn
 							attackers[i] -= 1 << attackerSquare
+							attackerSquares = read1Bits(attackers[i])
+							attackerCount -= 1
 						}
+					}
+					if len(attackerSquares) > 1 {
+						panic("still >1 diag checking pieces")
 					}
 				} else {
 					panic(panicMsgs[i])

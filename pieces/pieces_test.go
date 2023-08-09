@@ -503,6 +503,20 @@ func TestGetCheckingSquares(t *testing.T) {
 		t.Errorf("wrong capturesBlockers: want=%v, got=%v",
 			read1Bits(expectedCapturesBlockers), read1Bits(capturesBlockers))
 	}
+
+	cb, err = board.FromFen("4k3/8/8/8/6n1/5P2/PPPPPKPP/5BNR w - - 0 1")
+	if err != nil {
+		t.Error(err)
+	}
+	capturesBlockers, attackerCount = getCheckingSquares(cb)
+	if attackerCount != 1 {
+		t.Errorf("wrong attackerCount: want=1, got=%d", attackerCount)
+	}
+	expectedCapturesBlockers = uint64(1 << 30)
+	if capturesBlockers != expectedCapturesBlockers {
+		t.Errorf("wrong capturesBlockers: want=%v, got=%v",
+			read1Bits(expectedCapturesBlockers), read1Bits(capturesBlockers))
+	}
 }
 
 func TestGetAllMoves(t *testing.T) {
@@ -539,6 +553,15 @@ func TestGetAllMoves(t *testing.T) {
 		// Only one move is possible: pawn blocks check.
 		expected: []move{{54, 46, "p", ""}},
 		actual:   getAllMoves(cb2),
+	})
+
+	cb3, err := board.FromFen("4k3/8/8/8/6n1/5P2/PPPPPKPP/5BNR w - - 0 1")
+	if err != nil {
+		t.Error(err)
+	}
+	tests = append(tests, allMovesTestCase{
+		expected: []move{{13, 4, "k", ""}, {13, 22, "k", ""}, {21, 30, "p", ""}},
+		actual:   getAllMoves(cb3),
 	})
 
 	runGetAllMovesTests(t, tests)
