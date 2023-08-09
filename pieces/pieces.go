@@ -590,7 +590,7 @@ func findDirection(from, to int) int {
 
 func read1Bits(bb uint64) []int {
 	// Using TrailingZeros64() seems as fast as bitshifting right while bb>0.
-	squares := []int{}
+	squares := make([]int, 0, 2)
 	for bb > 0 {
 		squares = append(squares, bits.TrailingZeros64(bb))
 		bb &= bb - 1
