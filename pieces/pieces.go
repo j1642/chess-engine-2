@@ -414,12 +414,9 @@ func getAttackedSquares(cb *board.Board) uint64 {
 }
 
 func getAllMoves(cb *board.Board) []move {
-	allMoves := []move{}
-	pieces := []int{}
-	moves := []int{}
-
 	var capturesBlocks uint64
 	var attackerCount int
+	allMoves := []move{}
 
 	cb.WToMove ^= 1
 	attackedSquares := getAttackedSquares(cb)
@@ -428,16 +425,14 @@ func getAllMoves(cb *board.Board) []move {
 		capturesBlocks, attackerCount = getCheckingSquares(cb)
 	}
 
-	pieces = read1Bits(cb.BwKing[cb.WToMove])
-	for _, fromSquare := range pieces {
-		moves = read1Bits(getKingMoves(fromSquare, cb) & ^cb.BwPieces[cb.WToMove])
-		for _, toSquare := range moves {
-			allMoves = append(allMoves, move{fromSquare, toSquare, "k", ""})
-		}
-		// If attackerCount > 1 and king has no moves, it is checkmate.
-		if attackerCount > 1 {
-			return allMoves
-		}
+	kingSquare := cb.KingSquare[cb.WToMove]
+	moves := read1Bits(getKingMoves(kingSquare, cb) & ^cb.BwPieces[cb.WToMove])
+	for _, toSquare := range moves {
+		allMoves = append(allMoves, move{kingSquare, toSquare, "k", ""})
+	}
+	// If attackerCount > 1 and king has no moves, it is checkmate.
+	if attackerCount > 1 {
+		return allMoves
 	}
 
 	allMoves = append(allMoves,
