@@ -1,6 +1,7 @@
 My first [bitboard](https://www.chessprogramming.org/Bitboards)-based engine.
 
 Aug 7: perft(4) passes at >1.35 million nodes/s
+
 Aug 9: perft(5) passes at >3.5 million nodes/s (~1.4s)
 
 ### Want to build a chess engine?
