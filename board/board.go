@@ -197,8 +197,26 @@ func makePawnBBs() [2][64]uint64 {
 	// First index is isWhite: 1 for white pawns, 0 for black pawns.
 	bbs := [2][64]uint64{}
 
-	for sq := 8; sq < 56; sq++ {
+	for sq := 0; sq < 64; sq++ {
 		switch {
+		// For determining pawn checks on kings on the eighth rank.
+		case sq > 56:
+			if sq%8 == 0 {
+				bbs[0][sq] += 1 << (sq - 7)
+			} else if sq%8 == 7 {
+				bbs[0][sq] += 1 << (sq - 9)
+			} else {
+				bbs[0][sq] += 1<<(sq-7) + 1<<(sq-9)
+			}
+		// For determining pawn checks on kings on the first rank.
+		case sq < 8:
+			if sq%8 == 0 {
+				bbs[1][sq] += 1 << (sq + 9)
+			} else if sq%8 == 7 {
+				bbs[1][sq] += 1 << (sq + 7)
+			} else {
+				bbs[1][sq] += 1<<(sq+7) + 1<<(sq+9)
+			}
 		case sq%8 == 0:
 			bbs[1][sq] += 1 << (sq + 9)
 			bbs[0][sq] += 1 << (sq - 7)

@@ -103,7 +103,7 @@ func TestPawnAttackBBs(t *testing.T) {
 		},
 		{
 			square:   100,
-			expected: uint64(0),
+			expected: uint64(1<<12 + 1<<14 + 1<<51 + 1<<53),
 			actual:   bbs[1][5] + bbs[1][60] + bbs[0][0] + bbs[0][60],
 			name:     "pawns on 1st and 8th ranks",
 		},

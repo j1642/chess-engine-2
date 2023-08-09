@@ -476,21 +476,23 @@ func getPieceMoveList(piecesBB, capturesBlocks uint64, piece string,
 }
 
 func getCheckingSquares(cb *board.Board) (uint64, int) {
-	// Return squares pieces other than the king can move to escape check and
-	// the number of pieces checking the king.
+	// Return squares of pieces checking the king and interposition squares,
+	// and the number of checking pieces.
 	opponent := 1 ^ cb.WToMove
 	attackerCount := 0
 
 	// TODO: remove king from possible attackers
-	knightAttackers := getKnightMoves(cb.KingSquare[cb.WToMove], cb) & cb.BwKnights[opponent]
-	diagAttackers := getBishopMoves(cb.KingSquare[cb.WToMove], cb) &
-		(cb.BwPawns[opponent] | cb.BwBishops[opponent] | cb.BwQueens[opponent] |
-			cb.BwKing[opponent])
+	kSquare := cb.KingSquare[cb.WToMove]
+	pAttackers := (cb.PAttacks[0][kSquare] | cb.PAttacks[1][kSquare]) &
+		cb.BwPawns[opponent]
+	knightAttackers := getKnightMoves(kSquare, cb) & cb.BwKnights[opponent]
+	bqAttackers := getBishopMoves(kSquare, cb) & (cb.BwBishops[opponent] |
+		cb.BwQueens[opponent] | cb.BwKing[opponent])
 	orthogAttackers := getRookMoves(cb.KingSquare[cb.WToMove], cb) &
 		(cb.BwRooks[opponent] | cb.BwQueens[opponent] | cb.BwKing[opponent])
 
-		// TODO: Remove temporary sanity checks.
-	if cb.BwKing[opponent]&(diagAttackers|orthogAttackers) != 0 {
+    // TODO: Remove temporary sanity checks.
+	if cb.BwKing[opponent]&(bqAttackers|orthogAttackers) != 0 {
 		cb.Print()
 		panic("king is checking the other king")
 	}
@@ -500,13 +502,16 @@ func getCheckingSquares(cb *board.Board) (uint64, int) {
 	}
 
 	// There should be 0 or 1 attackers in each attack group.
+	if pAttackers != 0 {
+		attackerCount += 1
+	}
 	if knightAttackers != 0 {
 		attackerCount += 1
 	}
 
 	panicMsgs := []string{">1 piece is checking king orthogonally",
 		">1 piece is checking king diagonally"}
-	attackers := []uint64{orthogAttackers, diagAttackers}
+	attackers := []uint64{orthogAttackers, bqAttackers}
 
 	// Add interposition squares if any exist.
 	for i, attacker := range attackers {
@@ -514,31 +519,14 @@ func getCheckingSquares(cb *board.Board) (uint64, int) {
 			attackerSquares := read1Bits(attacker)
 			attackerCount += len(attackerSquares)
 			if len(attackerSquares) > 1 {
-				if i == 1 {
-					// TODO: Refactor excluding pawns not in range of the king
-					for _, attackerSquare := range attackerSquares {
-						diff := attackerSquare - cb.KingSquare[cb.WToMove]
-						if cb.BwPawns[opponent]&uint64(1<<attackerSquare) != 0 &&
-							diff*diff != 81 && diff*diff != 49 {
-							// "checking" piece is a far away pawn
-							attackers[i] -= 1 << attackerSquare
-							attackerSquares = read1Bits(attackers[i])
-							attackerCount -= 1
-						}
-					}
-					if len(attackerSquares) > 1 {
-						panic("still >1 diag checking pieces")
-					}
-				} else {
-					panic(panicMsgs[i])
-				}
+				panic(panicMsgs[i])
 			}
 			dir := findDirection(cb.KingSquare[cb.WToMove], attackerSquares[0])
 			attackers[i] = fillFromTo(cb.KingSquare[cb.WToMove], attackerSquares[0], dir)
 		}
 	}
 
-	return knightAttackers | attackers[0] | attackers[1], attackerCount
+	return pAttackers | knightAttackers | attackers[0] | attackers[1], attackerCount
 }
 
 func fillFromTo(from, to, direction int) uint64 {

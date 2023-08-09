@@ -504,7 +504,7 @@ func TestGetCheckingSquares(t *testing.T) {
 			read1Bits(expectedCapturesBlockers), read1Bits(capturesBlockers))
 	}
 
-	cb, err = board.FromFen("4k3/8/8/8/6n1/5P2/PPPPPKPP/5BNR w - - 0 1")
+	cb, err = board.FromFen("4k3/pppppppp/8/8/6n1/5P2/PPPPPKPP/5BNR w - - 0 1")
 	if err != nil {
 		t.Error(err)
 	}
@@ -555,7 +555,7 @@ func TestGetAllMoves(t *testing.T) {
 		actual:   getAllMoves(cb2),
 	})
 
-	cb3, err := board.FromFen("4k3/8/8/8/6n1/5P2/PPPPPKPP/5BNR w - - 0 1")
+	cb3, err := board.FromFen("4k3/pppppppp/8/8/6n1/5P2/PPPPPKPP/5BNR w - - 0 1")
 	if err != nil {
 		t.Error(err)
 	}
@@ -646,15 +646,8 @@ type perftTestCase struct {
 
 func TestPerft(t *testing.T) {
 	cb := board.New()
-	//cb1 := board.New()
 
 	tests := []perftTestCase{
-		{
-			name:     "perft",
-			depth:    4,
-			expected: 197_281,
-			actual:   perft(4, cb),
-		},
 		{
 			name:     "perft",
 			depth:    5,
