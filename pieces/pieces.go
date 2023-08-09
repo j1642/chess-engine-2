@@ -457,7 +457,7 @@ func getPieceMoveList(piecesBB, capturesBlocks uint64, piece string,
 	moveGen moveGenFunc, cb *board.Board) []move {
 	// Return slice of all moves, given piece locations and their move gen
 	// function.
-	allMoves := []move{}
+	allMoves := make([]move, 0, 4)
 
 	for _, fromSquare := range read1Bits(piecesBB) {
 		moves := read1Bits(moveGen(fromSquare, cb) & ^cb.BwPieces[cb.WToMove])
