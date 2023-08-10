@@ -390,7 +390,7 @@ func getAttackedSquares(cb *board.Board) uint64 {
 	}
 	pieces = read1Bits(cb.BwKnights[cb.WToMove])
 	for _, square := range pieces {
-		attackSquares |= getKnightMoves(square, cb)
+		attackSquares |= cb.NAttacks[square]
 	}
 	pieces = read1Bits(cb.BwBishops[cb.WToMove])
 	for _, square := range pieces {
@@ -475,7 +475,7 @@ func getCheckingSquares(cb *board.Board) (uint64, int) {
 	kSquare := cb.KingSquare[cb.WToMove]
 	pAttackers := (cb.PAttacks[0][kSquare] | cb.PAttacks[1][kSquare]) &
 		cb.BwPawns[opponent]
-	knightAttackers := getKnightMoves(kSquare, cb) & cb.BwKnights[opponent]
+	knightAttackers := cb.NAttacks[kSquare] & cb.BwKnights[opponent]
 	bqAttackers := getBishopMoves(kSquare, cb) & (cb.BwBishops[opponent] |
 		cb.BwQueens[opponent] | cb.BwKing[opponent])
 	orthogAttackers := getRookMoves(cb.KingSquare[cb.WToMove], cb) &
