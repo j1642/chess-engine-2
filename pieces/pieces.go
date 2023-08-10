@@ -410,6 +410,8 @@ func getAttackedSquares(cb *board.Board) uint64 {
 	return attackSquares
 }
 
+type moveGenFunc func(int, *board.Board) uint64
+
 func getAllMoves(cb *board.Board) []move {
 	var capturesBlocks uint64
 	var attackerCount int
@@ -432,41 +434,29 @@ func getAllMoves(cb *board.Board) []move {
 		return allMoves
 	}
 
-	allMoves = append(allMoves,
-		getPieceMoveList(cb.BwPawns[cb.WToMove], capturesBlocks, "p", getPawnMoves, cb)...,
-	)
-	allMoves = append(allMoves,
-		getPieceMoveList(cb.BwKnights[cb.WToMove], capturesBlocks, "n", getKnightMoves, cb)...,
-	)
-	allMoves = append(allMoves,
-		getPieceMoveList(cb.BwBishops[cb.WToMove], capturesBlocks, "b", getBishopMoves, cb)...,
-	)
-	allMoves = append(allMoves,
-		getPieceMoveList(cb.BwRooks[cb.WToMove], capturesBlocks, "r", getRookMoves, cb)...,
-	)
-	allMoves = append(allMoves,
-		getPieceMoveList(cb.BwQueens[cb.WToMove], capturesBlocks, "q", getQueenMoves, cb)...,
-	)
+	pieces := []uint64{cb.BwPawns[cb.WToMove],
+		cb.BwKnights[cb.WToMove],
+		cb.BwBishops[cb.WToMove],
+		cb.BwRooks[cb.WToMove],
+		cb.BwQueens[cb.WToMove],
+	}
+	moveFuncs := []moveGenFunc{getPawnMoves,
+		getKnightMoves,
+		getBishopMoves,
+		getRookMoves,
+		getQueenMoves,
+	}
+	symbols := []string{"p", "n", "b", "r", "q"}
 
-	return allMoves
-}
-
-type moveGenFunc func(int, *board.Board) uint64
-
-func getPieceMoveList(piecesBB, capturesBlocks uint64, piece string,
-	moveGen moveGenFunc, cb *board.Board) []move {
-	// Return slice of all moves, given piece locations and their move gen
-	// function.
-	allMoves := make([]move, 0, 4)
-
-	for _, fromSquare := range read1Bits(piecesBB) {
-		moves := read1Bits(moveGen(fromSquare, cb) & ^cb.BwPieces[cb.WToMove])
-		for _, toSquare := range moves {
-			if capturesBlocks == 0 {
-				allMoves = append(allMoves, move{fromSquare, toSquare, piece, ""})
-			} else {
-				if 1<<toSquare&capturesBlocks != 0 {
-					allMoves = append(allMoves, move{fromSquare, toSquare, piece, ""})
+	// 29% perft() speed up and -40% malloc from having this loop in this function.
+	for i, piece := range pieces {
+		for _, fromSquare := range read1Bits(piece) {
+			moves := read1Bits(moveFuncs[i](fromSquare, cb) & ^cb.BwPieces[cb.WToMove])
+			for _, toSquare := range moves {
+				if capturesBlocks == 0 {
+					allMoves = append(allMoves, move{fromSquare, toSquare, symbols[i], ""})
+				} else if uint64(1<<toSquare)&capturesBlocks != 0 {
+					allMoves = append(allMoves, move{fromSquare, toSquare, symbols[i], ""})
 				}
 			}
 		}
@@ -491,7 +481,7 @@ func getCheckingSquares(cb *board.Board) (uint64, int) {
 	orthogAttackers := getRookMoves(cb.KingSquare[cb.WToMove], cb) &
 		(cb.BwRooks[opponent] | cb.BwQueens[opponent] | cb.BwKing[opponent])
 
-    // TODO: Remove temporary sanity checks.
+		// TODO: Remove temporary sanity checks.
 	if cb.BwKing[opponent]&(bqAttackers|orthogAttackers) != 0 {
 		cb.Print()
 		panic("king is checking the other king")
