@@ -660,9 +660,9 @@ func TestPerft(t *testing.T) {
 		},
 		{
 			name:     "promotePerft",
-			depth:    2,
-			expected: 496,
-			actual:   perft(2, promoteCb),
+			depth:    4,
+			expected: 182_838,
+			actual:   perft(4, promoteCb),
 		},
 	}
 	runPerftTests(t, tests)

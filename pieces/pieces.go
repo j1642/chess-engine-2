@@ -472,18 +472,18 @@ func getCheckingSquares(cb *board.Board) (uint64, int) {
 	opponent := 1 ^ cb.WToMove
 	attackerCount := 0
 
-	// TODO: remove king from possible attackers
 	kSquare := cb.KingSquare[cb.WToMove]
 	pAttackers := (cb.PAttacks[0][kSquare] | cb.PAttacks[1][kSquare]) &
 		cb.BwPawns[opponent]
 	knightAttackers := cb.NAttacks[kSquare] & cb.BwKnights[opponent]
 	bqAttackers := getBishopMoves(kSquare, cb) & (cb.BwBishops[opponent] |
-		cb.BwQueens[opponent] | cb.BwKing[opponent])
+		cb.BwQueens[opponent])
 	orthogAttackers := getRookMoves(cb.KingSquare[cb.WToMove], cb) &
-		(cb.BwRooks[opponent] | cb.BwQueens[opponent] | cb.BwKing[opponent])
+		(cb.BwRooks[opponent] | cb.BwQueens[opponent])
 
-		// TODO: Remove temporary sanity checks.
-	if cb.BwKing[opponent]&(bqAttackers|orthogAttackers) != 0 {
+		// TODO: Remove king check?
+	if cb.BwKing[opponent]&cb.KAttacks[cb.KingSquare[cb.WToMove]] != 0 {
+		fmt.Println(cb.KingSquare)
 		cb.Print()
 		panic("king is checking the other king")
 	}
