@@ -646,6 +646,10 @@ type perftTestCase struct {
 
 func TestPerft(t *testing.T) {
 	cb := board.New()
+	promoteCb, err := board.FromFen("n1n5/PPPk4/8/8/8/8/4Kppp/5N1N b - - 0 1")
+	if err != nil {
+		t.Error(err)
+	}
 
 	tests := []perftTestCase{
 		{
@@ -653,6 +657,12 @@ func TestPerft(t *testing.T) {
 			depth:    5,
 			expected: 4_865_609,
 			actual:   perft(5, cb),
+		},
+		{
+			name:     "promotePerft",
+			depth:    1,
+			expected: 24,
+			actual:   perft(1, promoteCb),
 		},
 	}
 	runPerftTests(t, tests)

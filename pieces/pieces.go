@@ -30,10 +30,12 @@ func movePiece(move move, cb *board.Board) {
 	// TODO: Refactor to remove switch. Maybe make a parent array board.Occupied.
 
 	// Temporary check for perft
-	if !isValidMove(move.from, move.to, move.piece, cb) {
-		fmt.Println(move.from, move.to, move.piece)
-		panic("illegal move")
-	}
+	/*
+		if !isValidMove(move.from, move.to, move.piece, cb) {
+			fmt.Println(move.from, move.to, move.piece)
+			panic("illegal move")
+		}
+	*/
 
 	cb.EpSquare = 100
 
@@ -134,6 +136,7 @@ func promotePawn(toBB uint64, cb *board.Board, promoteTo ...string) {
 		default:
 			panic("invalid promoteTo")
 		}
+		// Else never triggers b/c move.promoteTo always has a string
 	} else {
 		fmt.Print("promote pawn to N, B, R, or Q: ")
 		userPromote := getUserInput()
@@ -413,7 +416,7 @@ func getAttackedSquares(cb *board.Board) uint64 {
 type moveGenFunc func(int, *board.Board) uint64
 
 func getAllMoves(cb *board.Board) []move {
-	var capturesBlocks uint64
+	var capturesBlks uint64
 	var attackerCount int
 	allMoves := make([]move, 0, 35)
 
@@ -421,42 +424,40 @@ func getAllMoves(cb *board.Board) []move {
 	attackedSquares := getAttackedSquares(cb)
 	cb.WToMove ^= 1
 	if cb.BwKing[cb.WToMove]&attackedSquares != 0 {
-		capturesBlocks, attackerCount = getCheckingSquares(cb)
+		capturesBlks, attackerCount = getCheckingSquares(cb)
 	}
 
-	kingSquare := cb.KingSquare[cb.WToMove]
-	moves := read1Bits(getKingMoves(kingSquare, cb) & ^cb.BwPieces[cb.WToMove])
-	for _, toSquare := range moves {
-		allMoves = append(allMoves, move{kingSquare, toSquare, "k", ""})
+	kingSq := cb.KingSquare[cb.WToMove]
+	moves := read1Bits(getKingMoves(kingSq, cb) & ^cb.BwPieces[cb.WToMove])
+	for _, toSq := range moves {
+		allMoves = append(allMoves, move{kingSq, toSq, "k", ""})
 	}
 	// If attackerCount > 1 and king has no moves, it is checkmate.
 	if attackerCount > 1 {
 		return allMoves
 	}
 
-	pieces := []uint64{cb.BwPawns[cb.WToMove],
-		cb.BwKnights[cb.WToMove],
-		cb.BwBishops[cb.WToMove],
-		cb.BwRooks[cb.WToMove],
-		cb.BwQueens[cb.WToMove],
+	pieces := []uint64{cb.BwPawns[cb.WToMove], cb.BwKnights[cb.WToMove],
+		cb.BwBishops[cb.WToMove], cb.BwRooks[cb.WToMove], cb.BwQueens[cb.WToMove],
 	}
-	moveFuncs := []moveGenFunc{getPawnMoves,
-		getKnightMoves,
-		getBishopMoves,
-		getRookMoves,
-		getQueenMoves,
+	moveFuncs := []moveGenFunc{getPawnMoves, getKnightMoves, getBishopMoves,
+		getRookMoves, getQueenMoves,
 	}
 	symbols := []string{"p", "n", "b", "r", "q"}
 
 	// 29% perft() speed up and -40% malloc from having this loop in this function.
 	for i, piece := range pieces {
-		for _, fromSquare := range read1Bits(piece) {
-			moves := read1Bits(moveFuncs[i](fromSquare, cb) & ^cb.BwPieces[cb.WToMove])
-			for _, toSquare := range moves {
-				if capturesBlocks == 0 {
-					allMoves = append(allMoves, move{fromSquare, toSquare, symbols[i], ""})
-				} else if uint64(1<<toSquare)&capturesBlocks != 0 {
-					allMoves = append(allMoves, move{fromSquare, toSquare, symbols[i], ""})
+		for _, fromSq := range read1Bits(piece) {
+			moves := read1Bits(moveFuncs[i](fromSq, cb) & ^cb.BwPieces[cb.WToMove])
+			for _, toSq := range moves {
+				if i == 0 && (toSq < 8 || fromSq > 55) &&
+					(capturesBlks == 0 || uint64(1<<toSq)&capturesBlks != 0) {
+					allMoves = append(allMoves, move{fromSq, toSq, "p", "n"})
+					allMoves = append(allMoves, move{fromSq, toSq, "p", "b"})
+					allMoves = append(allMoves, move{fromSq, toSq, "p", "r"})
+					allMoves = append(allMoves, move{fromSq, toSq, "p", "q"})
+				} else if capturesBlks == 0 || uint64(1<<toSq)&capturesBlks != 0 {
+					allMoves = append(allMoves, move{fromSq, toSq, symbols[i], ""})
 				}
 			}
 		}
