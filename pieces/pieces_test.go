@@ -247,13 +247,13 @@ func TestMovePiece(t *testing.T) {
 	if cb.WToMove != 0 {
 		t.Errorf("WToMove: want=0, got=%d", cb.WToMove)
 	}
-	if cb.BwPawns[1] != uint64(1<<17)-1-1<<8-(1<<8-1) {
+	if cb.Pawns[1] != uint64(1<<17)-1-1<<8-(1<<8-1) {
 		t.Errorf("wPawns: want=\n%b,\ngot=\n%b\n",
-			uint64(1<<17)-1-1<<8-(1<<8-1), cb.BwPawns[1])
+			uint64(1<<17)-1-1<<8-(1<<8-1), cb.Pawns[1])
 	}
-	if cb.BwPieces[1] != uint64(1<<17)-1-1<<8 {
+	if cb.Pieces[1] != uint64(1<<17)-1-1<<8 {
 		t.Errorf("wPieces: want=\n%b,\ngot=\n%b",
-			uint64(1<<17)-1-1<<8, cb.BwPieces[1])
+			uint64(1<<17)-1-1<<8, cb.Pieces[1])
 	}
 	movePiece(move{57, 42, "n", ""}, cb)
 	movePiece(move{16, 24, "p", ""}, cb)
@@ -266,39 +266,39 @@ func TestMovePiece(t *testing.T) {
 	if cb.WToMove != 1 {
 		t.Errorf("WToMove: want=1, got=%d", cb.WToMove)
 	}
-	if cb.BwPawns[1] != uint64(1<<16)-1-1<<8-(1<<8-1) {
+	if cb.Pawns[1] != uint64(1<<16)-1-1<<8-(1<<8-1) {
 		t.Errorf("wPawns: want=\n%b,\ngot=\n%b\n",
-			uint64(1<<16)-1-1<<8-(1<<8-1), cb.BwPawns[1])
+			uint64(1<<16)-1-1<<8-(1<<8-1), cb.Pawns[1])
 	}
-	if cb.BwPieces[1] != uint64(1<<16)-1-1<<8 {
+	if cb.Pieces[1] != uint64(1<<16)-1-1<<8 {
 		t.Errorf("wPieces: want=\n%b,\ngot=\n%b",
-			uint64(1<<16)-1-1<<8, cb.BwPieces[1])
+			uint64(1<<16)-1-1<<8, cb.Pieces[1])
 	}
 
-	if cb.BwKnights[0] != uint64(1<<45+1<<32) {
+	if cb.Knights[0] != uint64(1<<45+1<<32) {
 		t.Errorf("bKnights: want=\n%b,\ngot=\n%b",
-			uint64(1<<45+1<<32), cb.BwKnights[0])
+			uint64(1<<45+1<<32), cb.Knights[0])
 	}
 	bPieces := ^uint64(0) - (1<<48 - 1) + 1<<32 + 1<<45 - 1<<57 - 1<<62
-	if cb.BwPieces[0] != bPieces {
+	if cb.Pieces[0] != bPieces {
 		t.Errorf("bPieces: want=\n%b,\ngot=\n%b",
-			bPieces, cb.BwPieces[0])
+			bPieces, cb.Pieces[0])
 	}
 }
 
 func TestPromotePawn(t *testing.T) {
 	// TODO: mock user input to test other promotePawn() branch
 	cb := &board.Board{
-		WToMove:  1,
-		BwPawns:  [2]uint64{1 << 1, 1 << 63},
-		BwQueens: [2]uint64{0, 0},
+		WToMove: 1,
+		Pawns:   [2]uint64{1 << 1, 1 << 63},
+		Queens:  [2]uint64{0, 0},
 	}
 	promotePawn(uint64(1<<63), cb, "q")
 
-	if cb.BwPawns[1] != uint64(0) {
-		t.Errorf("pawn did not promote: want=0, got=%b", cb.BwPawns[1])
+	if cb.Pawns[1] != uint64(0) {
+		t.Errorf("pawn did not promote: want=0, got=%b", cb.Pawns[1])
 	}
-	if cb.BwQueens[1] != uint64(1<<63) {
+	if cb.Queens[1] != uint64(1<<63) {
 		t.Error("promoted queen not present")
 	}
 }
@@ -321,22 +321,22 @@ func TestCastling(t *testing.T) {
 	}
 
 	movePiece(move{4, 2, "k", ""}, cb)
-	if cb.BwKing[1] != uint64(1<<2) {
-		t.Errorf("w king did not castle queenside. want=2, got=%v", read1Bits(cb.BwKing[1]))
+	if cb.Kings[1] != uint64(1<<2) {
+		t.Errorf("w king did not castle queenside. want=2, got=%v", read1Bits(cb.Kings[1]))
 	}
-	if cb.BwRooks[1] != uint64(1<<3+1<<7) {
-		t.Errorf("rook did not move for castling. want=[3 7], got=%v", read1Bits(cb.BwRooks[1]))
+	if cb.Rooks[1] != uint64(1<<3+1<<7) {
+		t.Errorf("rook did not move for castling. want=[3 7], got=%v", read1Bits(cb.Rooks[1]))
 	}
 	if cb.CastleRights[1] != [2]bool{false, false} {
 		t.Errorf("w king castle rights: want=[false false], got=%v", cb.CastleRights[1])
 	}
 
 	movePiece(move{60, 62, "k", ""}, cb)
-	if cb.BwKing[0] != uint64(1<<62) {
-		t.Errorf("b king did not castle kingside. want=62, got=%v", read1Bits(cb.BwKing[0]))
+	if cb.Kings[0] != uint64(1<<62) {
+		t.Errorf("b king did not castle kingside. want=62, got=%v", read1Bits(cb.Kings[0]))
 	}
-	if cb.BwRooks[0] != uint64(1<<56+1<<61) {
-		t.Errorf("rook did not move for castling. want=[56 61], got=%v", read1Bits(cb.BwRooks[0]))
+	if cb.Rooks[0] != uint64(1<<56+1<<61) {
+		t.Errorf("rook did not move for castling. want=[56 61], got=%v", read1Bits(cb.Rooks[0]))
 	}
 	if cb.CastleRights[0] != [2]bool{false, false} {
 		t.Errorf("b king castle rights: want=[false false], got=%v", cb.CastleRights[0])
@@ -351,8 +351,8 @@ func TestCastlingRightsLostByRookMoveAndCapture(t *testing.T) {
 	}
 
 	movePiece(move{0, 56, "r", ""}, cb)
-	if cb.BwRooks[1] != uint64(1<<7+1<<56) {
-		t.Errorf("wrong rook squares: want=[7, 56], got=%v", read1Bits(cb.BwRooks[1]))
+	if cb.Rooks[1] != uint64(1<<7+1<<56) {
+		t.Errorf("wrong rook squares: want=[7, 56], got=%v", read1Bits(cb.Rooks[1]))
 	}
 	if cb.CastleRights[1] != [2]bool{false, true} {
 		t.Errorf("w king castle rights: want=[false true], got=%v", cb.CastleRights[1])
@@ -362,8 +362,8 @@ func TestCastlingRightsLostByRookMoveAndCapture(t *testing.T) {
 	}
 
 	movePiece(move{63, 7, "r", ""}, cb)
-	if cb.BwRooks[0] != uint64(1<<7) {
-		t.Errorf("wrong rook squares: want=7, got=%v", read1Bits(cb.BwRooks[0]))
+	if cb.Rooks[0] != uint64(1<<7) {
+		t.Errorf("wrong rook squares: want=7, got=%v", read1Bits(cb.Rooks[0]))
 	}
 	if cb.CastleRights[1] != [2]bool{false, false} {
 		t.Errorf("w king castle rights: want=[false false], got=%v", cb.CastleRights[1])
@@ -382,7 +382,7 @@ func TestGetKingMoves(t *testing.T) {
 		{
 			// Cannot move into check, castle through check, or move into friendly piece.
 			expected: uint64(1<<12 + 1<<13),
-			actual:   getKingMoves(cb1.KingSquare[1], cb1),
+			actual:   getKingMoves(cb1.KingSqs[1], cb1),
 		},
 	}
 
@@ -393,7 +393,7 @@ func TestGetKingMoves(t *testing.T) {
 	tests = append(tests, moveTestCase{
 		// Cannot castle out of check or capture protected piece.
 		expected: uint64(1<<61 + 1<<59),
-		actual:   getKingMoves(cb2.KingSquare[0], cb2),
+		actual:   getKingMoves(cb2.KingSqs[0], cb2),
 	})
 
 	runMoveGenTests(t, tests)
@@ -602,7 +602,7 @@ func perft(depth int, cb *board.Board) int {
 	for _, toFrom := range moves {
 		movePiece(toFrom, cb)
 		attackedSquares := getAttackedSquares(cb)
-		if cb.BwKing[1^cb.WToMove]&attackedSquares == 0 {
+		if cb.Kings[1^cb.WToMove]&attackedSquares == 0 {
 			nodes += perft(depth-1, cb)
 		}
 		board.RestorePosition(pos, cb)
@@ -624,7 +624,7 @@ func divide(depth int, cb *board.Board, ranksFiles ...[]string) {
 		nodes := 0
 		movePiece(fromTo, cb)
 		attackedSquares := getAttackedSquares(cb)
-		if cb.BwKing[1^cb.WToMove]&attackedSquares == 0 {
+		if cb.Kings[1^cb.WToMove]&attackedSquares == 0 {
 			nodes += perft(depth-1, cb)
 		}
 		board.RestorePosition(pos, cb)

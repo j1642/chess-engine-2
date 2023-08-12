@@ -10,20 +10,20 @@ type Board struct {
 	// TODO: move occupancies into one array? Possible memory speed boost
 	WToMove int // 1 or 0, true or false
 
-	BwPieces  [2]uint64
-	BwPawns   [2]uint64
-	BwKnights [2]uint64
-	BwBishops [2]uint64
-	BwRooks   [2]uint64
-	BwQueens  [2]uint64
-	BwKing    [2]uint64
+	Pieces  [2]uint64
+	Pawns   [2]uint64
+	Knights [2]uint64
+	Bishops [2]uint64
+	Rooks   [2]uint64
+	Queens  [2]uint64
+	Kings   [2]uint64
 
 	PAttacks       [2][64]uint64
 	NAttacks       [64]uint64
 	KAttacks       [64]uint64
 	SlidingAttacks [8][64]uint64
 
-	KingSquare   [2]int
+	KingSqs      [2]int
 	CastleRights [2][2]bool // [b, w][queenside, kingside]
 
 	EpSquare int
@@ -33,20 +33,20 @@ func New() *Board {
 	return &Board{
 		WToMove: 1,
 
-		BwPieces:  [2]uint64{0xFFFF000000000000, 0xFFFF},
-		BwPawns:   [2]uint64{0xFF000000000000, 0xFF00},
-		BwKnights: [2]uint64{1<<57 + 1<<62, 1<<1 + 1<<6},
-		BwBishops: [2]uint64{1<<58 + 1<<61, 1<<2 + 1<<5},
-		BwRooks:   [2]uint64{1<<56 + 1<<63, 1<<0 + 1<<7},
-		BwQueens:  [2]uint64{1 << 59, 1 << 3},
-		BwKing:    [2]uint64{1 << 60, 1 << 4},
+		Pieces:  [2]uint64{0xFFFF000000000000, 0xFFFF},
+		Pawns:   [2]uint64{0xFF000000000000, 0xFF00},
+		Knights: [2]uint64{1<<57 + 1<<62, 1<<1 + 1<<6},
+		Bishops: [2]uint64{1<<58 + 1<<61, 1<<2 + 1<<5},
+		Rooks:   [2]uint64{1<<56 + 1<<63, 1<<0 + 1<<7},
+		Queens:  [2]uint64{1 << 59, 1 << 3},
+		Kings:   [2]uint64{1 << 60, 1 << 4},
 
 		PAttacks:       makePawnBBs(),
 		NAttacks:       makeKnightBBs(),
 		KAttacks:       makeKingBBs(),
 		SlidingAttacks: makeSlidingAttackBBs(),
 
-		KingSquare:   [2]int{60, 4},
+		KingSqs:      [2]int{60, 4},
 		CastleRights: [2][2]bool{{true, true}, {true, true}},
 
 		EpSquare: 100,
@@ -92,18 +92,18 @@ func FromFen(fen string) (*Board, error) {
 			// Negate the "square += 1" at the end of the loop
 			square -= 17
 		case char == 'p' || char == 'P':
-			cb.BwPawns[color] += 1 << square
+			cb.Pawns[color] += 1 << square
 		case char == 'n' || char == 'N':
-			cb.BwKnights[color] += 1 << square
+			cb.Knights[color] += 1 << square
 		case char == 'b' || char == 'B':
-			cb.BwBishops[color] += 1 << square
+			cb.Bishops[color] += 1 << square
 		case char == 'r' || char == 'R':
-			cb.BwRooks[color] += 1 << square
+			cb.Rooks[color] += 1 << square
 		case char == 'q' || char == 'Q':
-			cb.BwQueens[color] += 1 << square
+			cb.Queens[color] += 1 << square
 		case char == 'k' || char == 'K':
-			cb.BwKing[color] += 1 << square
-			cb.KingSquare[color] = square
+			cb.Kings[color] += 1 << square
+			cb.KingSqs[color] = square
 		}
 
 		square += 1
@@ -135,10 +135,10 @@ func FromFen(fen string) (*Board, error) {
 		}
 	}
 
-	cb.BwPieces[0] = cb.BwPawns[0] | cb.BwKnights[0] | cb.BwBishops[0] |
-		cb.BwRooks[0] | cb.BwQueens[0] | cb.BwKing[0]
-	cb.BwPieces[1] = cb.BwPawns[1] | cb.BwKnights[1] | cb.BwBishops[1] |
-		cb.BwRooks[1] | cb.BwQueens[1] | cb.BwKing[1]
+	cb.Pieces[0] = cb.Pawns[0] | cb.Knights[0] | cb.Bishops[0] |
+		cb.Rooks[0] | cb.Queens[0] | cb.Kings[0]
+	cb.Pieces[1] = cb.Pawns[1] | cb.Knights[1] | cb.Bishops[1] |
+		cb.Rooks[1] | cb.Queens[1] | cb.Kings[1]
 
 	cb.PAttacks = makePawnBBs()
 	cb.NAttacks = makeKnightBBs()
@@ -354,15 +354,15 @@ func makeSlidingAttackBBs() [8][64]uint64 {
 type Position struct {
 	WToMove int
 
-	BwPieces  [2]uint64
-	BwPawns   [2]uint64
-	BwKnights [2]uint64
-	BwBishops [2]uint64
-	BwRooks   [2]uint64
-	BwQueens  [2]uint64
-	BwKing    [2]uint64
+	Pieces  [2]uint64
+	Pawns   [2]uint64
+	Knights [2]uint64
+	Bishops [2]uint64
+	Rooks   [2]uint64
+	Queens  [2]uint64
+	Kings   [2]uint64
 
-	KingSquare   [2]int
+	KingSqs      [2]int
 	CastleRights [2][2]bool
 
 	EpSquare int
@@ -370,16 +370,16 @@ type Position struct {
 
 func StorePosition(cb *Board) *Position {
 	return &Position{
-		WToMove:   cb.WToMove,
-		BwPieces:  cb.BwPieces,
-		BwPawns:   cb.BwPawns,
-		BwKnights: cb.BwKnights,
-		BwBishops: cb.BwBishops,
-		BwRooks:   cb.BwRooks,
-		BwQueens:  cb.BwQueens,
-		BwKing:    cb.BwKing,
+		WToMove: cb.WToMove,
+		Pieces:  cb.Pieces,
+		Pawns:   cb.Pawns,
+		Knights: cb.Knights,
+		Bishops: cb.Bishops,
+		Rooks:   cb.Rooks,
+		Queens:  cb.Queens,
+		Kings:   cb.Kings,
 
-		KingSquare:   cb.KingSquare,
+		KingSqs:      cb.KingSqs,
 		CastleRights: cb.CastleRights,
 
 		EpSquare: cb.EpSquare,
@@ -388,15 +388,15 @@ func StorePosition(cb *Board) *Position {
 
 func RestorePosition(pos *Position, cb *Board) {
 	cb.WToMove = pos.WToMove
-	cb.BwPieces = pos.BwPieces
-	cb.BwPawns = pos.BwPawns
-	cb.BwKnights = pos.BwKnights
-	cb.BwBishops = pos.BwBishops
-	cb.BwRooks = pos.BwRooks
-	cb.BwQueens = pos.BwQueens
-	cb.BwKing = pos.BwKing
+	cb.Pieces = pos.Pieces
+	cb.Pawns = pos.Pawns
+	cb.Knights = pos.Knights
+	cb.Bishops = pos.Bishops
+	cb.Rooks = pos.Rooks
+	cb.Queens = pos.Queens
+	cb.Kings = pos.Kings
 
-	cb.KingSquare = pos.KingSquare
+	cb.KingSqs = pos.KingSqs
 	cb.CastleRights = pos.CastleRights
 
 	cb.EpSquare = pos.EpSquare
@@ -408,12 +408,12 @@ func (cb *Board) Print() {
 	copied := StorePosition(cb)
 
 	pieces := [6]uint64{
-		copied.BwPawns[0] + copied.BwPawns[1],
-		copied.BwKnights[0] + copied.BwKnights[1],
-		copied.BwBishops[0] + copied.BwBishops[1],
-		copied.BwRooks[0] + copied.BwRooks[1],
-		copied.BwQueens[0] + copied.BwQueens[1],
-		copied.BwKing[0] + copied.BwKing[1],
+		copied.Pawns[0] + copied.Pawns[1],
+		copied.Knights[0] + copied.Knights[1],
+		copied.Bishops[0] + copied.Bishops[1],
+		copied.Rooks[0] + copied.Rooks[1],
+		copied.Queens[0] + copied.Queens[1],
+		copied.Kings[0] + copied.Kings[1],
 	}
 	symbols := [6]string{"p", "n", "b", "r", "q", "k"}
 
@@ -425,7 +425,7 @@ func (cb *Board) Print() {
 	}
 
 	for i, symbol := range squares {
-		if copied.BwPieces[1]&uint64(1<<i) != 0 {
+		if copied.Pieces[1]&uint64(1<<i) != 0 {
 			squares[i] = strings.ToUpper(symbol)
 		}
 	}
@@ -441,5 +441,5 @@ func (cb *Board) Print() {
 			fmt.Println()
 		}
 	}
-	fmt.Print(squares[7], "\n")
+	fmt.Println(squares[7])
 }

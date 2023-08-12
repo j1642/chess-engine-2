@@ -15,32 +15,32 @@ func TestNew(t *testing.T) {
 		t.Errorf("initial wToMove: want=1, got=%d", cb.WToMove)
 	}
 
-	if cb.BwPieces[1] != uint64(1<<16)-1 {
-		t.Errorf("initial wPieces: want=65535, got=%b", cb.BwPieces[1])
+	if cb.Pieces[1] != uint64(1<<16)-1 {
+		t.Errorf("initial wPieces: want=65535, got=%b", cb.Pieces[1])
 	}
-	if cb.BwPawns[1] != uint64(1<<16)-1-(1<<8-1) {
-		t.Errorf("initial wPawns: want=%b, got=%b", 65279, cb.BwPawns[1])
+	if cb.Pawns[1] != uint64(1<<16)-1-(1<<8-1) {
+		t.Errorf("initial wPawns: want=%b, got=%b", 65279, cb.Pawns[1])
 	}
 
-	wPiecesUnion := cb.BwPawns[1] | cb.BwRooks[1] | cb.BwKnights[1] | cb.BwBishops[1] |
-		cb.BwQueens[1] | cb.BwKing[1]
-	if cb.BwPieces[1] != wPiecesUnion {
+	wPiecesUnion := cb.Pawns[1] | cb.Rooks[1] | cb.Knights[1] | cb.Bishops[1] |
+		cb.Queens[1] | cb.Kings[1]
+	if cb.Pieces[1] != wPiecesUnion {
 		t.Errorf("wPieces != union of all white pieces. want=65535,\ngot=%b",
 			wPiecesUnion)
 	}
 
 	bPieces := uint64(1<<63) - 1 + 1<<63 - (1<<48 - 1)
-	if cb.BwPieces[0] != bPieces {
-		t.Errorf("initial bPieces: want=%b\n, got=%b", bPieces, cb.BwPieces[0])
+	if cb.Pieces[0] != bPieces {
+		t.Errorf("initial bPieces: want=%b\n, got=%b", bPieces, cb.Pieces[0])
 	}
 	bPawns := uint64(1<<56) - 1 - (1<<48 - 1)
-	if cb.BwPawns[0] != bPawns {
-		t.Errorf("initial bPawns: want=%b\n, got=%b", bPawns, cb.BwPawns[0])
+	if cb.Pawns[0] != bPawns {
+		t.Errorf("initial bPawns: want=%b\n, got=%b", bPawns, cb.Pawns[0])
 	}
 
-	bPiecesUnion := cb.BwPawns[0] | cb.BwRooks[0] | cb.BwKnights[0] |
-		cb.BwBishops[0] | cb.BwQueens[0] | cb.BwKing[0]
-	if cb.BwPieces[0] != bPiecesUnion {
+	bPiecesUnion := cb.Pawns[0] | cb.Rooks[0] | cb.Knights[0] |
+		cb.Bishops[0] | cb.Queens[0] | cb.Kings[0]
+	if cb.Pieces[0] != bPiecesUnion {
 		t.Errorf("bPieces != union of all black pieces. want=%b,\ngot=%b",
 			uint64(1<<63)-1+(1<<63)-(1<<48-1), bPiecesUnion)
 	}
