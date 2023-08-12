@@ -450,7 +450,7 @@ func getAllMoves(cb *board.Board) []move {
 		for _, fromSq := range read1Bits(piece) {
 			moves := read1Bits(moveFuncs[i](fromSq, cb) & ^cb.BwPieces[cb.WToMove])
 			for _, toSq := range moves {
-				if i == 0 && (toSq < 8 || fromSq > 55) &&
+				if i == 0 && (toSq < 8 || toSq > 55) &&
 					(capturesBlks == 0 || uint64(1<<toSq)&capturesBlks != 0) {
 					allMoves = append(allMoves, move{fromSq, toSq, "p", "n"})
 					allMoves = append(allMoves, move{fromSq, toSq, "p", "b"})
