@@ -650,6 +650,10 @@ func TestPerft(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
+	kiwipeteCb, err := board.FromFen("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1")
+	if err != nil {
+		t.Error(err)
+	}
 
 	tests := []perftTestCase{
 		{
@@ -663,6 +667,12 @@ func TestPerft(t *testing.T) {
 			depth:    4,
 			expected: 182_838,
 			actual:   perft(4, promoteCb),
+		},
+		{
+			name:     "kiwipete",
+			depth:    2,
+			expected: 2039,
+			actual:   perft(2, kiwipeteCb),
 		},
 	}
 	runPerftTests(t, tests)
