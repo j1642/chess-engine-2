@@ -473,8 +473,7 @@ func getCheckingSquares(cb *board.Board) (uint64, int) {
 	attackerCount := 0
 
 	kSquare := cb.KingSqs[cb.WToMove]
-	pAttackers := (cb.PAttacks[0][kSquare] | cb.PAttacks[1][kSquare]) &
-		cb.Pawns[opponent]
+	pAttackers := cb.PAttacks[cb.WToMove][kSquare] & cb.Pawns[opponent]
 	knightAttackers := cb.NAttacks[kSquare] & cb.Knights[opponent]
 	bqAttackers := getBishopMoves(kSquare, cb) & (cb.Bishops[opponent] |
 		cb.Queens[opponent])

@@ -199,7 +199,7 @@ func makePawnBBs() [2][64]uint64 {
 
 	for sq := 0; sq < 64; sq++ {
 		switch {
-		// For determining pawn checks on kings on the eighth rank.
+		// For determining pawn checks on black king on the eighth rank.
 		case sq > 56:
 			if sq%8 == 0 {
 				bbs[0][sq] += 1 << (sq - 7)
@@ -208,7 +208,7 @@ func makePawnBBs() [2][64]uint64 {
 			} else {
 				bbs[0][sq] += 1<<(sq-7) + 1<<(sq-9)
 			}
-		// For determining pawn checks on kings on the first rank.
+		// For determining pawn checks on white king on the first rank.
 		case sq < 8:
 			if sq%8 == 0 {
 				bbs[1][sq] += 1 << (sq + 9)
