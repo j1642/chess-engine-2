@@ -647,7 +647,8 @@ func divide(depth int, cb *board.Board, ranksFiles ...[]string) {
 		fromAlgNotation := strings.Join([]string{files[fromTo.from%8], ranks[fromTo.from/8]}, "")
 		toAlgNotation := strings.Join([]string{files[fromTo.to%8], ranks[fromTo.to/8]}, "")
 
-		fmt.Printf("%s%s: %d\n", fromAlgNotation, toAlgNotation, nodes)
+		fmt.Printf("%s%s %s: %d\n",
+			fromAlgNotation, toAlgNotation, fromTo.promoteTo, nodes)
 		totalNodes += nodes
 
 	}
