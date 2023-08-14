@@ -712,9 +712,9 @@ func TestPerft(t *testing.T) {
 		},
 		{
 			name:     "promotePerft",
-			depth:    4,
-			expected: 182_838,
-			actual:   perft(4, promoteCb),
+			depth:    5,
+			expected: 3_605_103,
+			actual:   perft(5, promoteCb),
 		},
 		{
 			name:     "kiwipete",
