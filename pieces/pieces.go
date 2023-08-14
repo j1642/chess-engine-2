@@ -350,9 +350,11 @@ func getQueenMoves(square int, cb *board.Board) uint64 {
 
 func getKingMoves(square int, cb *board.Board) uint64 {
 	// Return legal king moves.
+	cb.Pieces[cb.WToMove] ^= uint64(1 << cb.KingSqs[cb.WToMove])
 	cb.WToMove ^= 1
 	opponentAttackedSquares := getAttackedSquares(cb)
 	cb.WToMove ^= 1
+	cb.Pieces[cb.WToMove] ^= uint64(1 << cb.KingSqs[cb.WToMove])
 
 	occupied := cb.Pieces[0] | cb.Pieces[1]
 	moves := cb.KAttacks[square] & ^opponentAttackedSquares & ^cb.Pieces[cb.WToMove]
@@ -423,6 +425,7 @@ func getAllMoves(cb *board.Board) []move {
 	cb.WToMove ^= 1
 	attackedSquares := getAttackedSquares(cb)
 	cb.WToMove ^= 1
+
 	if cb.Kings[cb.WToMove]&attackedSquares != 0 {
 		capturesBlks, attackerCount = getCheckingSquares(cb)
 	}

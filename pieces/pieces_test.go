@@ -604,11 +604,10 @@ func TestGetAllMoves(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	// TODO: Remove sq 19 move after preventing king from moving into newly checked square
 	tests = append(tests, allMovesTestCase{
 		expected: []move{{20, 11, "k", ""}, {20, 12, "k", ""},
-			{20, 13, "k", ""}, {20, 19, "k", ""}, {20, 27, "k", ""},
-			{20, 28, "k", ""}, {20, 29, "k", ""}, {7, 22, "n", ""}},
+			{20, 13, "k", ""}, {20, 27, "k", ""}, {20, 28, "k", ""},
+			{20, 29, "k", ""}, {7, 22, "n", ""}},
 		actual: getAllMoves(cb4),
 	})
 
