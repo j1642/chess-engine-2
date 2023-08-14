@@ -28,17 +28,6 @@ type move struct {
 
 func movePiece(move move, cb *board.Board) {
 	// TODO: Refactor to remove switch. Maybe make a parent array board.Occupied.
-
-	// Temporary check for perft
-	/*
-		if !isValidMove(move.from, move.to, move.piece, cb) {
-			fmt.Println(move.from, move.to, move.piece)
-			panic("illegal move")
-		}
-	*/
-
-	cb.EpSquare = 100
-
 	fromBB := uint64(1 << move.from)
 	toBB := uint64(1 << move.to)
 
@@ -52,14 +41,24 @@ func movePiece(move move, cb *board.Board) {
 		cb.Pawns[cb.WToMove] ^= fromBB + toBB
 		if move.to-move.from == 16 || move.to-move.from == -16 {
 			cb.EpSquare = (move.to + move.from) / 2
-		}
-		if move.to < 8 || move.to > 55 {
+		} else if move.to < 8 || move.to > 55 {
 			promotePawn(toBB, cb, move.promoteTo)
+			cb.EpSquare = 100
+		} else if move.to == cb.EpSquare {
+			captureSq := move.to + 8
+			if cb.WToMove == 1 {
+				captureSq = move.to - 8
+			}
+			cb.Pawns[1^cb.WToMove] ^= uint64(1 << captureSq)
+			cb.Pieces[1^cb.WToMove] ^= uint64(1 << captureSq)
+			cb.EpSquare = 100
 		}
 	case "n":
 		cb.Knights[cb.WToMove] ^= fromBB + toBB
+		cb.EpSquare = 100
 	case "b":
 		cb.Bishops[cb.WToMove] ^= fromBB + toBB
+		cb.EpSquare = 100
 	case "r":
 		cb.Rooks[cb.WToMove] ^= fromBB + toBB
 		if move.from == 0 || move.from == 56 {
@@ -67,8 +66,10 @@ func movePiece(move move, cb *board.Board) {
 		} else if move.from == 7 || move.from == 63 {
 			cb.CastleRights[cb.WToMove][1] = false
 		}
+		cb.EpSquare = 100
 	case "q":
 		cb.Queens[cb.WToMove] ^= fromBB + toBB
+		cb.EpSquare = 100
 	case "k":
 		if move.to-move.from == 2 || move.to-move.from == -2 {
 			if cb.CastleRights[cb.WToMove][0] && (move.to == 2 || move.to == 58) {
@@ -85,8 +86,8 @@ func movePiece(move move, cb *board.Board) {
 		cb.KingSqs[cb.WToMove] = move.to
 		cb.CastleRights[cb.WToMove][0] = false
 		cb.CastleRights[cb.WToMove][1] = false
+		cb.EpSquare = 100
 	default:
-		// This branch should never execute.
 		panic("empty or invalid piece type")
 	}
 
