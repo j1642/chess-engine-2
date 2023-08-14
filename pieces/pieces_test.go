@@ -407,6 +407,10 @@ func runGetAllMovesTests(t *testing.T, tests []allMovesTestCase) {
 	for _, tt := range tests {
 		//fmt.Printf("expected: %v\n", tt.expected)
 		//fmt.Printf("actual: %v\n", tt.actual)
+		if len(tt.expected) != len(tt.actual) {
+			t.Errorf("wrong length: want=%d, got=%d",
+				len(tt.expected), len(tt.actual))
+		}
 		for i, move := range tt.expected {
 			if move != tt.actual[i] {
 				t.Errorf("allMoves: want=%v, got=%v", tt.expected[i], tt.actual[i])
@@ -501,7 +505,6 @@ func TestGetCheckingSquares(t *testing.T) {
 		t.Error(err)
 	}
 	capturesBlockers, attackerCount := getCheckingSquares(cb)
-
 	tests := []checkingSquaresCase{
 		{
 			cb:             cb,
@@ -516,7 +519,6 @@ func TestGetCheckingSquares(t *testing.T) {
 		t.Error(err)
 	}
 	capturesBlockers, attackerCount = getCheckingSquares(cb)
-
 	tests = append(tests, checkingSquaresCase{
 		cb:             cb,
 		expCapsBlks:    uint64(1 << 30),
@@ -596,6 +598,18 @@ func TestGetAllMoves(t *testing.T) {
 	tests = append(tests, allMovesTestCase{
 		expected: []move{{13, 4, "k", ""}, {13, 22, "k", ""}, {21, 30, "p", ""}},
 		actual:   getAllMoves(cb3),
+	})
+
+	cb4, err := board.FromFen("n1n5/PPPk4/8/8/8/4K2q/5p1p/7N w - - 2 3")
+	if err != nil {
+		t.Error(err)
+	}
+	// TODO: Remove sq 19 move after preventing king from moving into newly checked square
+	tests = append(tests, allMovesTestCase{
+		expected: []move{{20, 11, "k", ""}, {20, 12, "k", ""},
+			{20, 13, "k", ""}, {20, 19, "k", ""}, {20, 27, "k", ""},
+			{20, 28, "k", ""}, {20, 29, "k", ""}, {7, 22, "n", ""}},
+		actual: getAllMoves(cb4),
 	})
 
 	runGetAllMovesTests(t, tests)
@@ -710,6 +724,7 @@ func TestPerft(t *testing.T) {
 			actual:   perft(2, kiwipeteCb),
 		},
 	}
+
 	runPerftTests(t, tests)
 }
 

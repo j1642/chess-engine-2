@@ -427,6 +427,8 @@ func getAllMoves(cb *board.Board) []move {
 		capturesBlks, attackerCount = getCheckingSquares(cb)
 	}
 
+	// TODO: Exclude king moves where still in check.
+	// E.g. king on 1, queen on 2, king moves to 0.
 	kingSq := cb.KingSqs[cb.WToMove]
 	moves := read1Bits(getKingMoves(kingSq, cb) & ^cb.Pieces[cb.WToMove])
 	for _, toSq := range moves {
