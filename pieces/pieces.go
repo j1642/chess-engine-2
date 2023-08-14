@@ -62,7 +62,7 @@ func movePiece(move move, cb *board.Board) {
 		cb.Bishops[cb.WToMove] ^= fromBB + toBB
 	case "r":
 		cb.Rooks[cb.WToMove] ^= fromBB + toBB
-		if move.from == 0 || fromBB == 63 {
+		if move.from == 0 || move.from == 56 {
 			cb.CastleRights[cb.WToMove][0] = false
 		} else if move.from == 7 || move.from == 63 {
 			cb.CastleRights[cb.WToMove][1] = false
