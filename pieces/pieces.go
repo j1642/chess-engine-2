@@ -73,8 +73,10 @@ func movePiece(move move, cb *board.Board) {
 		if move.to-move.from == 2 || move.to-move.from == -2 {
 			if cb.CastleRights[cb.WToMove][0] && (move.to == 2 || move.to == 58) {
 				cb.Rooks[cb.WToMove] ^= uint64(1<<(move.to-2) + 1<<(move.to+1))
+				cb.Pieces[cb.WToMove] ^= uint64(1<<(move.to-2) + 1<<(move.to+1))
 			} else if cb.CastleRights[cb.WToMove][1] && (move.to == 6 || move.to == 62) {
 				cb.Rooks[cb.WToMove] ^= uint64(1<<(move.to+1) + 1<<(move.to-1))
+				cb.Pieces[cb.WToMove] ^= uint64(1<<(move.to+1) + 1<<(move.to-1))
 			} else {
 				panic("king moving two squares, but is not castling")
 			}
