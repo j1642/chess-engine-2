@@ -718,10 +718,9 @@ func TestPerft(t *testing.T) {
 		},
 		{
 			name:     "kiwipete",
-			depth:    3,
-			expected: 97862,
-			//expected: 4085603,
-			actual: perft(3, kiwipeteCb),
+			depth:    4,
+			expected: 4085603,
+			actual:   perft(4, kiwipeteCb),
 		},
 	}
 

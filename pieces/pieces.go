@@ -52,6 +52,8 @@ func movePiece(move move, cb *board.Board) {
 			cb.Pawns[1^cb.WToMove] ^= uint64(1 << captureSq)
 			cb.Pieces[1^cb.WToMove] ^= uint64(1 << captureSq)
 			cb.EpSquare = 100
+		} else {
+			cb.EpSquare = 100
 		}
 	case "n":
 		cb.Knights[cb.WToMove] ^= fromBB + toBB
