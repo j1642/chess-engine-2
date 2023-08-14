@@ -489,19 +489,26 @@ func TestFindDirection(t *testing.T) {
 	}
 }
 
+type checkingSquaresCase struct {
+	cb                            *board.Board
+	expCapsBlks, actualCapsBlks   uint64
+	expAttkCount, actualAttkCount int
+}
+
 func TestGetCheckingSquares(t *testing.T) {
 	cb, err := board.FromFen("R5rR/8/8/8/8/8/8/RNBQ2K1 w - - 0 1")
 	if err != nil {
 		t.Error(err)
 	}
 	capturesBlockers, attackerCount := getCheckingSquares(cb)
-	if attackerCount != 1 {
-		t.Errorf("wrong attackerCount: want=1, got=%d", attackerCount)
-	}
-	expectedCapturesBlockers := uint64(1<<62 + 1<<54 + 1<<46 + 1<<38 + 1<<30 + 1<<22 + 1<<14)
-	if capturesBlockers != expectedCapturesBlockers {
-		t.Errorf("wrong capturesBlockers: want=%v, got=%v",
-			read1Bits(expectedCapturesBlockers), read1Bits(capturesBlockers))
+
+	tests := []checkingSquaresCase{
+		{
+			cb:             cb,
+			expCapsBlks:    uint64(1<<62 + 1<<54 + 1<<46 + 1<<38 + 1<<30 + 1<<22 + 1<<14),
+			actualCapsBlks: capturesBlockers,
+			expAttkCount:   1, actualAttkCount: attackerCount,
+		},
 	}
 
 	cb, err = board.FromFen("4k3/pppppppp/8/8/6n1/5P2/PPPPPKPP/5BNR w - - 0 1")
@@ -509,14 +516,13 @@ func TestGetCheckingSquares(t *testing.T) {
 		t.Error(err)
 	}
 	capturesBlockers, attackerCount = getCheckingSquares(cb)
-	if attackerCount != 1 {
-		t.Errorf("wrong attackerCount: want=1, got=%d", attackerCount)
-	}
-	expectedCapturesBlockers = uint64(1 << 30)
-	if capturesBlockers != expectedCapturesBlockers {
-		t.Errorf("wrong capturesBlockers: want=%v, got=%v",
-			read1Bits(expectedCapturesBlockers), read1Bits(capturesBlockers))
-	}
+
+	tests = append(tests, checkingSquaresCase{
+		cb:             cb,
+		expCapsBlks:    uint64(1 << 30),
+		actualCapsBlks: capturesBlockers,
+		expAttkCount:   1, actualAttkCount: attackerCount,
+	})
 
 	// Black pawn on 13 does not check white king on 20.
 	cb, err = board.FromFen("n1n5/PPPk4/8/8/8/4K2q/5p1p/7N w - - 2 3")
@@ -524,13 +530,26 @@ func TestGetCheckingSquares(t *testing.T) {
 		t.Error(err)
 	}
 	capturesBlockers, attackerCount = getCheckingSquares(cb)
-	if attackerCount != 1 {
-		t.Errorf("wrong attackerCount: want=1, got=%d", attackerCount)
-	}
-	expectedCapturesBlockers = uint64(1<<21 + 1<<22 + 1<<23)
-	if capturesBlockers != expectedCapturesBlockers {
-		t.Errorf("wrong capturesBlockers: want=%v, got=%v",
-			read1Bits(expectedCapturesBlockers), read1Bits(capturesBlockers))
+	tests = append(tests, checkingSquaresCase{
+		cb:             cb,
+		expCapsBlks:    uint64(1<<21 + 1<<22 + 1<<23),
+		actualCapsBlks: capturesBlockers,
+		expAttkCount:   1, actualAttkCount: attackerCount,
+	})
+
+	runGetCheckingSquaresTests(t, tests)
+}
+
+func runGetCheckingSquaresTests(t *testing.T, tests []checkingSquaresCase) {
+	for _, tt := range tests {
+		if tt.expAttkCount != tt.actualAttkCount {
+			t.Errorf("wrong attackerCount: want=%d, got=%d",
+				tt.expAttkCount, tt.actualAttkCount)
+		}
+		if tt.expCapsBlks != tt.actualCapsBlks {
+			t.Errorf("wrong capturesBlockers: want=%v, got=%v",
+				read1Bits(tt.expCapsBlks), read1Bits(tt.actualCapsBlks))
+		}
 	}
 }
 
