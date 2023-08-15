@@ -254,34 +254,27 @@ func isValidMove(from, to int, pieceType string, cb *board.Board) bool {
 
 // Captures and protection are included in move gen.
 func getRookMoves(square int, cb *board.Board) uint64 {
+	occupied := cb.Pieces[0] | cb.Pieces[1]
 	// North
 	moves := cb.SlidingAttacks[0][square]
-	blockers := cb.SlidingAttacks[0][square] & (cb.Pieces[0] | cb.Pieces[1])
-	if blockers != 0 {
-		blockerSq := bits.TrailingZeros64(blockers)
-		moves ^= cb.SlidingAttacks[0][blockerSq]
-	}
+	blockers := cb.SlidingAttacks[0][square] & occupied
+	blockerSq := bits.TrailingZeros64(blockers | uint64(1<<63))
+	moves ^= cb.SlidingAttacks[0][blockerSq]
 	// East
 	moves |= cb.SlidingAttacks[2][square]
-	blockers = cb.SlidingAttacks[2][square] & (cb.Pieces[1] | cb.Pieces[0])
-	if blockers != 0 {
-		blockerSq := bits.TrailingZeros64(blockers)
-		moves ^= cb.SlidingAttacks[2][blockerSq]
-	}
+	blockers = cb.SlidingAttacks[2][square] & occupied
+	blockerSq = bits.TrailingZeros64(blockers | uint64(1<<63))
+	moves ^= cb.SlidingAttacks[2][blockerSq]
 	// South
 	moves |= cb.SlidingAttacks[4][square]
-	blockers = cb.SlidingAttacks[4][square] & (cb.Pieces[1] | cb.Pieces[0])
-	if blockers != 0 {
-		blockerSq := 63 - bits.LeadingZeros64(blockers)
-		moves ^= cb.SlidingAttacks[4][blockerSq]
-	}
+	blockers = cb.SlidingAttacks[4][square] & occupied
+	blockerSq = 63 - bits.LeadingZeros64(blockers|uint64(1))
+	moves ^= cb.SlidingAttacks[4][blockerSq]
 	// West
 	moves |= cb.SlidingAttacks[6][square]
-	blockers = cb.SlidingAttacks[6][square] & (cb.Pieces[1] | cb.Pieces[0])
-	if blockers != 0 {
-		blockerSq := 63 - bits.LeadingZeros64(blockers)
-		moves ^= cb.SlidingAttacks[6][blockerSq]
-	}
+	blockers = cb.SlidingAttacks[6][square] & occupied
+	blockerSq = 63 - bits.LeadingZeros64(blockers|uint64(1))
+	moves ^= cb.SlidingAttacks[6][blockerSq]
 
 	return moves
 }
@@ -322,34 +315,27 @@ func getKnightMoves(square int, cb *board.Board) uint64 {
 }
 
 func getBishopMoves(square int, cb *board.Board) uint64 {
+	occupied := cb.Pieces[0] | cb.Pieces[1]
 	// Northeast
 	moves := cb.SlidingAttacks[1][square]
-	blockers := cb.SlidingAttacks[1][square] & (cb.Pieces[1] | cb.Pieces[0])
-	if blockers != 0 {
-		blockerSq := bits.TrailingZeros64(blockers)
-		moves ^= cb.SlidingAttacks[1][blockerSq]
-	}
+	blockers := cb.SlidingAttacks[1][square] & occupied
+	blockerSq := bits.TrailingZeros64(blockers | uint64(1<<63))
+	moves ^= cb.SlidingAttacks[1][blockerSq]
 	// Southeast
 	moves |= cb.SlidingAttacks[3][square]
-	blockers = cb.SlidingAttacks[3][square] & (cb.Pieces[1] | cb.Pieces[0])
-	if blockers != 0 {
-		blockerSq := 63 - bits.LeadingZeros64(blockers)
-		moves ^= cb.SlidingAttacks[3][blockerSq]
-	}
+	blockers = cb.SlidingAttacks[3][square] & occupied
+	blockerSq = 63 - bits.LeadingZeros64(blockers|uint64(1))
+	moves ^= cb.SlidingAttacks[3][blockerSq]
 	// Southwest
 	moves |= cb.SlidingAttacks[5][square]
-	blockers = cb.SlidingAttacks[5][square] & (cb.Pieces[1] | cb.Pieces[0])
-	if blockers != 0 {
-		blockerSq := 63 - bits.LeadingZeros64(blockers)
-		moves ^= cb.SlidingAttacks[5][blockerSq]
-	}
+	blockers = cb.SlidingAttacks[5][square] & occupied
+	blockerSq = 63 - bits.LeadingZeros64(blockers|uint64(1))
+	moves ^= cb.SlidingAttacks[5][blockerSq]
 	// Northwest
 	moves |= cb.SlidingAttacks[7][square]
-	blockers = cb.SlidingAttacks[7][square] & (cb.Pieces[1] | cb.Pieces[0])
-	if blockers != 0 {
-		blockerSq := bits.TrailingZeros64(blockers)
-		moves ^= cb.SlidingAttacks[7][blockerSq]
-	}
+	blockers = cb.SlidingAttacks[7][square] & occupied
+	blockerSq = bits.TrailingZeros64(blockers | uint64(1<<63))
+	moves ^= cb.SlidingAttacks[7][blockerSq]
 
 	return moves
 }
