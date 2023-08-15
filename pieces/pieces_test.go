@@ -657,10 +657,15 @@ func perft(depth int, cb *board.Board) int {
 	nodes := 0
 	moves := getAllMoves(cb)
 	pos := board.StorePosition(cb)
+	var attackedSquares uint64
 
 	for _, toFrom := range moves {
 		movePiece(toFrom, cb)
-		attackedSquares := getAttackedSquares(cb)
+		if toFrom.piece == "k" {
+			attackedSquares = uint64(0)
+		} else {
+			attackedSquares = getAttackedSquares(cb)
+		}
 		if cb.Kings[1^cb.WToMove]&attackedSquares == 0 {
 			nodes += perft(depth-1, cb)
 		}
@@ -714,7 +719,6 @@ func TestPerft(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-
 	tests := []perftTestCase{
 		{
 			name:     "perft",
