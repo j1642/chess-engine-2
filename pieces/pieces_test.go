@@ -378,11 +378,17 @@ func TestGetKingMoves(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
+	cb1.Pieces[cb1.WToMove] ^= uint64(1 << cb1.KingSqs[cb1.WToMove])
+	cb1.WToMove ^= 1
+	attkSquares := getAttackedSquares(cb1)
+	cb1.WToMove ^= 1
+	cb1.Pieces[cb1.WToMove] ^= uint64(1 << cb1.KingSqs[cb1.WToMove])
+
 	tests := []moveTestCase{
 		{
 			// Cannot move into check, castle through check, or move into friendly piece.
 			expected: uint64(1<<12 + 1<<13),
-			actual:   getKingMoves(cb1.KingSqs[1], cb1),
+			actual:   getKingMoves(cb1.KingSqs[1], attkSquares, cb1),
 		},
 	}
 
@@ -390,10 +396,16 @@ func TestGetKingMoves(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
+	cb2.Pieces[cb2.WToMove] ^= uint64(1 << cb2.KingSqs[cb2.WToMove])
+	cb2.WToMove ^= 1
+	attkSquares = getAttackedSquares(cb2)
+	cb2.WToMove ^= 1
+	cb2.Pieces[cb2.WToMove] ^= uint64(1 << cb2.KingSqs[cb2.WToMove])
+
 	tests = append(tests, moveTestCase{
 		// Cannot castle out of check or capture protected piece.
 		expected: uint64(1<<61 + 1<<59),
-		actual:   getKingMoves(cb2.KingSqs[0], cb2),
+		actual:   getKingMoves(cb2.KingSqs[0], attkSquares, cb2),
 	})
 
 	runMoveGenTests(t, tests)
