@@ -1,3 +1,4 @@
+// Move generation
 package pieces
 
 import (
@@ -11,14 +12,10 @@ import (
 	"strings"
 )
 
-/* bb = bit board, cb = chessboard
-
-Positive direction move generation uses bitscan-forward or bits.TrailingZeros(),
-and the opposite for negative directions.
+/*
+bb = bitboard, cb = chessboard
+Magic numbers 0, ..., 63 and 1<<0, ..., 1<<63 are squares of the chessboard.
 */
-
-// TODO: Investigate performance impact of branching in move gen.
-//      - branching effects in getRookMoves() not obvious with perft(5)
 
 type move struct {
 	from, to  int
@@ -27,7 +24,7 @@ type move struct {
 }
 
 func movePiece(move move, cb *board.Board) {
-	// TODO: Refactor to remove switch. Maybe make a parent array board.Occupied.
+	// TODO: Refactor to remove switch. Maybe make a parent array board.Occupied
 	fromBB := uint64(1 << move.from)
 	toBB := uint64(1 << move.to)
 
@@ -108,7 +105,6 @@ func capturePiece(squareBB uint64, cb *board.Board) {
 	case squareBB&cb.Bishops[opponent] != 0:
 		cb.Bishops[opponent] ^= squareBB
 	case squareBB&cb.Rooks[opponent] != 0:
-		// TODO: move castling checks to a less-frequented function
 		// int type mixing here seems ok based on investigation
 		if opponent == 0 && squareBB == 1<<56 {
 			cb.CastleRights[opponent][0] = false
@@ -128,6 +124,8 @@ func capturePiece(squareBB uint64, cb *board.Board) {
 }
 
 func promotePawn(toBB uint64, cb *board.Board, promoteTo ...string) {
+	// TODO: Else never triggers b/c move.promoteTo always has a string
+	// Change to 'if promotoTo != ""'
 	if len(promoteTo) == 1 {
 		switch {
 		case promoteTo[0] == "q":
@@ -141,7 +139,6 @@ func promotePawn(toBB uint64, cb *board.Board, promoteTo ...string) {
 		default:
 			panic("invalid promoteTo")
 		}
-		// Else never triggers b/c move.promoteTo always has a string
 	} else {
 		fmt.Print("promote pawn to N, B, R, or Q: ")
 		userPromote := getUserInput()
@@ -226,7 +223,6 @@ func isValidMove(from, to int, pieceType string, cb *board.Board) bool {
 			return false
 		}
 	case "q":
-		// Combined bishop and rook checks.
 		if toBB&(getRookMoves(from, cb)|getBishopMoves(from, cb)) == 0 {
 			return false
 		}
@@ -280,14 +276,13 @@ func getRookMoves(square int, cb *board.Board) uint64 {
 }
 
 func getPawnMoves(square int, cb *board.Board) uint64 {
-	var moves uint64
 	opponent := 1 ^ cb.WToMove
 
 	if square < 8 || square > 55 {
 		panic("pawns can't be on the first or last rank")
 	}
 
-	moves = cb.PAttacks[cb.WToMove][square] & (cb.Pieces[opponent] | uint64(1<<cb.EpSquare))
+	moves := cb.PAttacks[cb.WToMove][square] & (cb.Pieces[opponent] | uint64(1<<cb.EpSquare))
 
 	var dir, low, high int
 	if cb.WToMove == 1 {
@@ -346,7 +341,6 @@ func getQueenMoves(square int, cb *board.Board) uint64 {
 
 func getKingMoves(square int, oppAttackedSquares uint64, cb *board.Board) uint64 {
 	// Return legal king moves.
-
 	occupied := cb.Pieces[0] | cb.Pieces[1]
 	moves := cb.KAttacks[square] & ^oppAttackedSquares & ^cb.Pieces[cb.WToMove]
 
@@ -374,16 +368,17 @@ func getKingMoves(square int, oppAttackedSquares uint64, cb *board.Board) uint64
 }
 
 func getAttackedSquares(cb *board.Board) uint64 {
+	// Return the set of squares attacked by color cb.WToMove
 	// TODO: Is there a way to avoid reading 1 bits when accumulating moves?
 	var pieces []int
 	attackSquares := uint64(0)
 
-	// TODO: Try to refactor without using a switch statement.
 	pieces = read1BitsPawns(cb.Pawns[cb.WToMove])
 	for _, square := range pieces {
 		// Do not include pawn pushes.
 		attackSquares |= cb.PAttacks[cb.WToMove][square]
 	}
+
 	pieces = read1Bits(cb.Knights[cb.WToMove])
 	for _, square := range pieces {
 		attackSquares |= cb.NAttacks[square]
@@ -407,8 +402,11 @@ func getAttackedSquares(cb *board.Board) uint64 {
 }
 
 type moveGenFunc func(int, *board.Board) uint64
+type readBitsFunc func(uint64) []int
 
 func getAllMoves(cb *board.Board) []move {
+	// Return slice of all pseudo-legal moves for color cb.WToMove (king moves
+	// are strictly legal)
 	cb.Pieces[cb.WToMove] ^= uint64(1 << cb.KingSqs[cb.WToMove])
 	cb.WToMove ^= 1
 	attackedSquares := getAttackedSquares(cb)
@@ -423,12 +421,12 @@ func getAllMoves(cb *board.Board) []move {
 
 	kingSq := cb.KingSqs[cb.WToMove]
 	moves := read1Bits(getKingMoves(kingSq, attackedSquares, cb) & ^cb.Pieces[cb.WToMove])
-	allMoves := make([]move, len(moves), 35)
 
+	allMoves := make([]move, len(moves), 35)
 	for i, toSq := range moves {
 		allMoves[i] = move{kingSq, toSq, "k", ""}
 	}
-	// If attackerCount > 1 and king has no moves, it is checkmate.
+	// If attackerCount > 1 and king has no moves, it is checkmate
 	if attackerCount > 1 {
 		return allMoves
 	}
@@ -441,7 +439,7 @@ func getAllMoves(cb *board.Board) []move {
 	}
 	symbols := []string{"p", "n", "b", "r", "q"}
 
-	// 29% perft() speed up and -40% malloc from having this loop in this function.
+	// 29% perft() speed up and -40% malloc from having this loop in this function
 	for i, piece := range pieces {
 		for _, fromSq := range read1Bits(piece) {
 			moves := read1Bits(moveFuncs[i](fromSq, cb) & ^cb.Pieces[cb.WToMove])
@@ -463,8 +461,8 @@ func getAllMoves(cb *board.Board) []move {
 }
 
 func getCheckingSquares(cb *board.Board) (uint64, int) {
-	// Return squares of pieces checking the king and interposition squares,
-	// and the number of checking pieces.
+	// Return the set of squares of pieces checking the king and interposition
+	// squares, and the number of checking pieces.
 	opponent := 1 ^ cb.WToMove
 	attackerCount := 0
 
@@ -516,7 +514,8 @@ func getCheckingSquares(cb *board.Board) (uint64, int) {
 }
 
 func fillFromTo(from, to, direction int) uint64 {
-	// Return a bitboard excluding the 'from' square and including the 'to' square.
+	// Return a bitboard of squares bewtween 'from and 'to', excluding 'from'
+	// and including 'to'.
 	bb := uint64(0)
 	for sq := from + direction; sq != to; sq += direction {
 		bb += 1 << sq
@@ -527,6 +526,7 @@ func fillFromTo(from, to, direction int) uint64 {
 }
 
 func findDirection(from, to int) int {
+	// Return the direction from one square to another.
 	// Assumes (from, to) is an orthogonal or diagonal move.
 	var dir int
 	diff := to - from
@@ -556,6 +556,7 @@ func findDirection(from, to int) int {
 	if diff < 0 {
 		dir *= -1
 	}
+
 	return dir
 }
 
