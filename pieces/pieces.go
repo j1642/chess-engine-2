@@ -375,7 +375,7 @@ func getKingMoves(square int, oppAttackedSquares uint64, cb *board.Board) uint64
 
 func getAttackedSquares(cb *board.Board) uint64 {
 	// TODO: Is there a way to avoid reading 1 bits when accumulating moves?
-	pieces := []int{}
+	var pieces []int
 	attackSquares := uint64(0)
 
 	// TODO: Try to refactor without using a switch statement.
@@ -409,26 +409,24 @@ func getAttackedSquares(cb *board.Board) uint64 {
 type moveGenFunc func(int, *board.Board) uint64
 
 func getAllMoves(cb *board.Board) []move {
-	var capturesBlks uint64
-	var attackerCount int
-	allMoves := make([]move, 0, 35)
-
 	cb.Pieces[cb.WToMove] ^= uint64(1 << cb.KingSqs[cb.WToMove])
 	cb.WToMove ^= 1
 	attackedSquares := getAttackedSquares(cb)
 	cb.WToMove ^= 1
 	cb.Pieces[cb.WToMove] ^= uint64(1 << cb.KingSqs[cb.WToMove])
 
+	var capturesBlks uint64
+	var attackerCount int
 	if cb.Kings[cb.WToMove]&attackedSquares != 0 {
 		capturesBlks, attackerCount = getCheckingSquares(cb)
 	}
 
-	// TODO: Exclude king moves where still in check.
-	// E.g. king on 1, queen on 2, king moves to 0.
 	kingSq := cb.KingSqs[cb.WToMove]
 	moves := read1Bits(getKingMoves(kingSq, attackedSquares, cb) & ^cb.Pieces[cb.WToMove])
-	for _, toSq := range moves {
-		allMoves = append(allMoves, move{kingSq, toSq, "k", ""})
+	allMoves := make([]move, len(moves), 35)
+
+	for i, toSq := range moves {
+		allMoves[i] = move{kingSq, toSq, "k", ""}
 	}
 	// If attackerCount > 1 and king has no moves, it is checkmate.
 	if attackerCount > 1 {
