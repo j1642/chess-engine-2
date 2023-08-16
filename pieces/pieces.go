@@ -379,7 +379,7 @@ func getAttackedSquares(cb *board.Board) uint64 {
 	attackSquares := uint64(0)
 
 	// TODO: Try to refactor without using a switch statement.
-	pieces = read1Bits(cb.Pawns[cb.WToMove])
+	pieces = read1BitsPawns(cb.Pawns[cb.WToMove])
 	for _, square := range pieces {
 		// Do not include pawn pushes.
 		attackSquares |= cb.PAttacks[cb.WToMove][square]
@@ -562,6 +562,15 @@ func findDirection(from, to int) int {
 func read1Bits(bb uint64) []int {
 	// Using TrailingZeros64() seems as fast as bitshifting right while bb>0.
 	squares := make([]int, 0, 4)
+	for bb > 0 {
+		squares = append(squares, bits.TrailingZeros64(bb))
+		bb &= bb - 1
+	}
+	return squares
+}
+
+func read1BitsPawns(bb uint64) []int {
+	squares := make([]int, 0, 8)
 	for bb > 0 {
 		squares = append(squares, bits.TrailingZeros64(bb))
 		bb &= bb - 1
