@@ -514,7 +514,7 @@ func getCheckingSquares(cb *board.Board) (uint64, int) {
 }
 
 func fillFromTo(from, to, direction int) uint64 {
-	// Return a bitboard of squares bewtween 'from and 'to', excluding 'from'
+	// Return a bitboard of squares between 'from and 'to', excluding 'from'
 	// and including 'to'.
 	bb := uint64(0)
 	for sq := from + direction; sq != to; sq += direction {
