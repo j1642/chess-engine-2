@@ -3,6 +3,7 @@ package board
 import (
 	"fmt"
 	"math/bits"
+	"math/rand"
 	"strings"
 )
 
@@ -442,4 +443,176 @@ func (cb *Board) Print() {
 		}
 	}
 	fmt.Println(squares[7])
+}
+
+func Print1Bits(bb uint64) {
+	squares := [64]int{}
+	for bb > 0 {
+		squares[bits.TrailingZeros64(bb)] = 1
+		bb &= bb - 1
+	}
+	for i := 56; i != 7; i++ {
+		if squares[i] == 0 {
+			fmt.Print("- ")
+		} else {
+			fmt.Print("1 ")
+		}
+		if i%8 == 7 {
+			i -= 16
+			fmt.Println()
+		}
+	}
+	if squares[7] == 1 {
+		fmt.Println("1")
+	} else {
+		fmt.Println("-")
+	}
+}
+
+func randFewBits() uint64 {
+	return rand.Uint64() & rand.Uint64() & rand.Uint64()
+}
+
+func count1Bits(bb uint64) int {
+	count := 0
+	for bb > 0 {
+		count += 1
+		bb &= bb - 1
+	}
+	return count
+}
+
+func rookMask(square int) uint64 {
+	var mask uint64
+	origFile := square % 8
+	origRank := square / 8
+
+	for r := origRank + 1; r <= 6; r++ {
+		mask |= uint64(1 << (origFile + r*8))
+	}
+	for r := origRank - 1; r >= 1; r-- {
+		mask |= uint64(1 << (origFile + r*8))
+	}
+	for f := origFile + 1; f <= 6; f++ {
+		mask |= uint64(1 << (f + origRank*8))
+	}
+	for f := origFile - 1; f >= 1; f-- {
+		mask |= uint64(1 << (f + origRank*8))
+	}
+
+	return mask
+}
+
+func bishopMask(square int) uint64 {
+	var mask uint64
+	origFile := square % 8
+	origRank := square / 8
+
+	// Northeast
+	f := origFile + 1
+	for r := origRank + 1; r <= 6 && f <= 6; r++ {
+		mask |= uint64(1 << (f + r*8))
+		f += 1
+	}
+	// Northwest
+	f = origFile - 1
+	for r := origRank + 1; r <= 6 && f >= 1; r++ {
+		mask |= uint64(1 << (f + r*8))
+		f -= 1
+	}
+	// Southeast
+	f = origFile + 1
+	for r := origRank - 1; r >= 1 && f <= 6; r-- {
+		mask |= uint64(1 << (f + r*8))
+		f += 1
+	}
+	// Southwest
+	f = origFile - 1
+	for r := origRank - 1; r >= 1 && f >= 1; r-- {
+		mask |= uint64(1 << (f + r*8))
+		f -= 1
+	}
+
+	return mask
+}
+
+func rookAttacks(square int, blockers uint64) uint64 {
+	var attacks uint64
+	origRank := square / 8
+	origFile := square % 8
+
+	// North
+	for r := origRank + 1; r <= 7; r++ {
+		attacks |= uint64(1 << (origFile + r*8))
+		if blockers&uint64(1<<(origFile+r*8)) != 0 {
+			break
+		}
+	}
+	// South
+	for r := origRank - 1; r >= 0; r-- {
+		attacks |= uint64(1 << (origFile + r*8))
+		if blockers&uint64(1<<(origFile+r*8)) != 0 {
+			break
+		}
+	}
+	// East
+	for f := origFile + 1; f <= 7; f++ {
+		attacks |= uint64(1 << (f + origRank*8))
+		if blockers&uint64(1<<(f+origRank*8)) != 0 {
+			break
+		}
+	}
+	// West
+	for f := origFile - 1; f >= 0; f-- {
+		attacks |= uint64(1 << (f + origRank*8))
+		if blockers&uint64(1<<(f+origRank*8)) != 0 {
+			break
+		}
+	}
+	return attacks
+}
+
+func bishopAttacks(square int, blockers uint64) uint64 {
+	var attacks uint64
+	origFile := square % 8
+	origRank := square / 8
+
+	// Northeast
+	f := origFile + 1
+	for r := origRank + 1; r <= 7 && f <= 7; r++ {
+		attacks |= uint64(1 << (f + r*8))
+		if blockers&uint64(1<<(f+r*8)) != 0 {
+			break
+		}
+		f += 1
+	}
+	// Northwest
+	f = origFile - 1
+	for r := origRank + 1; r <= 7 && f >= 0; r++ {
+		attacks |= uint64(1 << (f + r*8))
+		if blockers&uint64(1<<(f+r*8)) != 0 {
+			break
+		}
+		f -= 1
+	}
+	// Southeast
+	f = origFile + 1
+	for r := origRank - 1; r >= 0 && f <= 7; r-- {
+		attacks |= uint64(1 << (f + r*8))
+		if blockers&uint64(1<<(f+r*8)) != 0 {
+			break
+		}
+		f += 1
+	}
+	// Southwest
+	f = origFile - 1
+	for r := origRank - 1; r >= 0 && f >= 0; r-- {
+		attacks |= uint64(1 << (f + r*8))
+		if blockers&uint64(1<<(f+r*8)) != 0 {
+			break
+		}
+		f -= 1
+	}
+
+	return attacks
 }
