@@ -1,8 +1,14 @@
 My first [bitboard](https://www.chessprogramming.org/Bitboards)-based engine.
 
-Aug 7: perft(4) passes at >1.35 million nodes/s
 
-Aug 9: perft(5) passes at >3.5 million nodes/s (~1.4s)
+### Perft Milestones
+[Perft](https://www.chessprogramming.org/Perft) is a debugging function that compares a move tree's leaf node count against an accepted value. The largest performance gains so far are from setting non-zero initial slice capacities in specific inlined functions.
+
+| Depth | Time | Speed (million leaves/s) |
+|---|---|---|
+perft(4) | ~0.15s | >1.35
+perft(5) | ~1.4s | >3.5
+perft(6) | ~16s | >7.1
 
 ### Want to build a chess engine?
 I recommend starting without reading much about engines, maybe by making a command-line game that makes random, legal moves against the player. At that point, reading about move generator debugging, search algorithms, and evaluation algorithms will help your engine make stronger moves.
