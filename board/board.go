@@ -469,8 +469,17 @@ func Print1Bits(bb uint64) {
 	}
 }
 
+func getRandNum() uint64 {
+	n := rand.Uint64() & 0xFFFF
+	n |= (rand.Uint64() & 0xFFFF) << 16
+	n |= (rand.Uint64() & 0xFFFF) << 32
+	n |= (rand.Uint64() & 0xFFFF) << 48
+	return n
+}
+
 func randFewBits() uint64 {
 	return rand.Uint64() & rand.Uint64() & rand.Uint64()
+	//return getRandNum() & getRandNum() & getRandNum()
 }
 
 func count1Bits(bb uint64) int {
@@ -615,4 +624,98 @@ func bishopAttacks(square int, blockers uint64) uint64 {
 	}
 
 	return attacks
+}
+
+// Amount of possible attacks without blockers, excluding attacks to
+// board edges
+var RookBits = [64]int{
+	12, 11, 11, 11, 11, 11, 11, 12,
+	11, 10, 10, 10, 10, 10, 10, 11,
+	11, 10, 10, 10, 10, 10, 10, 11,
+	11, 10, 10, 10, 10, 10, 10, 11,
+	11, 10, 10, 10, 10, 10, 10, 11,
+	11, 10, 10, 10, 10, 10, 10, 11,
+	11, 10, 10, 10, 10, 10, 10, 11,
+	12, 11, 11, 11, 11, 11, 11, 12,
+}
+var BishopBits = [64]int{
+	6, 5, 5, 5, 5, 5, 5, 6,
+	5, 5, 5, 5, 5, 5, 5, 5,
+	5, 5, 7, 7, 7, 7, 5, 5,
+	5, 5, 7, 9, 9, 7, 5, 5,
+	5, 5, 7, 9, 9, 7, 5, 5,
+	5, 5, 7, 7, 7, 7, 5, 5,
+	5, 5, 5, 5, 5, 5, 5, 5,
+	6, 5, 5, 5, 5, 5, 5, 6,
+}
+
+func popLS1B(bb *uint64) int {
+	ls1b := bits.TrailingZeros64(*bb)
+	*bb &= *bb - 1
+	return ls1b
+}
+
+func index_to_uint64(index, bits int, m *uint64) uint64 {
+	var result uint64
+	var j int
+
+	for i := 0; i < bits; i++ {
+		j = popLS1B(m)
+		if index&1<<i != 0 {
+			result |= 1 << j
+		}
+	}
+
+	return result
+}
+
+func transform(b, magic uint64, bits int) int {
+	return int((b * magic) >> (64 - bits))
+}
+
+func FindMagic(sq, m int, rb string) uint64 {
+	var a, b, used [4096]uint64
+	var mask, magic uint64
+
+	if rb == "b" {
+		mask = bishopMask(sq)
+	} else {
+		mask = rookMask(sq)
+	}
+
+	n := count1Bits(mask)
+
+	var fail bool
+	var i, j, k int
+	for i = 0; i < (1 << n); i++ {
+		b[i] = index_to_uint64(i, n, &mask)
+		if rb == "b" {
+			a[i] = bishopAttacks(sq, b[i])
+		} else {
+			a[i] = rookAttacks(sq, b[i])
+		}
+	}
+	for k = 0; k < 100_000_000; k++ {
+		magic = randFewBits()
+		if count1Bits((mask*magic)&0xFF00000000000000) < 6 {
+			continue
+		}
+		for i = 0; i < 4096; i++ {
+			used[i] = 0
+		}
+		fail = false
+		for i = 0; !fail && i < (1<<n); i++ {
+			j = transform(b[i], magic, m)
+			if used[j] == 0 {
+				used[j] = a[i]
+			} else if used[j] != a[i] {
+				fail = true
+			}
+		}
+		if !fail {
+			return magic
+		}
+	}
+	fmt.Println("failed")
+	return 0
 }
