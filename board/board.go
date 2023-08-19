@@ -7,8 +7,48 @@ import (
 	"strings"
 )
 
+var BishopMagics [64]map[int]uint64
+var RookMagics [64]map[int]uint64
+
+func init() {
+	makeMagicAttacks()
+}
+
+func makeMagicAttacks() {
+	var bBlockers, rBlockers []uint64
+	var bMask, rMask uint64
+	var key int
+
+	for sq := 0; sq < 64; sq++ {
+		BishopMagics[sq] = make(map[int]uint64, 1<<BishopBits[sq])
+		RookMagics[sq] = make(map[int]uint64, 1<<RookBits[sq])
+
+		rMask = RookMask(sq)
+		rBlockers = occupancyCombos(read1BitsBoard(rMask))
+		bMask = BishopMask(sq)
+		bBlockers = occupancyCombos(read1BitsBoard(bMask))
+		for _, blockers := range bBlockers {
+			key = int((blockers * BMagics[sq]) >> (63 - BishopBits[sq]))
+			BishopMagics[sq][key] = bishopAttacks(sq, blockers)
+		}
+		for _, blockers := range rBlockers {
+			key = int((blockers * RMagics[sq]) >> (63 - RookBits[sq]))
+			RookMagics[sq][key] = rookAttacks(sq, blockers)
+		}
+	}
+}
+
+func read1BitsBoard(bb uint64) []int {
+	ones := make([]int, 0, 12)
+	for bb > 0 {
+		ones = append(ones, bits.LeadingZeros64(bb))
+		bb &= bb - 1
+	}
+	return ones
+}
+
 type Board struct {
-	// TODO: move occupancies into one array? Possible memory speed boost
+	// TODO: move occupancies into one array? Possible memory cache improvement
 	WToMove int // 1 or 0, true or false
 
 	Pieces  [2]uint64
@@ -491,7 +531,7 @@ func count1Bits(bb uint64) int {
 	return count
 }
 
-func rookMask(square int) uint64 {
+func RookMask(square int) uint64 {
 	var mask uint64
 	origFile := square % 8
 	origRank := square / 8
@@ -512,7 +552,7 @@ func rookMask(square int) uint64 {
 	return mask
 }
 
-func bishopMask(square int) uint64 {
+func BishopMask(square int) uint64 {
 	var mask uint64
 	origFile := square % 8
 	origRank := square / 8
@@ -649,6 +689,41 @@ var BishopBits = [64]int{
 	6, 5, 5, 5, 5, 5, 5, 6,
 }
 
+func occupancyCombos(nums []int) []uint64 {
+	// Return all possible occupancy combination bitboards for the given squares.
+	combos := make([]uint64, 0, 1<<len(nums))
+	result := make([]int, len(nums))
+
+	// TODO: check memory use, probably not optimal
+	// A closure seems like the easiest way to build 'combos'
+	var combos2 func([]int, int, int, []int)
+	combos2 = func(arr []int, l, start int, result []int) {
+		if l == 0 {
+			sum := uint64(0)
+			for _, num := range result {
+				// Zero and other corner squares shoulnd't need to be checked
+				// Loops over zeroes when finding the sum. Not optimal
+				if num != 0 {
+					sum += 1 << num
+				}
+			}
+			combos = append(combos, sum)
+			return
+		}
+		for i := start; i <= len(arr)-l; i++ {
+			result[len(result)-l] = arr[i]
+			combos2(arr, l-1, i+1, result)
+		}
+	}
+
+	combos = append(combos, 1)
+	for k := 1; k < len(nums)+1; k++ {
+		combos2(nums, k, 0, result)
+	}
+
+	return combos
+}
+
 func popLS1B(bb *uint64) int {
 	ls1b := bits.TrailingZeros64(*bb)
 	*bb &= *bb - 1
@@ -678,9 +753,9 @@ func FindMagic(sq, m int, rb string) uint64 {
 	var mask, magic uint64
 
 	if rb == "b" {
-		mask = bishopMask(sq)
+		mask = BishopMask(sq)
 	} else {
-		mask = rookMask(sq)
+		mask = RookMask(sq)
 	}
 
 	n := count1Bits(mask)
