@@ -35,13 +35,15 @@ func makeMagicAttacks() {
 			key = int((blockers * RMagics[sq]) >> (63 - RookBits[sq]))
 			RookMagics[sq][key] = rookAttacks(sq, blockers)
 		}
+		//fmt.Println(BishopMagics)
+		//fmt.Println(RookMagics)
 	}
 }
 
 func read1BitsBoard(bb uint64) []int {
 	ones := make([]int, 0, 12)
 	for bb > 0 {
-		ones = append(ones, bits.LeadingZeros64(bb))
+		ones = append(ones, bits.TrailingZeros64(bb))
 		bb &= bb - 1
 	}
 	return ones
