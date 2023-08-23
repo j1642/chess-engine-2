@@ -19,11 +19,11 @@ Magic numbers 0, ..., 63 and 1<<0, ..., 1<<63 are squares of the chessboard.
 
 type move struct {
 	from, to  int
-	piece     string
+	Piece     string
 	promoteTo string
 }
 
-func movePiece(move move, cb *board.Board) {
+func MovePiece(move move, cb *board.Board) {
 	// TODO: Refactor to remove switch. Maybe make a parent array board.Occupied
 	fromBB := uint64(1 << move.from)
 	toBB := uint64(1 << move.to)
@@ -33,7 +33,7 @@ func movePiece(move move, cb *board.Board) {
 	}
 
 	cb.Pieces[cb.WToMove] ^= fromBB + toBB
-	switch move.piece {
+	switch move.Piece {
 	case "p":
 		cb.Pawns[cb.WToMove] ^= fromBB + toBB
 		if move.to-move.from == 16 || move.to-move.from == -16 {
@@ -229,7 +229,7 @@ func isValidMove(from, to int, pieceType string, cb *board.Board) bool {
 	case "k":
 		cb.Pieces[cb.WToMove] ^= uint64(1 << cb.KingSqs[cb.WToMove])
 		cb.WToMove ^= 1
-		attkSquares := getAttackedSquares(cb)
+		attkSquares := GetAttackedSquares(cb)
 		cb.WToMove ^= 1
 		cb.Pieces[cb.WToMove] ^= uint64(1 << cb.KingSqs[cb.WToMove])
 		if toBB&getKingMoves(from, attkSquares, cb) == 0 {
@@ -367,7 +367,7 @@ func getKingMoves(square int, oppAttackedSquares uint64, cb *board.Board) uint64
 	return moves
 }
 
-func getAttackedSquares(cb *board.Board) uint64 {
+func GetAttackedSquares(cb *board.Board) uint64 {
 	// Return the set of squares attacked by color cb.WToMove
 	// TODO: Is there a way to avoid reading 1 bits when accumulating moves?
 	var pieces []int
@@ -404,12 +404,12 @@ func getAttackedSquares(cb *board.Board) uint64 {
 type moveGenFunc func(int, *board.Board) uint64
 type readBitsFunc func(uint64) []int
 
-func getAllMoves(cb *board.Board) []move {
+func GetAllMoves(cb *board.Board) []move {
 	// Return slice of all pseudo-legal moves for color cb.WToMove (king moves
 	// are strictly legal)
 	cb.Pieces[cb.WToMove] ^= uint64(1 << cb.KingSqs[cb.WToMove])
 	cb.WToMove ^= 1
-	attackedSquares := getAttackedSquares(cb)
+	attackedSquares := GetAttackedSquares(cb)
 	cb.WToMove ^= 1
 	cb.Pieces[cb.WToMove] ^= uint64(1 << cb.KingSqs[cb.WToMove])
 

@@ -242,7 +242,7 @@ func TestIsValidMove(t *testing.T) {
 
 func TestMovePiece(t *testing.T) {
 	cb := board.New()
-	movePiece(move{8, 16, "p", ""}, cb)
+	MovePiece(move{8, 16, "p", ""}, cb)
 
 	if cb.WToMove != 0 {
 		t.Errorf("WToMove: want=0, got=%d", cb.WToMove)
@@ -255,13 +255,13 @@ func TestMovePiece(t *testing.T) {
 		t.Errorf("wPieces: want=\n%b,\ngot=\n%b",
 			uint64(1<<17)-1-1<<8, cb.Pieces[1])
 	}
-	movePiece(move{57, 42, "n", ""}, cb)
-	movePiece(move{16, 24, "p", ""}, cb)
+	MovePiece(move{57, 42, "n", ""}, cb)
+	MovePiece(move{16, 24, "p", ""}, cb)
 	// Waiting move by ng8
-	movePiece(move{62, 45, "n", ""}, cb)
-	movePiece(move{24, 32, "p", ""}, cb)
+	MovePiece(move{62, 45, "n", ""}, cb)
+	MovePiece(move{24, 32, "p", ""}, cb)
 
-	movePiece(move{42, 32, "n", ""}, cb)
+	MovePiece(move{42, 32, "n", ""}, cb)
 
 	if cb.WToMove != 1 {
 		t.Errorf("WToMove: want=1, got=%d", cb.WToMove)
@@ -307,9 +307,9 @@ func TestGetAttackedSquare(t *testing.T) {
 	cb := board.New()
 
 	expected := uint64(0xFFFF00) + 1<<1 + 1<<2 + 1<<3 + 1<<4 + 1<<5 + 1<<6
-	if getAttackedSquares(cb) != expected {
+	if GetAttackedSquares(cb) != expected {
 		t.Errorf("attacked/defender squares: want=%v, got=%v",
-			read1Bits(expected), read1Bits(getAttackedSquares(cb)))
+			read1Bits(expected), read1Bits(GetAttackedSquares(cb)))
 	}
 }
 
@@ -320,7 +320,7 @@ func TestCastling(t *testing.T) {
 		t.Error(err)
 	}
 
-	movePiece(move{4, 2, "k", ""}, cb)
+	MovePiece(move{4, 2, "k", ""}, cb)
 	if cb.Kings[1] != uint64(1<<2) {
 		t.Errorf("w king did not castle queenside. want=2, got=%v", read1Bits(cb.Kings[1]))
 	}
@@ -331,7 +331,7 @@ func TestCastling(t *testing.T) {
 		t.Errorf("w king castle rights: want=[false false], got=%v", cb.CastleRights[1])
 	}
 
-	movePiece(move{60, 62, "k", ""}, cb)
+	MovePiece(move{60, 62, "k", ""}, cb)
 	if cb.Kings[0] != uint64(1<<62) {
 		t.Errorf("b king did not castle kingside. want=62, got=%v", read1Bits(cb.Kings[0]))
 	}
@@ -350,7 +350,7 @@ func TestCastlingRightsLostByRookMoveAndCapture(t *testing.T) {
 		t.Error(err)
 	}
 
-	movePiece(move{0, 56, "r", ""}, cb)
+	MovePiece(move{0, 56, "r", ""}, cb)
 	if cb.Rooks[1] != uint64(1<<7+1<<56) {
 		t.Errorf("wrong rook squares: want=[7, 56], got=%v", read1Bits(cb.Rooks[1]))
 	}
@@ -361,7 +361,7 @@ func TestCastlingRightsLostByRookMoveAndCapture(t *testing.T) {
 		t.Errorf("b king castle rights: want=[false true], got=%v", cb.CastleRights[0])
 	}
 
-	movePiece(move{63, 7, "r", ""}, cb)
+	MovePiece(move{63, 7, "r", ""}, cb)
 	if cb.Rooks[0] != uint64(1<<7) {
 		t.Errorf("wrong rook squares: want=7, got=%v", read1Bits(cb.Rooks[0]))
 	}
@@ -380,7 +380,7 @@ func TestGetKingMoves(t *testing.T) {
 	}
 	cb1.Pieces[cb1.WToMove] ^= uint64(1 << cb1.KingSqs[cb1.WToMove])
 	cb1.WToMove ^= 1
-	attkSquares := getAttackedSquares(cb1)
+	attkSquares := GetAttackedSquares(cb1)
 	cb1.WToMove ^= 1
 	cb1.Pieces[cb1.WToMove] ^= uint64(1 << cb1.KingSqs[cb1.WToMove])
 
@@ -398,7 +398,7 @@ func TestGetKingMoves(t *testing.T) {
 	}
 	cb2.Pieces[cb2.WToMove] ^= uint64(1 << cb2.KingSqs[cb2.WToMove])
 	cb2.WToMove ^= 1
-	attkSquares = getAttackedSquares(cb2)
+	attkSquares = GetAttackedSquares(cb2)
 	cb2.WToMove ^= 1
 	cb2.Pieces[cb2.WToMove] ^= uint64(1 << cb2.KingSqs[cb2.WToMove])
 
@@ -578,7 +578,7 @@ func TestGetAllMoves(t *testing.T) {
 			expected: []move{{6, 5, "k", ""}, {6, 7, "k", ""}, {6, 13, "k", ""},
 				{6, 15, "k", ""}, {2, 38, "b", ""}, {56, 62, "r", ""},
 				{63, 62, "r", ""}, {3, 30, "q", ""}},
-			actual: getAllMoves(cb),
+			actual: GetAllMoves(cb),
 		},
 	}
 
@@ -590,7 +590,7 @@ func TestGetAllMoves(t *testing.T) {
 		// Two checking pieces, so only the king can move.
 		expected: []move{{6, 5, "k", ""}, {6, 7, "k", ""}, {6, 13, "k", ""},
 			{6, 15, "k", ""}},
-		actual: getAllMoves(cb1),
+		actual: GetAllMoves(cb1),
 	})
 
 	cb2, err := board.FromFen("rnbqkbnr/ppppp1pp/5p2/7Q/8/4P3/PPPP1PPP/RNB1KBNR b KQkq - 0 1")
@@ -600,7 +600,7 @@ func TestGetAllMoves(t *testing.T) {
 	tests = append(tests, allMovesTestCase{
 		// Only one move is possible: pawn blocks check.
 		expected: []move{{54, 46, "p", ""}},
-		actual:   getAllMoves(cb2),
+		actual:   GetAllMoves(cb2),
 	})
 
 	cb3, err := board.FromFen("4k3/pppppppp/8/8/6n1/5P2/PPPPPKPP/5BNR w - - 0 1")
@@ -609,7 +609,7 @@ func TestGetAllMoves(t *testing.T) {
 	}
 	tests = append(tests, allMovesTestCase{
 		expected: []move{{13, 4, "k", ""}, {13, 22, "k", ""}, {21, 30, "p", ""}},
-		actual:   getAllMoves(cb3),
+		actual:   GetAllMoves(cb3),
 	})
 
 	cb4, err := board.FromFen("n1n5/PPPk4/8/8/8/4K2q/5p1p/7N w - - 2 3")
@@ -620,7 +620,7 @@ func TestGetAllMoves(t *testing.T) {
 		expected: []move{{20, 11, "k", ""}, {20, 12, "k", ""},
 			{20, 13, "k", ""}, {20, 27, "k", ""}, {20, 28, "k", ""},
 			{20, 29, "k", ""}, {7, 22, "n", ""}},
-		actual: getAllMoves(cb4),
+		actual: GetAllMoves(cb4),
 	})
 
 	runGetAllMovesTests(t, tests)
@@ -655,16 +655,16 @@ func perft(depth int, cb *board.Board) int {
 		return 1
 	}
 	nodes := 0
-	moves := getAllMoves(cb)
+	moves := GetAllMoves(cb)
 	pos := board.StorePosition(cb)
 	var attackedSquares uint64
 
 	for _, toFrom := range moves {
-		movePiece(toFrom, cb)
-		if toFrom.piece == "k" {
+		MovePiece(toFrom, cb)
+		if toFrom.Piece == "k" {
 			attackedSquares = uint64(0)
 		} else {
-			attackedSquares = getAttackedSquares(cb)
+			attackedSquares = GetAttackedSquares(cb)
 		}
 		if cb.Kings[1^cb.WToMove]&attackedSquares == 0 {
 			nodes += perft(depth-1, cb)
@@ -680,14 +680,14 @@ func divide(depth int, cb *board.Board, ranksFiles ...[]string) {
 	files := []string{"a", "b", "c", "d", "e", "f", "g", "h"}
 
 	totalNodes := 0
-	moves := getAllMoves(cb)
+	moves := GetAllMoves(cb)
 	var pos *board.Position
 
 	pos = board.StorePosition(cb)
 	for _, fromTo := range moves {
 		nodes := 0
-		movePiece(fromTo, cb)
-		attackedSquares := getAttackedSquares(cb)
+		MovePiece(fromTo, cb)
+		attackedSquares := GetAttackedSquares(cb)
 		if cb.Kings[1^cb.WToMove]&attackedSquares == 0 {
 			nodes += perft(depth-1, cb)
 		}
