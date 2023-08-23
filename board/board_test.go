@@ -1,7 +1,6 @@
 package board
 
 import (
-	_ "fmt"
 	"reflect"
 	"testing"
 )
@@ -358,4 +357,64 @@ func TestFromFen(t *testing.T) {
 		t.Errorf("cb.EpSquare: want=16, got=%d\n", cb.EpSquare)
 	}
 
+}
+
+func TestBishopMask(t *testing.T) {
+	bMask := BishopMask(0)
+	expectedMask := uint64(1<<9 + 1<<18 + 1<<27 + 1<<36 + 1<<45 + 1<<54)
+	if bMask != expectedMask {
+		t.Errorf("bMask: want=%v, got=%v",
+			read1BitsBoard(expectedMask), read1BitsBoard(bMask))
+	}
+}
+
+func TestOccupancyCombos(t *testing.T) {
+	sq := 9
+	bMask := BishopMask(sq)
+	blockers := occupancyCombos(read1BitsBoard(bMask))
+	if len(blockers) != 1<<BishopBits[sq] {
+		t.Errorf("blockers length: want=%d, got=%d",
+			1<<BishopBits[sq], len(blockers))
+	}
+	expectedBlockers := [][]int{
+		{}, {18}, {27}, {36}, {45}, {54},
+		{18, 27},
+		{18, 36},
+		{18, 45},
+		{18, 54},
+		{27, 36},
+		{27, 45},
+		{27, 54},
+		{36, 45},
+		{36, 54},
+		{45, 54},
+		{18, 27, 36},
+		{18, 27, 45},
+		{18, 27, 54},
+		{18, 36, 45},
+		{18, 36, 54},
+		{18, 45, 54},
+		{27, 36, 45},
+		{27, 36, 54},
+		{27, 45, 54},
+		{36, 45, 54},
+		{18, 27, 36, 45},
+		{18, 27, 36, 54},
+		{18, 27, 45, 54},
+		{18, 36, 45, 54},
+		{27, 36, 45, 54},
+		{18, 27, 36, 45, 54},
+	}
+	for i, blocker := range blockers {
+		combo := read1BitsBoard(blocker)
+		if len(combo) != len(expectedBlockers[i]) {
+			t.Fatalf("wrong blocker[i] len: want=%d, got=%d",
+				len(expectedBlockers[i]), len(combo))
+		}
+		for j, sq := range combo {
+			if sq != expectedBlockers[i][j] {
+				t.Errorf("blocker[i][j]: want=%v, got=%v", expectedBlockers[i], sq)
+			}
+		}
+	}
 }

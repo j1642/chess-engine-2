@@ -19,14 +19,17 @@ func makeMagicAttacks() {
 	var bMask, rMask uint64
 	var key int
 
-	for sq := 0; sq < 64; sq++ {
-		BishopMagics[sq] = make(map[int]uint64, 1<<BishopBits[sq])
-		RookMagics[sq] = make(map[int]uint64, 1<<RookBits[sq])
+	for sq := 0; sq < 1; sq++ {
+		BishopMagics[sq] = make(map[int]uint64) //, 1<<BishopBits[sq])
+		RookMagics[sq] = make(map[int]uint64)   //, 1<<RookBits[sq])
 
 		rMask = RookMask(sq)
+		//fmt.Printf("%b\n", rMask)
 		rBlockers = occupancyCombos(read1BitsBoard(rMask))
+		//fmt.Println(rBlockers)
 		bMask = BishopMask(sq)
 		bBlockers = occupancyCombos(read1BitsBoard(bMask))
+		//fmt.Println(bBlockers)
 		for _, blockers := range bBlockers {
 			key = int((blockers * BMagics[sq]) >> (63 - BishopBits[sq]))
 			BishopMagics[sq][key] = bishopAttacks(sq, blockers)
@@ -694,33 +697,32 @@ var BishopBits = [64]int{
 func occupancyCombos(nums []int) []uint64 {
 	// Return all possible occupancy combination bitboards for the given squares.
 	combos := make([]uint64, 0, 1<<len(nums))
-	result := make([]int, len(nums))
 
 	// TODO: check memory use, probably not optimal
-	// A closure seems like the easiest way to build 'combos'
 	var combos2 func([]int, int, int, []int)
-	combos2 = func(arr []int, l, start int, result []int) {
-		if l == 0 {
+	combos2 = func(arr []int, k, start int, result []int) {
+		// Append sum of each combination, len(arr) choose k, to 'combos'
+		if k == 0 {
 			sum := uint64(0)
 			for _, num := range result {
-				// Zero and other corner squares shoulnd't need to be checked
 				// Loops over zeroes when finding the sum. Not optimal
 				if num != 0 {
-					sum += 1 << num
+					sum += uint64(1 << num)
 				}
 			}
 			combos = append(combos, sum)
 			return
 		}
-		for i := start; i <= len(arr)-l; i++ {
-			result[len(result)-l] = arr[i]
-			combos2(arr, l-1, i+1, result)
+		for i := start; i <= len(arr)-k; i++ {
+			result[len(result)-k] = arr[i]
+			combos2(arr, k-1, i+1, result)
 		}
 	}
 
-	combos = append(combos, 1)
-	for k := 1; k < len(nums)+1; k++ {
-		combos2(nums, k, 0, result)
+	combos = append(combos, 0)
+	for k := 1; k <= len(nums); k++ {
+		res := make([]int, len(nums))
+		combos2(nums, k, 0, res)
 	}
 
 	return combos
