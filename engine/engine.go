@@ -23,6 +23,7 @@ func negamax(alpha, beta, depth int, cb *board.Board) int {
 		if cb.Kings[1^cb.WToMove]&attackedSquares == 0 {
 			score := -1 * negamax(-beta, -alpha, depth-1, cb)
 			if score >= beta {
+				board.RestorePosition(pos, cb)
 				return beta
 			} else if score > alpha {
 				alpha = score
