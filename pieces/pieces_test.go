@@ -242,7 +242,7 @@ func TestIsValidMove(t *testing.T) {
 
 func TestMovePiece(t *testing.T) {
 	cb := board.New()
-	MovePiece(move{8, 16, "p", ""}, cb)
+	MovePiece(board.Move{8, 16, "p", ""}, cb)
 
 	if cb.WToMove != 0 {
 		t.Errorf("WToMove: want=0, got=%d", cb.WToMove)
@@ -255,13 +255,13 @@ func TestMovePiece(t *testing.T) {
 		t.Errorf("wPieces: want=\n%b,\ngot=\n%b",
 			uint64(1<<17)-1-1<<8, cb.Pieces[1])
 	}
-	MovePiece(move{57, 42, "n", ""}, cb)
-	MovePiece(move{16, 24, "p", ""}, cb)
+	MovePiece(board.Move{57, 42, "n", ""}, cb)
+	MovePiece(board.Move{16, 24, "p", ""}, cb)
 	// Waiting move by ng8
-	MovePiece(move{62, 45, "n", ""}, cb)
-	MovePiece(move{24, 32, "p", ""}, cb)
+	MovePiece(board.Move{62, 45, "n", ""}, cb)
+	MovePiece(board.Move{24, 32, "p", ""}, cb)
 
-	MovePiece(move{42, 32, "n", ""}, cb)
+	MovePiece(board.Move{42, 32, "n", ""}, cb)
 
 	if cb.WToMove != 1 {
 		t.Errorf("WToMove: want=1, got=%d", cb.WToMove)
@@ -320,7 +320,7 @@ func TestCastling(t *testing.T) {
 		t.Error(err)
 	}
 
-	MovePiece(move{4, 2, "k", ""}, cb)
+	MovePiece(board.Move{4, 2, "k", ""}, cb)
 	if cb.Kings[1] != uint64(1<<2) {
 		t.Errorf("w king did not castle queenside. want=2, got=%v", read1Bits(cb.Kings[1]))
 	}
@@ -331,7 +331,7 @@ func TestCastling(t *testing.T) {
 		t.Errorf("w king castle rights: want=[false false], got=%v", cb.CastleRights[1])
 	}
 
-	MovePiece(move{60, 62, "k", ""}, cb)
+	MovePiece(board.Move{60, 62, "k", ""}, cb)
 	if cb.Kings[0] != uint64(1<<62) {
 		t.Errorf("b king did not castle kingside. want=62, got=%v", read1Bits(cb.Kings[0]))
 	}
@@ -350,7 +350,7 @@ func TestCastlingRightsLostByRookMoveAndCapture(t *testing.T) {
 		t.Error(err)
 	}
 
-	MovePiece(move{0, 56, "r", ""}, cb)
+	MovePiece(board.Move{0, 56, "r", ""}, cb)
 	if cb.Rooks[1] != uint64(1<<7+1<<56) {
 		t.Errorf("wrong rook squares: want=[7, 56], got=%v", read1Bits(cb.Rooks[1]))
 	}
@@ -361,7 +361,7 @@ func TestCastlingRightsLostByRookMoveAndCapture(t *testing.T) {
 		t.Errorf("b king castle rights: want=[false true], got=%v", cb.CastleRights[0])
 	}
 
-	MovePiece(move{63, 7, "r", ""}, cb)
+	MovePiece(board.Move{63, 7, "r", ""}, cb)
 	if cb.Rooks[0] != uint64(1<<7) {
 		t.Errorf("wrong rook squares: want=7, got=%v", read1Bits(cb.Rooks[0]))
 	}
@@ -412,7 +412,7 @@ func TestGetKingMoves(t *testing.T) {
 }
 
 type allMovesTestCase struct {
-	expected, actual []move
+	expected, actual []board.Move
 }
 
 func runGetAllMovesTests(t *testing.T, tests []allMovesTestCase) {
@@ -575,7 +575,7 @@ func TestGetAllMoves(t *testing.T) {
 	tests := []allMovesTestCase{
 		{
 			// One checking piece which can be captured or blocked.
-			expected: []move{{6, 5, "k", ""}, {6, 7, "k", ""}, {6, 13, "k", ""},
+			expected: []board.Move{{6, 5, "k", ""}, {6, 7, "k", ""}, {6, 13, "k", ""},
 				{6, 15, "k", ""}, {2, 38, "b", ""}, {56, 62, "r", ""},
 				{63, 62, "r", ""}, {3, 30, "q", ""}},
 			actual: GetAllMoves(cb),
@@ -588,7 +588,7 @@ func TestGetAllMoves(t *testing.T) {
 	}
 	tests = append(tests, allMovesTestCase{
 		// Two checking pieces, so only the king can move.
-		expected: []move{{6, 5, "k", ""}, {6, 7, "k", ""}, {6, 13, "k", ""},
+		expected: []board.Move{{6, 5, "k", ""}, {6, 7, "k", ""}, {6, 13, "k", ""},
 			{6, 15, "k", ""}},
 		actual: GetAllMoves(cb1),
 	})
@@ -599,7 +599,7 @@ func TestGetAllMoves(t *testing.T) {
 	}
 	tests = append(tests, allMovesTestCase{
 		// Only one move is possible: pawn blocks check.
-		expected: []move{{54, 46, "p", ""}},
+		expected: []board.Move{{54, 46, "p", ""}},
 		actual:   GetAllMoves(cb2),
 	})
 
@@ -608,7 +608,7 @@ func TestGetAllMoves(t *testing.T) {
 		t.Error(err)
 	}
 	tests = append(tests, allMovesTestCase{
-		expected: []move{{13, 4, "k", ""}, {13, 22, "k", ""}, {21, 30, "p", ""}},
+		expected: []board.Move{{13, 4, "k", ""}, {13, 22, "k", ""}, {21, 30, "p", ""}},
 		actual:   GetAllMoves(cb3),
 	})
 
@@ -617,7 +617,7 @@ func TestGetAllMoves(t *testing.T) {
 		t.Error(err)
 	}
 	tests = append(tests, allMovesTestCase{
-		expected: []move{{20, 11, "k", ""}, {20, 12, "k", ""},
+		expected: []board.Move{{20, 11, "k", ""}, {20, 12, "k", ""},
 			{20, 13, "k", ""}, {20, 27, "k", ""}, {20, 28, "k", ""},
 			{20, 29, "k", ""}, {7, 22, "n", ""}},
 		actual: GetAllMoves(cb4),
@@ -693,11 +693,11 @@ func divide(depth int, cb *board.Board, ranksFiles ...[]string) {
 		}
 		board.RestorePosition(pos, cb)
 
-		fromAlgNotation := strings.Join([]string{files[fromTo.from%8], ranks[fromTo.from/8]}, "")
-		toAlgNotation := strings.Join([]string{files[fromTo.to%8], ranks[fromTo.to/8]}, "")
+		fromAlgNotation := strings.Join([]string{files[fromTo.From%8], ranks[fromTo.From/8]}, "")
+		toAlgNotation := strings.Join([]string{files[fromTo.To%8], ranks[fromTo.To/8]}, "")
 
 		fmt.Printf("%s%s %s: %d\n",
-			fromAlgNotation, toAlgNotation, fromTo.promoteTo, nodes)
+			fromAlgNotation, toAlgNotation, fromTo.PromoteTo, nodes)
 		totalNodes += nodes
 
 	}

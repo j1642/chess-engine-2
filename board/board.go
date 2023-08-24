@@ -27,6 +27,14 @@ type Board struct {
 	CastleRights [2][2]bool // [b, w][queenside, kingside]
 
 	EpSquare int
+
+	PrevMove Move
+}
+
+type Move struct {
+	From, To  int
+	Piece     string
+	PromoteTo string
 }
 
 func New() *Board {

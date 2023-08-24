@@ -17,16 +17,10 @@ bb = bitboard, cb = chessboard
 Magic numbers 0, ..., 63 and 1<<0, ..., 1<<63 are squares of the chessboard.
 */
 
-type move struct {
-	from, to  int
-	Piece     string
-	promoteTo string
-}
-
-func MovePiece(move move, cb *board.Board) {
+func MovePiece(move board.Move, cb *board.Board) {
 	// TODO: Refactor to remove switch. Maybe make a parent array board.Occupied
-	fromBB := uint64(1 << move.from)
-	toBB := uint64(1 << move.to)
+	fromBB := uint64(1 << move.From)
+	toBB := uint64(1 << move.To)
 
 	if toBB&(cb.Pieces[1^cb.WToMove]^cb.Kings[1^cb.WToMove]) != 0 {
 		capturePiece(toBB, cb)
@@ -36,15 +30,15 @@ func MovePiece(move move, cb *board.Board) {
 	switch move.Piece {
 	case "p":
 		cb.Pawns[cb.WToMove] ^= fromBB + toBB
-		if move.to-move.from == 16 || move.to-move.from == -16 {
-			cb.EpSquare = (move.to + move.from) / 2
-		} else if move.to < 8 || move.to > 55 {
-			promotePawn(toBB, cb, move.promoteTo)
+		if move.To-move.From == 16 || move.To-move.From == -16 {
+			cb.EpSquare = (move.To + move.From) / 2
+		} else if move.To < 8 || move.To > 55 {
+			promotePawn(toBB, cb, move.PromoteTo)
 			cb.EpSquare = 100
-		} else if move.to == cb.EpSquare {
-			captureSq := move.to + 8
+		} else if move.To == cb.EpSquare {
+			captureSq := move.To + 8
 			if cb.WToMove == 1 {
-				captureSq = move.to - 8
+				captureSq = move.To - 8
 			}
 			cb.Pawns[1^cb.WToMove] ^= uint64(1 << captureSq)
 			cb.Pieces[1^cb.WToMove] ^= uint64(1 << captureSq)
@@ -60,9 +54,9 @@ func MovePiece(move move, cb *board.Board) {
 		cb.EpSquare = 100
 	case "r":
 		cb.Rooks[cb.WToMove] ^= fromBB + toBB
-		if move.from == 0 || move.from == 56 {
+		if move.From == 0 || move.From == 56 {
 			cb.CastleRights[cb.WToMove][0] = false
-		} else if move.from == 7 || move.from == 63 {
+		} else if move.From == 7 || move.From == 63 {
 			cb.CastleRights[cb.WToMove][1] = false
 		}
 		cb.EpSquare = 100
@@ -70,19 +64,19 @@ func MovePiece(move move, cb *board.Board) {
 		cb.Queens[cb.WToMove] ^= fromBB + toBB
 		cb.EpSquare = 100
 	case "k":
-		if move.to-move.from == 2 || move.to-move.from == -2 {
-			if cb.CastleRights[cb.WToMove][0] && (move.to == 2 || move.to == 58) {
-				cb.Rooks[cb.WToMove] ^= uint64(1<<(move.to-2) + 1<<(move.to+1))
-				cb.Pieces[cb.WToMove] ^= uint64(1<<(move.to-2) + 1<<(move.to+1))
-			} else if cb.CastleRights[cb.WToMove][1] && (move.to == 6 || move.to == 62) {
-				cb.Rooks[cb.WToMove] ^= uint64(1<<(move.to+1) + 1<<(move.to-1))
-				cb.Pieces[cb.WToMove] ^= uint64(1<<(move.to+1) + 1<<(move.to-1))
+		if move.To-move.From == 2 || move.To-move.From == -2 {
+			if cb.CastleRights[cb.WToMove][0] && (move.To == 2 || move.To == 58) {
+				cb.Rooks[cb.WToMove] ^= uint64(1<<(move.To-2) + 1<<(move.To+1))
+				cb.Pieces[cb.WToMove] ^= uint64(1<<(move.To-2) + 1<<(move.To+1))
+			} else if cb.CastleRights[cb.WToMove][1] && (move.To == 6 || move.To == 62) {
+				cb.Rooks[cb.WToMove] ^= uint64(1<<(move.To+1) + 1<<(move.To-1))
+				cb.Pieces[cb.WToMove] ^= uint64(1<<(move.To+1) + 1<<(move.To-1))
 			} else {
 				panic("king moving two squares, but is not castling")
 			}
 		}
 		cb.Kings[cb.WToMove] ^= fromBB + toBB
-		cb.KingSqs[cb.WToMove] = move.to
+		cb.KingSqs[cb.WToMove] = move.To
 		cb.CastleRights[cb.WToMove][0] = false
 		cb.CastleRights[cb.WToMove][1] = false
 		cb.EpSquare = 100
@@ -404,7 +398,7 @@ func GetAttackedSquares(cb *board.Board) uint64 {
 type moveGenFunc func(int, *board.Board) uint64
 type readBitsFunc func(uint64) []int
 
-func GetAllMoves(cb *board.Board) []move {
+func GetAllMoves(cb *board.Board) []board.Move {
 	// Return slice of all pseudo-legal moves for color cb.WToMove (king moves
 	// are strictly legal)
 	cb.Pieces[cb.WToMove] ^= uint64(1 << cb.KingSqs[cb.WToMove])
@@ -422,9 +416,9 @@ func GetAllMoves(cb *board.Board) []move {
 	kingSq := cb.KingSqs[cb.WToMove]
 	moves := read1Bits(getKingMoves(kingSq, attackedSquares, cb) & ^cb.Pieces[cb.WToMove])
 
-	allMoves := make([]move, len(moves), 35)
+	allMoves := make([]board.Move, len(moves), 35)
 	for i, toSq := range moves {
-		allMoves[i] = move{kingSq, toSq, "k", ""}
+		allMoves[i] = board.Move{From: kingSq, To: toSq, Piece: "k", PromoteTo: ""}
 	}
 	// If attackerCount > 1 and king has no moves, it is checkmate
 	if attackerCount > 1 {
@@ -446,12 +440,12 @@ func GetAllMoves(cb *board.Board) []move {
 			for _, toSq := range moves {
 				if i == 0 && (toSq < 8 || toSq > 55) &&
 					(capturesBlks == 0 || uint64(1<<toSq)&capturesBlks != 0) {
-					allMoves = append(allMoves, move{fromSq, toSq, "p", "n"})
-					allMoves = append(allMoves, move{fromSq, toSq, "p", "b"})
-					allMoves = append(allMoves, move{fromSq, toSq, "p", "r"})
-					allMoves = append(allMoves, move{fromSq, toSq, "p", "q"})
+					allMoves = append(allMoves, board.Move{From: fromSq, To: toSq, Piece: "p", PromoteTo: "n"})
+					allMoves = append(allMoves, board.Move{From: fromSq, To: toSq, Piece: "p", PromoteTo: "b"})
+					allMoves = append(allMoves, board.Move{From: fromSq, To: toSq, Piece: "p", PromoteTo: "r"})
+					allMoves = append(allMoves, board.Move{From: fromSq, To: toSq, Piece: "p", PromoteTo: "q"})
 				} else if capturesBlks == 0 || uint64(1<<toSq)&capturesBlks != 0 {
-					allMoves = append(allMoves, move{fromSq, toSq, symbols[i], ""})
+					allMoves = append(allMoves, board.Move{From: fromSq, To: toSq, Piece: symbols[i], PromoteTo: ""})
 				}
 			}
 		}
