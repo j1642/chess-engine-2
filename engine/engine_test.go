@@ -6,13 +6,15 @@ import (
 )
 
 func TestEvaluate(t *testing.T) {
-	if evaluate(board.New()) != 2 {
-		t.Error("starting position evaluation != 2")
+	eval := evaluate(board.New())
+	if eval != 0 {
+		t.Errorf("starting position evaluation != 0, got=%d", eval)
 	}
 }
 
 func TestNegamax(t *testing.T) {
-	if negamax(-(1<<30), 1<<30, 2, board.New()) != 2 {
-		t.Error("negamax outline broken")
+	eval := negamax(-(1 << 30), 1<<30, 2, board.New())
+	if eval != 0 {
+		t.Errorf("negamax start position eval != 0, got=%d", eval)
 	}
 }

@@ -443,3 +443,27 @@ func (cb *Board) Print() {
 	}
 	fmt.Println(squares[7])
 }
+
+func Print1Bits(bb uint64) {
+	squares := [64]int{}
+	for bb > 0 {
+		squares[bits.TrailingZeros64(bb)] = 1
+		bb &= bb - 1
+	}
+	for i := 56; i != 7; i++ {
+		if squares[i] == 0 {
+			fmt.Print("- ")
+		} else {
+			fmt.Print("1 ")
+		}
+		if i%8 == 7 {
+			i -= 16
+			fmt.Println()
+		}
+	}
+	if squares[7] == 1 {
+		fmt.Println("1")
+	} else {
+		fmt.Println("-")
+	}
+}
