@@ -36,6 +36,7 @@ func negamax(alpha, beta, depth int, cb *board.Board) int {
 }
 
 func evaluate(cb *board.Board) int {
+	// Return position evaluation in decipawns (0.1 pawns).
 	eval := 10 * (count1Bits(cb.Pawns[1]) - count1Bits(cb.Pawns[0]))
 	eval += 30 * (count1Bits(cb.Knights[1]) - count1Bits(cb.Knights[0]))
 	eval += 31 * (count1Bits(cb.Bishops[1]) - count1Bits(cb.Bishops[0]))
@@ -52,20 +53,62 @@ func evaluate(cb *board.Board) int {
 		eval += oppMoveCount - moveCount
 	}
 
-	var wDoubledPawns, bDoubledPawns int
+	eval += evalPawns(cb)
+
+	return eval
+}
+
+func evalPawns(cb *board.Board) int {
+	// Return evaluation of doubled, blocked, and isolated pawns.
+	eval := 0
+
+	var wPawnsInFile, bPawnsInFile [8]int
 	file := uint64(0x101010101010101)
-
+	// Doubled
 	for i := 0; i < 8; i++ {
-		wDoubledPawns = count1Bits(file & cb.Pawns[1])
-		if wDoubledPawns > 1 {
-			eval -= 5 * wDoubledPawns
+		wPawnsInFile[i] = count1Bits(file & cb.Pawns[1])
+		if wPawnsInFile[i] > 1 {
+			eval -= 5 * wPawnsInFile[i]
 		}
-
-		bDoubledPawns = count1Bits(file & cb.Pawns[0])
-		if bDoubledPawns > 1 {
-			eval += 5 * bDoubledPawns
+		bPawnsInFile[i] = count1Bits(file & cb.Pawns[0])
+		if bPawnsInFile[i] > 1 {
+			eval += 5 * bPawnsInFile[i]
 		}
 		file = file << 1
+	}
+
+	// Isolated
+	delta := [2]int{-5, 5}
+	for i, colorPawns := range [2][8]int{wPawnsInFile, bPawnsInFile} {
+		for j, file := range colorPawns {
+			switch j {
+			case 0:
+				if file > 0 && colorPawns[1] == 0 {
+					eval += delta[i]
+				}
+			case 7:
+				if file > 0 && colorPawns[6] == 0 {
+					eval += delta[i]
+				}
+			default:
+				if file > 0 && colorPawns[j-1] == 0 && colorPawns[j+1] == 0 {
+					eval += delta[i]
+				}
+			}
+		}
+	}
+
+	// Blocked
+	occupied := cb.Pieces[0] | cb.Pieces[1]
+	for _, sq := range pieces.Read1BitsPawns(cb.Pawns[1]) {
+		if uint64(1<<(sq+8))&occupied != 0 {
+			eval -= 5
+		}
+	}
+	for _, sq := range pieces.Read1BitsPawns(cb.Pawns[0]) {
+		if uint64(1<<(sq-8))&occupied != 0 {
+			eval += 5
+		}
 	}
 
 	return eval

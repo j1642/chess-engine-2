@@ -373,7 +373,7 @@ func GetAttackedSquares(cb *board.Board) uint64 {
 	var pieces []int
 	attackSquares := uint64(0)
 
-	pieces = read1BitsPawns(cb.Pawns[cb.WToMove])
+	pieces = Read1BitsPawns(cb.Pawns[cb.WToMove])
 	for _, square := range pieces {
 		// Do not include pawn pushes.
 		attackSquares |= cb.PAttacks[cb.WToMove][square]
@@ -570,7 +570,7 @@ func read1Bits(bb uint64) []int {
 	return squares
 }
 
-func read1BitsPawns(bb uint64) []int {
+func Read1BitsPawns(bb uint64) []int {
 	squares := make([]int, 0, 8)
 	for bb > 0 {
 		squares = append(squares, bits.TrailingZeros64(bb))
