@@ -41,16 +41,15 @@ func evaluate(cb *board.Board) int {
 	eval += 50 * (count1Bits(cb.Rooks[1]) - count1Bits(cb.Rooks[0]))
 	eval += 90 * (count1Bits(cb.Queens[1]) - count1Bits(cb.Queens[0]))
 
-	/*
-	   moveCount := len(pieces.GetAllMoves(cb))
-	   cb.WToMove ^= 1
-	   oppMoveCount := len(pieces.GetAllMoves(cb))
-	   cb.WToMove ^= 1
-	   if cb.WToMove == 1 {
-	       eval += moveCount - oppMoveCount
-	   } else {
-	       eval += oppMoveCount - moveCount
-	   }*/
+	moveCount := len(pieces.GetAllMoves(cb))
+	cb.WToMove ^= 1
+	oppMoveCount := len(pieces.GetAllMoves(cb))
+	cb.WToMove ^= 1
+	if cb.WToMove == 1 {
+		eval += moveCount - oppMoveCount
+	} else {
+		eval += oppMoveCount - moveCount
+	}
 
 	var wDoubledPawns, bDoubledPawns int
 	file := uint64(0x101010101010101)
