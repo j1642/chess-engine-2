@@ -374,6 +374,8 @@ type Position struct {
 	CastleRights [2][2]bool
 
 	EpSquare int
+
+	PrevMove Move
 }
 
 func StorePosition(cb *Board) *Position {
@@ -391,6 +393,8 @@ func StorePosition(cb *Board) *Position {
 		CastleRights: cb.CastleRights,
 
 		EpSquare: cb.EpSquare,
+
+		PrevMove: cb.PrevMove,
 	}
 }
 
@@ -408,6 +412,7 @@ func RestorePosition(pos *Position, cb *Board) {
 	cb.CastleRights = pos.CastleRights
 
 	cb.EpSquare = pos.EpSquare
+	cb.PrevMove = pos.PrevMove
 }
 
 func (cb *Board) Print() {

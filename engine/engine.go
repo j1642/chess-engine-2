@@ -5,11 +5,13 @@ import (
 	"engine2/pieces"
 )
 
-func negamax(alpha, beta, depth int, cb *board.Board) int {
+func negamax(alpha, beta, depth int, cb *board.Board) (int, board.Move) {
 	if depth == 0 {
-		return evaluate(cb)
+		return evaluate(cb), cb.PrevMove
 	}
 	var attackedSquares uint64
+	var lastMove, bestMove board.Move
+	var score int
 	pos := board.StorePosition(cb)
 
 	for _, move := range pieces.GetAllMoves(cb) {
@@ -21,18 +23,20 @@ func negamax(alpha, beta, depth int, cb *board.Board) int {
 		}
 
 		if cb.Kings[1^cb.WToMove]&attackedSquares == 0 {
-			score := -1 * negamax(-beta, -alpha, depth-1, cb)
+			score, lastMove = negamax(-beta, -alpha, depth-1, cb)
+			score *= -1
 			if score >= beta {
 				board.RestorePosition(pos, cb)
-				return beta
+				return beta, lastMove
 			} else if score > alpha {
 				alpha = score
+				bestMove = lastMove
 			}
 		}
 		board.RestorePosition(pos, cb)
 	}
 
-	return alpha
+	return alpha, bestMove
 }
 
 func evaluate(cb *board.Board) int {
