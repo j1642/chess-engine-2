@@ -6,25 +6,36 @@ import (
 	"testing"
 )
 
-func TestEvaluateNewBoard(t *testing.T) {
-	eval := evaluate(board.New())
-	if eval != 0 {
-		t.Errorf("start position eval != 0, got=%d", eval)
-	}
-}
-
-type pawnTestCase struct {
+type evalTestCase struct {
 	cb       *board.Board
 	expected int
 }
 
-func runPawnEvalTests(t *testing.T, tests []pawnTestCase) {
-	for _, tt := range tests {
-		actual := evalPawns(tt.cb)
-		if tt.expected != actual {
-			t.Errorf("pawnEval: want=%d, got=%d", tt.expected, actual)
-		}
+func TestEvaluate(t *testing.T) {
+	cbRooks, err := board.FromFen("8/8/8/8/8/8/8/Rr6 w - - 0 1")
+	if err != nil {
+		t.Fatal(err)
 	}
+	cbLoneRook, err := board.FromFen("8/8/8/8/8/8/8/R7 w - - 0 1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	tests := []evalTestCase{
+		{
+			cb:       board.New(),
+			expected: 0,
+		},
+		{
+			cb:       cbRooks,
+			expected: -6,
+		},
+		{
+			cb:       cbLoneRook,
+			expected: 64,
+		},
+	}
+
+	runEvalTests(t, tests)
 }
 
 func TestEvaluatePawns(t *testing.T) {
@@ -40,7 +51,7 @@ func TestEvaluatePawns(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	tests := []pawnTestCase{
+	tests := []evalTestCase{
 		{
 			cb:       board.New(),
 			expected: 0,
@@ -63,4 +74,32 @@ func TestEvaluatePawns(t *testing.T) {
 }
 
 func TestNegamax(t *testing.T) {
+	cb, err := board.FromFen("8/8/8/8/8/8/8/Rr6 w - - 0 1")
+	if err != nil {
+		t.Error(err)
+	}
+	eval, bestMove := negamax(-(1 << 30), 1<<30, 1, cb)
+	expected := board.Move{From: 0, To: 1, Piece: "r", PromoteTo: ""}
+	if bestMove != expected {
+		t.Errorf("negamax best move: want=%v, got=%v, eval=%d",
+			expected, bestMove, eval)
+	}
+}
+
+func runEvalTests(t *testing.T, tests []evalTestCase) {
+	for _, tt := range tests {
+		actual := evaluate(tt.cb)
+		if tt.expected != actual {
+			t.Errorf("pawnEval: want=%d, got=%d", tt.expected, actual)
+		}
+	}
+}
+
+func runPawnEvalTests(t *testing.T, tests []evalTestCase) {
+	for _, tt := range tests {
+		actual := evalPawns(tt.cb)
+		if tt.expected != actual {
+			t.Errorf("pawnEval: want=%d, got=%d", tt.expected, actual)
+		}
+	}
 }
