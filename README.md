@@ -6,9 +6,9 @@ My first [bitboard](https://www.chessprogramming.org/Bitboards)-based engine.
 
 | Depth | Time | Speed (million leaves/s) |
 |---|---|---|
-perft(4) | ~0.15s | >1.35
-perft(5) | ~1.4s | >3.5
-perft(6) | ~16s | >7.1
+perft(4) | 0.15s | 1.35
+perft(5) | 1.4s | 3.5
+perft(6) | 16s | 7.1
 
 ### Want to build a chess engine?
 I recommend starting without reading much about engines, maybe by making a command-line game that makes random, legal moves against the player. At that point, reading about move generator debugging, search algorithms, and evaluation algorithms will help your engine make stronger moves.
