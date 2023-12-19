@@ -10,8 +10,8 @@ perft(4) | 0.15s | 1.35
 perft(5) | 1.4s | 3.5
 perft(6) | 16s | 7.1
 
-### Want to build a chess engine?
-I recommend starting without reading much about engines, maybe by making a command-line game that makes random, legal moves against the player. At that point, reading about move generator debugging, search algorithms, and evaluation algorithms will help your engine make stronger moves.
+### Want to build your own engine?
+I recommend starting by making a command-line game that makes random, legal moves against the player. At that point, reading about move generator debugging, search algorithms, and evaluation algorithms will help your engine make stronger moves.
 #### Learning Resources
 - [Chess programming wiki](https://www.chessprogramming.org/Getting_Started)
 - [the wiki's Recommended Reading](https://www.chessprogramming.org/Recommended_Reading)
