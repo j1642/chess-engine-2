@@ -84,6 +84,7 @@ func MovePiece(move board.Move, cb *board.Board) {
 		panic("empty or invalid piece type")
 	}
 
+	cb.PrevMove = move
 	cb.WToMove ^= 1
 }
 
