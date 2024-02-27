@@ -509,9 +509,9 @@ func getCheckingSquares(cb *board.Board) (uint64, int) {
 	return pAttackers | knightAttackers | attackers[0] | attackers[1], attackerCount
 }
 
+// Return a bitboard of squares between `from and `to`, excluding `from`
+// and including `to`
 func fillFromTo(from, to, direction int) uint64 {
-	// Return a bitboard of squares between 'from and 'to', excluding 'from'
-	// and including 'to'.
 	bb := uint64(0)
 	for sq := from + direction; sq != to; sq += direction {
 		bb += 1 << sq
@@ -521,9 +521,9 @@ func fillFromTo(from, to, direction int) uint64 {
 	return bb
 }
 
+// Return the direction from one square to another. Assumes (from, to) is an
+// orthogonal or diagonal move
 func findDirection(from, to int) int {
-	// Return the direction from one square to another.
-	// Assumes (from, to) is an orthogonal or diagonal move.
 	var dir int
 	diff := to - from
 	// TODO: Change to lookup table for files, or use bitboards.

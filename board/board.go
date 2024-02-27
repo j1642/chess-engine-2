@@ -202,14 +202,14 @@ func ContainsN[T IntArray](n int, nums T) bool {
 	return false
 }
 
-// Return pawn attack bitboard? So pawn attacks are pre-calculated and can simply be looked up
+// Return pawn attack bitboards, so attacks aren't repeatedly calculated on the fly
 func makePawnBBs() [2][64]uint64 {
-	// First index is 1 for white pawns, 0 for black pawns.
+	// First index is cb.WToMove: 1 for white pawns, 0 for black pawns.
 	bbs := [2][64]uint64{}
-
 	for sq := 0; sq < 64; sq++ {
 		switch {
-		// For determining pawn checks on black king on the eighth rank.
+		// Used in pieces.getCheckingSquares() for pawn checks on the black king on the eighth rank
+		// NOT FOR PAWN ATTACKS. Pawns on the first and eighth ranks checked in pieces.getPawnMoves()
 		case sq > 56:
 			if sq%8 == 0 {
 				bbs[0][sq] += 1 << (sq - 7)
@@ -218,7 +218,8 @@ func makePawnBBs() [2][64]uint64 {
 			} else {
 				bbs[0][sq] += 1<<(sq-7) + 1<<(sq-9)
 			}
-		// For determining pawn checks on white king on the first rank.
+		// Used in pieces.getCheckingSquares() for pawn checks on the black king on the eighth rank
+		// NOT FOR PAWN ATTACKS. Pawns on the first and eighth ranks checked in pieces.getPawnMoves()
 		case sq < 8:
 			if sq%8 == 0 {
 				bbs[1][sq] += 1 << (sq + 9)
