@@ -160,9 +160,9 @@ func getUserInput() string {
 	return strings.ToLower(scanner.Text())
 }
 
+// Return the piece type on a given square, or "" if the square is empty.
+// Only works for pieces of the moving side, cb.WToMove.
 func getPieceType(square int, cb *board.Board) (string, error) {
-	// Return the piece type on a given square, or "" if the square is empty.
-	// Only works for pieces of the moving side, cb.WToMove.
 	if square < 0 || square > 63 {
 		return "", fmt.Errorf("square %d does not exist", square)
 	}
@@ -186,10 +186,10 @@ func getPieceType(square int, cb *board.Board) (string, error) {
 	}
 }
 
+// Use for user-submitted moves only?
+// Checks for blocking pieces and disallows captures of friendly pieces.
+// Does not consider check, pins, or legality of a pawn movement direction.
 func isValidMove(from, to int, pieceType string, cb *board.Board) bool {
-	// Use for user-submitted moves only?
-	// Checks for blocking pieces and disallows captures of friendly pieces.
-	// Does not consider check, pins, or legality of a pawn movement direction.
 	if from < 0 || from > 63 || to < 0 || to > 63 || to == from {
 		return false
 	}
@@ -334,8 +334,8 @@ func getQueenMoves(square int, cb *board.Board) uint64 {
 	return getRookMoves(square, cb) | getBishopMoves(square, cb)
 }
 
+// Return legal king moves.
 func getKingMoves(square int, oppAttackedSquares uint64, cb *board.Board) uint64 {
-	// Return legal king moves.
 	occupied := cb.Pieces[0] | cb.Pieces[1]
 	moves := cb.KAttacks[square] & ^oppAttackedSquares & ^cb.Pieces[cb.WToMove]
 
@@ -362,8 +362,8 @@ func getKingMoves(square int, oppAttackedSquares uint64, cb *board.Board) uint64
 	return moves
 }
 
+// Return the set of squares attacked by color cb.WToMove
 func GetAttackedSquares(cb *board.Board) uint64 {
-	// Return the set of squares attacked by color cb.WToMove
 	// TODO: Is there a way to avoid reading 1 bits when accumulating moves?
 	var pieces []int
 	attackSquares := uint64(0)
@@ -455,9 +455,9 @@ func GetAllMoves(cb *board.Board) []board.Move {
 	return allMoves
 }
 
+// Return the set of squares of pieces checking the king and interposition
+// squares, and the number of checking pieces.
 func getCheckingSquares(cb *board.Board) (uint64, int) {
-	// Return the set of squares of pieces checking the king and interposition
-	// squares, and the number of checking pieces.
 	opponent := 1 ^ cb.WToMove
 	attackerCount := 0
 
@@ -497,6 +497,7 @@ func getCheckingSquares(cb *board.Board) (uint64, int) {
 		if attacker != 0 {
 			attackerSquares := read1Bits(attacker)
 			attackerCount += len(attackerSquares)
+			// Possible optimization: check if attackerCount + len(attackers) > 1 before the loop
 			if len(attackerSquares) > 1 {
 				panic(panicMsgs[i])
 			}

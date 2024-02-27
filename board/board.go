@@ -8,6 +8,7 @@ import (
 
 type Board struct {
 	// TODO: move occupancies into one array? Possible memory speed boost
+	// TODO: minimize int size for WToMove, KingSqs, EpSquare?
 	WToMove int // 1 or 0, true or false
 
 	Pieces  [2]uint64
@@ -201,8 +202,9 @@ func ContainsN[T IntArray](n int, nums T) bool {
 	return false
 }
 
+// Return pawn attack bitboard? So pawn attacks are pre-calculated and can simply be looked up
 func makePawnBBs() [2][64]uint64 {
-	// First index is isWhite: 1 for white pawns, 0 for black pawns.
+	// First index is 1 for white pawns, 0 for black pawns.
 	bbs := [2][64]uint64{}
 
 	for sq := 0; sq < 64; sq++ {
@@ -416,7 +418,7 @@ func RestorePosition(pos *Position, cb *Board) {
 }
 
 func (cb *Board) Print() {
-	// Possibly destructive to original cb.
+	// Possibly destructive to original cb, so print a copy
 	squares := [64]string{}
 	copied := StorePosition(cb)
 

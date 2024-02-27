@@ -3,7 +3,7 @@ package engine
 import (
 	"engine2/board"
 	"engine2/pieces"
-	"fmt"
+	_ "fmt"
 )
 
 func negamax(alpha, beta, depth int, cb *board.Board) (int, board.Move) {
@@ -44,8 +44,8 @@ func negamax(alpha, beta, depth int, cb *board.Board) (int, board.Move) {
 	return alpha, bestMove
 }
 
+// Return position evaluation in decipawns (0.1 pawns)
 func evaluate(cb *board.Board) int {
-	// Return position evaluation in decipawns (0.1 pawns).
 	eval := 10 * (count1Bits(cb.Pawns[1]) - count1Bits(cb.Pawns[0]))
 	eval += 30 * (count1Bits(cb.Knights[1]) - count1Bits(cb.Knights[0]))
 	eval += 31 * (count1Bits(cb.Bishops[1]) - count1Bits(cb.Bishops[0]))
@@ -72,13 +72,13 @@ func evaluate(cb *board.Board) int {
 	return eval
 }
 
+// Return evaluation of doubled, blocked, and isolated pawns.
 func evalPawns(cb *board.Board) int {
-	// Return evaluation of doubled, blocked, and isolated pawns.
 	eval := 0
-
 	var wPawnsInFile, bPawnsInFile [8]int
-	file := uint64(0x101010101010101)
+
 	// Doubled
+	file := uint64(0x101010101010101)
 	for i := 0; i < 8; i++ {
 		wPawnsInFile[i] = count1Bits(file & cb.Pawns[1])
 		if wPawnsInFile[i] > 1 {
@@ -97,6 +97,7 @@ func evalPawns(cb *board.Board) int {
 		for j, file := range colorPawns {
 			switch j {
 			case 0:
+				// If pawn(s) are in the A file and no friendly pawns are in the B file
 				if file > 0 && colorPawns[1] == 0 {
 					eval += delta[i]
 				}
