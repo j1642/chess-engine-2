@@ -291,11 +291,11 @@ func isValidMove(from, to int, pieceType string, cb *board.Board) bool {
 			return false
 		}
 	case "r":
-		if toBB&calculateRookMoves(from, cb) == 0 {
+		if toBB&lookupRookMoves(from, cb) == 0 {
 			return false
 		}
 	case "q":
-		if toBB&(calculateRookMoves(from, cb)|getBishopMoves(from, cb)) == 0 {
+		if toBB&(lookupRookMoves(from, cb)|getBishopMoves(from, cb)) == 0 {
 			return false
 		}
 	case "k":
@@ -480,8 +480,7 @@ func getBishopMoves(square int, cb *board.Board) uint64 {
 }
 
 func getQueenMoves(square int, cb *board.Board) uint64 {
-	return calculateRookMoves(square, cb) | getBishopMoves(square, cb)
-	//return lookupRookMoves(square, cb) | getBishopMoves(square, cb)
+	return lookupRookMoves(square, cb) | getBishopMoves(square, cb)
 }
 
 // Return legal king moves.
@@ -534,7 +533,7 @@ func GetAttackedSquares(cb *board.Board) uint64 {
 	}
 	pieces = read1Bits(cb.Rooks[cb.WToMove])
 	for _, square := range pieces {
-		attackSquares |= calculateRookMoves(square, cb)
+		attackSquares |= lookupRookMoves(square, cb)
 	}
 	pieces = read1Bits(cb.Queens[cb.WToMove])
 	for _, square := range pieces {
@@ -580,7 +579,7 @@ func GetAllMoves(cb *board.Board) []board.Move {
 		cb.Bishops[cb.WToMove], cb.Rooks[cb.WToMove], cb.Queens[cb.WToMove],
 	}
 	moveFuncs := []moveGenFunc{getPawnMoves, getKnightMoves, getBishopMoves,
-		calculateRookMoves, getQueenMoves,
+		lookupRookMoves, getQueenMoves,
 	}
 	symbols := []string{"p", "n", "b", "r", "q"}
 
@@ -616,7 +615,7 @@ func getCheckingSquares(cb *board.Board) (uint64, int) {
 	knightAttackers := cb.NAttacks[kSquare] & cb.Knights[opponent]
 	bqAttackers := getBishopMoves(kSquare, cb) & (cb.Bishops[opponent] |
 		cb.Queens[opponent])
-	orthogAttackers := calculateRookMoves(cb.KingSqs[cb.WToMove], cb) &
+	orthogAttackers := lookupRookMoves(cb.KingSqs[cb.WToMove], cb) &
 		(cb.Rooks[opponent] | cb.Queens[opponent])
 
 		// TODO: Remove king check?
