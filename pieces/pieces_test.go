@@ -416,11 +416,11 @@ type allMovesTestCase struct {
 
 func runGetAllMovesTests(t *testing.T, tests []allMovesTestCase) {
 	for _, tt := range tests {
-		//fmt.Printf("expected: %v\n", tt.expected)
-		//fmt.Printf("actual: %v\n", tt.actual)
 		if len(tt.expected) != len(tt.actual) {
-			t.Errorf("wrong length: want=%d, got=%d",
-				len(tt.expected), len(tt.actual))
+			t.Logf("expected: %v\n", tt.expected)
+			t.Logf("actual: %v\n", tt.actual)
+			t.Errorf("wrong length: want=%d (%v), got=%d (%v)",
+				len(tt.expected), tt.expected, len(tt.actual), tt.actual)
 		}
 		for i, move := range tt.expected {
 			if move != tt.actual[i] {
