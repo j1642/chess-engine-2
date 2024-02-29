@@ -90,7 +90,7 @@ func runEvalTests(t *testing.T, tests []evalTestCase) {
 	for _, tt := range tests {
 		actual := evaluate(tt.cb)
 		if tt.expected != actual {
-			t.Errorf("pawnEval: want=%d, got=%d", tt.expected, actual)
+			t.Errorf("eval: want=%d, got=%d", tt.expected, actual)
 		}
 	}
 }
