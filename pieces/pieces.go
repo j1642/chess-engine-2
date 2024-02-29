@@ -68,6 +68,14 @@ var bishopMagics = [64]uint64{
 	0xa90240000006404, 0x500d082244010008, 0x28190d00040014e0, 0x825201600c082444,
 }
 
+var rookAttackBBs [64][4096]uint64 = buildRookMagicBB()
+var rookRelevantOccs [64]uint64
+var rookOneBitCounts [64]int
+
+var bishopAttackBBs [64][4096]uint64
+var bishopRelevantOccs [64]uint64
+var bishopOneBitCounts [64]int
+
 func MovePiece(move board.Move, cb *board.Board) {
 	// TODO: Refactor to remove switch. Maybe make a parent array board.Occupied
 	fromBB := uint64(1 << move.From)
@@ -319,6 +327,110 @@ func calculateRookMoves(square int, cb *board.Board) uint64 {
 	moves ^= cb.SlidingAttacks[6][blockerSq]
 
 	return moves
+}
+
+func lookupRookMoves(square int, cb *board.Board) uint64 {
+	occupied := cb.Pieces[0] | cb.Pieces[1]
+	masked_blockers := rookRelevantOccs[square] & occupied
+	idx := (masked_blockers * rookMagics[square]) >> (64 - rookOneBitCounts[square])
+	// Prevent attacking same-color pieces on the board edges
+	if square == 3 {
+		fmt.Println("idx, mskd block:", idx, masked_blockers, read1Bits(masked_blockers))
+		fmt.Println("returned attacks:", read1Bits(rookAttackBBs[square][idx]))
+		fmt.Println("attacks - collisions:", read1Bits(rookAttackBBs[square][idx] & ^cb.Pieces[cb.WToMove]))
+	}
+	return rookAttackBBs[square][idx] & ^cb.Pieces[cb.WToMove]
+}
+
+func buildRookMagicBB() [64][4096]uint64 {
+	// WIP rook pre-calculated magic bitboard attacks
+	var rookAttackBBs [64][4096]uint64
+	cb, err := board.FromFen("8/8/8/8/8/8/8/8 w - 0 1")
+	if err != nil {
+		panic(err)
+	}
+	rank_1 := uint64(0xff)
+	rank_8 := uint64(0xff << 56)
+	file_a := uint64(0x101010101010101)
+	file_h := uint64(0x8080808080808080)
+
+	for square := 0; square < 64; square++ {
+		square_bb := uint64(1 << square)
+		cb.Pieces[0] = 0
+		empty_board_attack_bb := calculateRookMoves(square, cb)
+		/*
+		   if square == 20 {
+		       fmt.Println("x")
+		       cb.Print()
+		       fmt.Println("****rook moves bb raw:", pieces.Read1Bits(empty_board_attack_bb))
+		       fmt.Println("piecesBB:", cb.Pieces[0] | cb.Pieces[1])
+		       fmt.Println("piecesBB:", pieces.Read1Bits(cb.Pieces[0] | cb.Pieces[1]))
+		   }
+		*/
+		for _, line := range [4]uint64{rank_1, rank_8, file_a, file_h} {
+			// if square not in the rank/file
+			if square_bb|line != line {
+				empty_board_attack_bb &= ^line
+			}
+		}
+		count_1_bits := bits.OnesCount64(empty_board_attack_bb)
+
+		rookRelevantOccs[square] = empty_board_attack_bb
+		rookOneBitCounts[square] = count_1_bits
+
+		possible_occupancies_count := 1 << bits.OnesCount64(empty_board_attack_bb) //(2**...)
+		permutations := make([]uint64, possible_occupancies_count)
+		blockers := uint64(0)
+		perm_idx := 0
+
+		for {
+			permutations[perm_idx] = blockers
+			perm_idx++
+			blockers = (blockers - empty_board_attack_bb) & empty_board_attack_bb
+			if blockers == 0 {
+				break
+			}
+		}
+		if perm_idx != possible_occupancies_count {
+			fmt.Println("perm_idx != possible occupancies (", perm_idx, "!=", possible_occupancies_count, ")")
+			panic("some occupancies were not calculated")
+		}
+
+		for _, occupancy := range permutations {
+			cb.Pieces[0] = occupancy
+			masked := occupancy & empty_board_attack_bb
+
+			for _, line := range [4]uint64{rank_1, rank_8, file_a, file_h} {
+				// if square not in the rank/file
+				if square_bb|line != line {
+					masked &= ^line
+				}
+			}
+			idx := (masked * rookMagics[square]) >> (64 - count_1_bits)
+			/*
+			   if square == 20 && masked == 4521260803690496 {
+			       fmt.Println("sq 20, idx =", idx)
+			       fmt.Println("masked:", masked)
+			       fmt.Println("1bits:", count_1_bits)
+			       fmt.Println("square:", square)
+			       fmt.Println("rookMagics[square]:", rookMagics[square])
+			       fmt.Println("empty_board_attacks:", pieces.Read1Bits(empty_board_attack_bb))
+			       fmt.Println("x")
+			   }
+			*/
+			rookAttackBBs[square][idx] = calculateRookMoves(square, cb)
+			if square == 3 && idx == 1893 {
+				fmt.Println("inserting into sq3, 1893:", read1Bits(rookAttackBBs[square][idx]))
+			}
+			//sq, mskd block: 3 [1 2 4 5 6 11 51]
+			if square == 3 && masked == 2251799813687414 {
+				fmt.Println("idx, sq3 attacks:", idx, read1Bits(rookAttackBBs[square][idx]))
+			}
+		}
+		cb.Pieces[0] = 0
+	}
+
+	return rookAttackBBs
 }
 
 func getPawnMoves(square int, cb *board.Board) uint64 {
@@ -617,6 +729,8 @@ func read1Bits(bb uint64) []int {
 	}
 	return squares
 }
+
+var Read1Bits = read1Bits
 
 func Read1BitsPawns(bb uint64) []int {
 	squares := make([]int, 0, 8)
