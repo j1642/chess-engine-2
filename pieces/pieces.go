@@ -72,7 +72,7 @@ var rookAttackBBs [64][4096]uint64 = buildRookMagicBB()
 var rookRelevantOccs [64]uint64
 var rookOneBitCounts [64]int
 
-var bishopAttackBBs [64][4096]uint64
+var bishopAttackBBs [64][512]uint64 = buildBishopMagicBB()
 var bishopRelevantOccs [64]uint64
 var bishopOneBitCounts [64]int
 
@@ -435,8 +435,81 @@ func calculateBishopMoves(square int, cb *board.Board) uint64 {
 	return moves
 }
 
+func lookupBishopMoves(square int, cb *board.Board) uint64 {
+	occupied := cb.Pieces[0] | cb.Pieces[1]
+	masked_blockers := bishopRelevantOccs[square] & occupied
+	idx := (masked_blockers * bishopMagics[square]) >> (64 - bishopOneBitCounts[square])
+	// Do not exclude piece protection (no `& ^cb.Pieces[cb.WToMove]`)
+	return bishopAttackBBs[square][idx]
+}
+
+func buildBishopMagicBB() [64][512]uint64 {
+	// WIP bishop pre-calculated magic bitboard attacks
+	var bishopAttackBBs [64][512]uint64
+	cb, err := board.FromFen("8/8/8/8/8/8/8/8 w - 0 1")
+	if err != nil {
+		panic(err)
+	}
+	rank_1 := uint64(0xff)
+	rank_8 := uint64(0xff << 56)
+	file_a := uint64(0x101010101010101)
+	file_h := uint64(0x8080808080808080)
+
+	for square := 0; square < 64; square++ {
+		square_bb := uint64(1 << square)
+		cb.Pieces[0] = 0
+		empty_board_attack_bb := calculateBishopMoves(square, cb)
+		for _, line := range [4]uint64{rank_1, rank_8, file_a, file_h} {
+			// if square not in the rank/file
+			if square_bb|line != line {
+				empty_board_attack_bb &= ^line
+			}
+		}
+		count_1_bits := bits.OnesCount64(empty_board_attack_bb)
+
+		bishopRelevantOccs[square] = empty_board_attack_bb
+		bishopOneBitCounts[square] = count_1_bits
+
+		possible_occupancies_count := 1 << bits.OnesCount64(empty_board_attack_bb) //(2**...)
+		permutations := make([]uint64, possible_occupancies_count)
+		blockers := uint64(0)
+		perm_idx := 0
+
+		for {
+			permutations[perm_idx] = blockers
+			perm_idx++
+			blockers = (blockers - empty_board_attack_bb) & empty_board_attack_bb
+			if blockers == 0 {
+				break
+			}
+		}
+		if perm_idx != possible_occupancies_count {
+			fmt.Println("perm_idx != possible occupancies (", perm_idx, "!=", possible_occupancies_count, ")")
+			panic("some occupancies were not calculated")
+		}
+
+		for _, occupancy := range permutations {
+			cb.Pieces[0] = occupancy
+			masked := occupancy & empty_board_attack_bb
+
+			for _, line := range [4]uint64{rank_1, rank_8, file_a, file_h} {
+				// if square not in the rank/file
+				if square_bb|line != line {
+					masked &= ^line
+				}
+			}
+			idx := (masked * bishopMagics[square]) >> (64 - count_1_bits)
+			bishopAttackBBs[square][idx] = calculateBishopMoves(square, cb)
+		}
+		cb.Pieces[0] = 0
+	}
+
+	return bishopAttackBBs
+}
+
 func getQueenMoves(square int, cb *board.Board) uint64 {
-	return lookupRookMoves(square, cb) | getBishopMoves(square, cb)
+	return lookupRookMoves(square, cb) | calculateBishopMoves(square, cb)
+	//return lookupRookMoves(square, cb) | lookupBishopMoves(square, cb)
 }
 
 // Return legal king moves.
