@@ -351,13 +351,8 @@ func lookupRookMoves(square int, cb *board.Board) uint64 {
 	occupied := cb.Pieces[0] | cb.Pieces[1]
 	masked_blockers := rookRelevantOccs[square] & occupied
 	idx := (masked_blockers * rookMagics[square]) >> (64 - rookOneBitCounts[square])
-	// Prevent attacking same-color pieces on the board edges
-	if square == 3 {
-		fmt.Println("idx, mskd block:", idx, masked_blockers, read1Bits(masked_blockers))
-		fmt.Println("returned attacks:", read1Bits(rookAttackBBs[square][idx]))
-		fmt.Println("attacks - collisions:", read1Bits(rookAttackBBs[square][idx] & ^cb.Pieces[cb.WToMove]))
-	}
-	return rookAttackBBs[square][idx] & ^cb.Pieces[cb.WToMove]
+	// Do not exclude piece protection (no `& ^cb.Pieces[cb.WToMove]`)
+	return rookAttackBBs[square][idx]
 }
 
 func buildRookMagicBB() [64][4096]uint64 {
@@ -376,15 +371,6 @@ func buildRookMagicBB() [64][4096]uint64 {
 		square_bb := uint64(1 << square)
 		cb.Pieces[0] = 0
 		empty_board_attack_bb := calculateRookMoves(square, cb)
-		/*
-		   if square == 20 {
-		       fmt.Println("x")
-		       cb.Print()
-		       fmt.Println("****rook moves bb raw:", pieces.Read1Bits(empty_board_attack_bb))
-		       fmt.Println("piecesBB:", cb.Pieces[0] | cb.Pieces[1])
-		       fmt.Println("piecesBB:", pieces.Read1Bits(cb.Pieces[0] | cb.Pieces[1]))
-		   }
-		*/
 		for _, line := range [4]uint64{rank_1, rank_8, file_a, file_h} {
 			// if square not in the rank/file
 			if square_bb|line != line {
@@ -425,25 +411,7 @@ func buildRookMagicBB() [64][4096]uint64 {
 				}
 			}
 			idx := (masked * rookMagics[square]) >> (64 - count_1_bits)
-			/*
-			   if square == 20 && masked == 4521260803690496 {
-			       fmt.Println("sq 20, idx =", idx)
-			       fmt.Println("masked:", masked)
-			       fmt.Println("1bits:", count_1_bits)
-			       fmt.Println("square:", square)
-			       fmt.Println("rookMagics[square]:", rookMagics[square])
-			       fmt.Println("empty_board_attacks:", pieces.Read1Bits(empty_board_attack_bb))
-			       fmt.Println("x")
-			   }
-			*/
 			rookAttackBBs[square][idx] = calculateRookMoves(square, cb)
-			if square == 3 && idx == 1893 {
-				fmt.Println("inserting into sq3, 1893:", read1Bits(rookAttackBBs[square][idx]))
-			}
-			//sq, mskd block: 3 [1 2 4 5 6 11 51]
-			if square == 3 && masked == 2251799813687414 {
-				fmt.Println("idx, sq3 attacks:", idx, read1Bits(rookAttackBBs[square][idx]))
-			}
 		}
 		cb.Pieces[0] = 0
 	}

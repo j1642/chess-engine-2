@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"strings"
 	"testing"
-	_ "time"
 )
 
 type moveTestCase struct {
@@ -748,6 +747,36 @@ func runPerftTests(t *testing.T, tests []perftTestCase) {
 		if tt.expected != tt.actual {
 			t.Errorf("%s(%d): want=%d, got=%d",
 				tt.name, tt.depth, tt.expected, tt.actual)
+		}
+	}
+}
+
+type slidingMovesLookupTestCase struct {
+	calcFunc      func(uint64, *board.Board) uint64
+	lookupFunc    func(uint64, *board.Board) uint64
+	piece_squares []int
+}
+
+func TestSlidingPiecesMovesLookup(t *testing.T) {
+	// Compare all piece's calculated moves with lookup, magic bitboard moves
+	// lookupRookMoves() depends on *board.Board.WToMove accuracy
+	kiwipete, err := board.FromFen("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1")
+	if err != nil {
+		t.Error(err)
+	}
+	rooks := kiwipete.Rooks[0] | kiwipete.Rooks[1]
+	rook_squares := read1Bits(rooks)
+
+	for _, square := range rook_squares {
+		kiwipete.WToMove = 1
+		if (1<<square)&kiwipete.Pieces[0] != 0 {
+			kiwipete.WToMove = 0
+		}
+		calcMoves := calculateRookMoves(square, kiwipete)
+		lookupMoves := lookupRookMoves(square, kiwipete)
+		if calcMoves != lookupMoves {
+			t.Errorf("for a rook on sq %d, calculated moves != magic BB moves, calc=%v, lookup=%v",
+				square, read1Bits(calcMoves), read1Bits(lookupMoves))
 		}
 	}
 }
