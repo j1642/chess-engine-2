@@ -102,16 +102,16 @@ func TestBishopMoves(t *testing.T) {
 	tests := []moveTestCase{
 		{
 			expected: uint64(1 << 9),
-			actual:   getBishopMoves(0, cb),
+			actual:   calculateBishopMoves(0, cb),
 		},
 		{
 			expected: uint64(1 + 1<<16 + 1<<2 + 1<<18 + 1<<27 + 1<<36 + 1<<45 + 1<<54),
-			actual:   getBishopMoves(9, cb),
+			actual:   calculateBishopMoves(9, cb),
 		},
 		{
 			expected: uint64(1<<10 + 1<<19 + 1<<37 + 1<<46 + 1<<55 +
 				1<<14 + 1<<21 + 1<<35 + 1<<42 + 1<<49),
-			actual: getBishopMoves(28, cb),
+			actual: calculateBishopMoves(28, cb),
 		},
 	}
 
@@ -306,9 +306,9 @@ func TestGetAttackedSquare(t *testing.T) {
 	cb := board.New()
 
 	expected := uint64(0xFFFF00) + 1<<1 + 1<<2 + 1<<3 + 1<<4 + 1<<5 + 1<<6
-	if GetAttackedSquares(cb) != expected {
-		t.Errorf("attacked/defender squares: want=%v, got=%v",
-			read1Bits(expected), read1Bits(GetAttackedSquares(cb)))
+	if getAttackedSquares(cb) != expected {
+		t.Errorf("attacked/defended squares: want=%v, got=%v",
+			read1Bits(expected), read1Bits(getAttackedSquares(cb)))
 	}
 }
 
@@ -379,7 +379,7 @@ func TestGetKingMoves(t *testing.T) {
 	}
 	cb1.Pieces[cb1.WToMove] ^= uint64(1 << cb1.KingSqs[cb1.WToMove])
 	cb1.WToMove ^= 1
-	attkSquares := GetAttackedSquares(cb1)
+	attkSquares := getAttackedSquares(cb1)
 	cb1.WToMove ^= 1
 	cb1.Pieces[cb1.WToMove] ^= uint64(1 << cb1.KingSqs[cb1.WToMove])
 
@@ -397,7 +397,7 @@ func TestGetKingMoves(t *testing.T) {
 	}
 	cb2.Pieces[cb2.WToMove] ^= uint64(1 << cb2.KingSqs[cb2.WToMove])
 	cb2.WToMove ^= 1
-	attkSquares = GetAttackedSquares(cb2)
+	attkSquares = getAttackedSquares(cb2)
 	cb2.WToMove ^= 1
 	cb2.Pieces[cb2.WToMove] ^= uint64(1 << cb2.KingSqs[cb2.WToMove])
 
@@ -663,7 +663,7 @@ func perft(depth int, cb *board.Board) int {
 		if toFrom.Piece == "k" {
 			attackedSquares = uint64(0)
 		} else {
-			attackedSquares = GetAttackedSquares(cb)
+			attackedSquares = getAttackedSquares(cb)
 		}
 		if cb.Kings[1^cb.WToMove]&attackedSquares == 0 {
 			nodes += perft(depth-1, cb)
@@ -686,7 +686,7 @@ func divide(depth int, cb *board.Board, ranksFiles ...[]string) {
 	for _, fromTo := range moves {
 		nodes := 0
 		MovePiece(fromTo, cb)
-		attackedSquares := GetAttackedSquares(cb)
+		attackedSquares := getAttackedSquares(cb)
 		if cb.Kings[1^cb.WToMove]&attackedSquares == 0 {
 			nodes += perft(depth-1, cb)
 		}

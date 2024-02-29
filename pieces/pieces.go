@@ -237,32 +237,6 @@ func getUserInput() string {
 	return strings.ToLower(scanner.Text())
 }
 
-// Return the piece type on a given square, or "" if the square is empty.
-// Only works for pieces of the moving side, cb.WToMove.
-func getPieceType(square int, cb *board.Board) (string, error) {
-	if square < 0 || square > 63 {
-		return "", fmt.Errorf("square %d does not exist", square)
-	}
-	squareBB := uint64(1 << square)
-
-	switch {
-	case squareBB&cb.Pawns[cb.WToMove] != 0:
-		return "p", nil
-	case squareBB&cb.Knights[cb.WToMove] != 0:
-		return "n", nil
-	case squareBB&cb.Bishops[cb.WToMove] != 0:
-		return "b", nil
-	case squareBB&cb.Rooks[cb.WToMove] != 0:
-		return "r", nil
-	case squareBB&cb.Queens[cb.WToMove] != 0:
-		return "q", nil
-	case squareBB&cb.Kings[cb.WToMove] != 0:
-		return "k", nil
-	default:
-		return "", nil
-	}
-}
-
 // Use for user-submitted moves only?
 // Checks for blocking pieces and disallows captures of friendly pieces.
 // Does not consider check, pins, or legality of a pawn movement direction.
@@ -287,7 +261,7 @@ func isValidMove(from, to int, pieceType string, cb *board.Board) bool {
 			return false
 		}
 	case "b":
-		if toBB&getBishopMoves(from, cb) == 0 {
+		if toBB&calculateBishopMoves(from, cb) == 0 {
 			return false
 		}
 	case "r":
@@ -295,13 +269,13 @@ func isValidMove(from, to int, pieceType string, cb *board.Board) bool {
 			return false
 		}
 	case "q":
-		if toBB&(lookupRookMoves(from, cb)|getBishopMoves(from, cb)) == 0 {
+		if toBB&(lookupRookMoves(from, cb)|calculateBishopMoves(from, cb)) == 0 {
 			return false
 		}
 	case "k":
 		cb.Pieces[cb.WToMove] ^= uint64(1 << cb.KingSqs[cb.WToMove])
 		cb.WToMove ^= 1
-		attkSquares := GetAttackedSquares(cb)
+		attkSquares := getAttackedSquares(cb)
 		cb.WToMove ^= 1
 		cb.Pieces[cb.WToMove] ^= uint64(1 << cb.KingSqs[cb.WToMove])
 		if toBB&getKingMoves(from, attkSquares, cb) == 0 {
@@ -453,7 +427,7 @@ func getKnightMoves(square int, cb *board.Board) uint64 {
 	return cb.NAttacks[square]
 }
 
-func getBishopMoves(square int, cb *board.Board) uint64 {
+func calculateBishopMoves(square int, cb *board.Board) uint64 {
 	occupied := cb.Pieces[0] | cb.Pieces[1]
 	// Northeast
 	moves := cb.SlidingAttacks[1][square]
@@ -512,7 +486,7 @@ func getKingMoves(square int, oppAttackedSquares uint64, cb *board.Board) uint64
 }
 
 // Return the set of squares attacked by color cb.WToMove
-func GetAttackedSquares(cb *board.Board) uint64 {
+func getAttackedSquares(cb *board.Board) uint64 {
 	// TODO: Is there a way to avoid reading 1 bits when accumulating moves?
 	var pieces []int
 	attackSquares := uint64(0)
@@ -529,7 +503,7 @@ func GetAttackedSquares(cb *board.Board) uint64 {
 	}
 	pieces = read1Bits(cb.Bishops[cb.WToMove])
 	for _, square := range pieces {
-		attackSquares |= getBishopMoves(square, cb)
+		attackSquares |= calculateBishopMoves(square, cb)
 	}
 	pieces = read1Bits(cb.Rooks[cb.WToMove])
 	for _, square := range pieces {
@@ -553,7 +527,8 @@ func GetAllMoves(cb *board.Board) []board.Move {
 	// are strictly legal)
 	cb.Pieces[cb.WToMove] ^= uint64(1 << cb.KingSqs[cb.WToMove])
 	cb.WToMove ^= 1
-	attackedSquares := GetAttackedSquares(cb)
+    // TODO: could inline getAttackedSquares() here to prevent 2x calls to read1Bits()
+	attackedSquares := getAttackedSquares(cb)
 	cb.WToMove ^= 1
 	cb.Pieces[cb.WToMove] ^= uint64(1 << cb.KingSqs[cb.WToMove])
 
@@ -578,7 +553,7 @@ func GetAllMoves(cb *board.Board) []board.Move {
 	pieces := []uint64{cb.Pawns[cb.WToMove], cb.Knights[cb.WToMove],
 		cb.Bishops[cb.WToMove], cb.Rooks[cb.WToMove], cb.Queens[cb.WToMove],
 	}
-	moveFuncs := []moveGenFunc{getPawnMoves, getKnightMoves, getBishopMoves,
+	moveFuncs := []moveGenFunc{getPawnMoves, getKnightMoves, calculateBishopMoves,
 		lookupRookMoves, getQueenMoves,
 	}
 	symbols := []string{"p", "n", "b", "r", "q"}
@@ -613,7 +588,7 @@ func getCheckingSquares(cb *board.Board) (uint64, int) {
 	kSquare := cb.KingSqs[cb.WToMove]
 	pAttackers := cb.PAttacks[cb.WToMove][kSquare] & cb.Pawns[opponent]
 	knightAttackers := cb.NAttacks[kSquare] & cb.Knights[opponent]
-	bqAttackers := getBishopMoves(kSquare, cb) & (cb.Bishops[opponent] |
+	bqAttackers := calculateBishopMoves(kSquare, cb) & (cb.Bishops[opponent] |
 		cb.Queens[opponent])
 	orthogAttackers := lookupRookMoves(cb.KingSqs[cb.WToMove], cb) &
 		(cb.Rooks[opponent] | cb.Queens[opponent])
