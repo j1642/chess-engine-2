@@ -82,16 +82,16 @@ func TestRookMoves(t *testing.T) {
 	tests := []moveTestCase{
 		{
 			expected: uint64(1<<1 + 1<<8),
-			actual:   getRookMoves(0, cb),
+			actual:   calculateRookMoves(0, cb),
 		},
 		{
 			expected: uint64(1<<62 + 1<<55),
-			actual:   getRookMoves(63, cb),
+			actual:   calculateRookMoves(63, cb),
 		},
 		{
 			expected: uint64(1<<24) - 1 - (1<<16 - 1) - 1<<20 +
 				1<<12 + 1<<28 + 1<<36 + 1<<44 + 1<<52,
-			actual: getRookMoves(20, cb),
+			actual: calculateRookMoves(20, cb),
 		},
 	}
 

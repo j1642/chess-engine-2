@@ -265,11 +265,11 @@ func isValidMove(from, to int, pieceType string, cb *board.Board) bool {
 			return false
 		}
 	case "r":
-		if toBB&getRookMoves(from, cb) == 0 {
+		if toBB&calculateRookMoves(from, cb) == 0 {
 			return false
 		}
 	case "q":
-		if toBB&(getRookMoves(from, cb)|getBishopMoves(from, cb)) == 0 {
+		if toBB&(calculateRookMoves(from, cb)|getBishopMoves(from, cb)) == 0 {
 			return false
 		}
 	case "k":
@@ -295,7 +295,7 @@ func isValidMove(from, to int, pieceType string, cb *board.Board) bool {
 }
 
 // Captures and protection are included in move gen.
-func getRookMoves(square int, cb *board.Board) uint64 {
+func calculateRookMoves(square int, cb *board.Board) uint64 {
 	occupied := cb.Pieces[0] | cb.Pieces[1]
 	// North
 	moves := cb.SlidingAttacks[0][square]
@@ -382,7 +382,8 @@ func getBishopMoves(square int, cb *board.Board) uint64 {
 }
 
 func getQueenMoves(square int, cb *board.Board) uint64 {
-	return getRookMoves(square, cb) | getBishopMoves(square, cb)
+	return calculateRookMoves(square, cb) | getBishopMoves(square, cb)
+	//return lookupRookMoves(square, cb) | getBishopMoves(square, cb)
 }
 
 // Return legal king moves.
@@ -435,7 +436,7 @@ func GetAttackedSquares(cb *board.Board) uint64 {
 	}
 	pieces = read1Bits(cb.Rooks[cb.WToMove])
 	for _, square := range pieces {
-		attackSquares |= getRookMoves(square, cb)
+		attackSquares |= calculateRookMoves(square, cb)
 	}
 	pieces = read1Bits(cb.Queens[cb.WToMove])
 	for _, square := range pieces {
@@ -481,7 +482,7 @@ func GetAllMoves(cb *board.Board) []board.Move {
 		cb.Bishops[cb.WToMove], cb.Rooks[cb.WToMove], cb.Queens[cb.WToMove],
 	}
 	moveFuncs := []moveGenFunc{getPawnMoves, getKnightMoves, getBishopMoves,
-		getRookMoves, getQueenMoves,
+		calculateRookMoves, getQueenMoves,
 	}
 	symbols := []string{"p", "n", "b", "r", "q"}
 
@@ -517,7 +518,7 @@ func getCheckingSquares(cb *board.Board) (uint64, int) {
 	knightAttackers := cb.NAttacks[kSquare] & cb.Knights[opponent]
 	bqAttackers := getBishopMoves(kSquare, cb) & (cb.Bishops[opponent] |
 		cb.Queens[opponent])
-	orthogAttackers := getRookMoves(cb.KingSqs[cb.WToMove], cb) &
+	orthogAttackers := calculateRookMoves(cb.KingSqs[cb.WToMove], cb) &
 		(cb.Rooks[opponent] | cb.Queens[opponent])
 
 		// TODO: Remove king check?
