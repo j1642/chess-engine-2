@@ -241,7 +241,7 @@ func TestIsValidMove(t *testing.T) {
 
 func TestMovePiece(t *testing.T) {
 	cb := board.New()
-	MovePiece(board.Move{8, 16, "p", ""}, cb)
+	MovePiece(board.Move{To: 8, From: 16, Piece: "p", PromoteTo: ""}, cb)
 
 	if cb.WToMove != 0 {
 		t.Errorf("WToMove: want=0, got=%d", cb.WToMove)
@@ -254,13 +254,13 @@ func TestMovePiece(t *testing.T) {
 		t.Errorf("wPieces: want=\n%b,\ngot=\n%b",
 			uint64(1<<17)-1-1<<8, cb.Pieces[1])
 	}
-	MovePiece(board.Move{57, 42, "n", ""}, cb)
-	MovePiece(board.Move{16, 24, "p", ""}, cb)
+	MovePiece(board.Move{From: 57, To: 42, Piece: "n", PromoteTo: ""}, cb)
+	MovePiece(board.Move{From: 16, To: 24, Piece: "p", PromoteTo: ""}, cb)
 	// Waiting move by ng8
-	MovePiece(board.Move{62, 45, "n", ""}, cb)
-	MovePiece(board.Move{24, 32, "p", ""}, cb)
+	MovePiece(board.Move{From: 62, To: 45, Piece: "n", PromoteTo: ""}, cb)
+	MovePiece(board.Move{From: 24, To: 32, Piece: "p", PromoteTo: ""}, cb)
 
-	MovePiece(board.Move{42, 32, "n", ""}, cb)
+	MovePiece(board.Move{From: 42, To: 32, Piece: "n", PromoteTo: ""}, cb)
 
 	if cb.WToMove != 1 {
 		t.Errorf("WToMove: want=1, got=%d", cb.WToMove)
@@ -319,7 +319,7 @@ func TestCastling(t *testing.T) {
 		t.Error(err)
 	}
 
-	MovePiece(board.Move{4, 2, "k", ""}, cb)
+	MovePiece(board.Move{From: 4, To: 2, Piece: "k", PromoteTo: ""}, cb)
 	if cb.Kings[1] != uint64(1<<2) {
 		t.Errorf("w king did not castle queenside. want=2, got=%v", read1Bits(cb.Kings[1]))
 	}
@@ -330,7 +330,7 @@ func TestCastling(t *testing.T) {
 		t.Errorf("w king castle rights: want=[false false], got=%v", cb.CastleRights[1])
 	}
 
-	MovePiece(board.Move{60, 62, "k", ""}, cb)
+	MovePiece(board.Move{From: 60, To: 62, Piece: "k", PromoteTo: ""}, cb)
 	if cb.Kings[0] != uint64(1<<62) {
 		t.Errorf("b king did not castle kingside. want=62, got=%v", read1Bits(cb.Kings[0]))
 	}
@@ -349,7 +349,7 @@ func TestCastlingRightsLostByRookMoveAndCapture(t *testing.T) {
 		t.Error(err)
 	}
 
-	MovePiece(board.Move{0, 56, "r", ""}, cb)
+	MovePiece(board.Move{From: 0, To: 56, Piece: "r", PromoteTo: ""}, cb)
 	if cb.Rooks[1] != uint64(1<<7+1<<56) {
 		t.Errorf("wrong rook squares: want=[7, 56], got=%v", read1Bits(cb.Rooks[1]))
 	}
@@ -360,7 +360,7 @@ func TestCastlingRightsLostByRookMoveAndCapture(t *testing.T) {
 		t.Errorf("b king castle rights: want=[false true], got=%v", cb.CastleRights[0])
 	}
 
-	MovePiece(board.Move{63, 7, "r", ""}, cb)
+	MovePiece(board.Move{From: 63, To: 7, Piece: "r", PromoteTo: ""}, cb)
 	if cb.Rooks[0] != uint64(1<<7) {
 		t.Errorf("wrong rook squares: want=7, got=%v", read1Bits(cb.Rooks[0]))
 	}
@@ -574,9 +574,14 @@ func TestGetAllMoves(t *testing.T) {
 	tests := []allMovesTestCase{
 		{
 			// One checking piece which can be captured or blocked.
-			expected: []board.Move{{6, 5, "k", ""}, {6, 7, "k", ""}, {6, 13, "k", ""},
-				{6, 15, "k", ""}, {2, 38, "b", ""}, {56, 62, "r", ""},
-				{63, 62, "r", ""}, {3, 30, "q", ""}},
+			expected: []board.Move{{From: 6, To: 5, Piece: "k", PromoteTo: ""},
+				{From: 6, To: 7, Piece: "k", PromoteTo: ""},
+				{From: 6, To: 13, Piece: "k", PromoteTo: ""},
+				{From: 6, To: 15, Piece: "k", PromoteTo: ""},
+				{From: 2, To: 38, Piece: "b", PromoteTo: ""},
+				{From: 56, To: 62, Piece: "r", PromoteTo: ""},
+				{From: 63, To: 62, Piece: "r", PromoteTo: ""},
+				{From: 3, To: 30, Piece: "q", PromoteTo: ""}},
 			actual: GetAllMoves(cb),
 		},
 	}
@@ -587,8 +592,10 @@ func TestGetAllMoves(t *testing.T) {
 	}
 	tests = append(tests, allMovesTestCase{
 		// Two checking pieces, so only the king can move.
-		expected: []board.Move{{6, 5, "k", ""}, {6, 7, "k", ""}, {6, 13, "k", ""},
-			{6, 15, "k", ""}},
+		expected: []board.Move{{From: 6, To: 5, Piece: "k", PromoteTo: ""},
+			{From: 6, To: 7, Piece: "k", PromoteTo: ""},
+			{From: 6, To: 13, Piece: "k", PromoteTo: ""},
+			{From: 6, To: 15, Piece: "k", PromoteTo: ""}},
 		actual: GetAllMoves(cb1),
 	})
 
@@ -598,7 +605,7 @@ func TestGetAllMoves(t *testing.T) {
 	}
 	tests = append(tests, allMovesTestCase{
 		// Only one move is possible: pawn blocks check.
-		expected: []board.Move{{54, 46, "p", ""}},
+		expected: []board.Move{{From: 54, To: 46, Piece: "p", PromoteTo: ""}},
 		actual:   GetAllMoves(cb2),
 	})
 
@@ -607,8 +614,10 @@ func TestGetAllMoves(t *testing.T) {
 		t.Error(err)
 	}
 	tests = append(tests, allMovesTestCase{
-		expected: []board.Move{{13, 4, "k", ""}, {13, 22, "k", ""}, {21, 30, "p", ""}},
-		actual:   GetAllMoves(cb3),
+		expected: []board.Move{{From: 13, To: 4, Piece: "k", PromoteTo: ""},
+			{From: 13, To: 22, Piece: "k", PromoteTo: ""},
+			{From: 21, To: 30, Piece: "p", PromoteTo: ""}},
+		actual: GetAllMoves(cb3),
 	})
 
 	cb4, err := board.FromFen("n1n5/PPPk4/8/8/8/4K2q/5p1p/7N w - - 2 3")
@@ -616,9 +625,13 @@ func TestGetAllMoves(t *testing.T) {
 		t.Error(err)
 	}
 	tests = append(tests, allMovesTestCase{
-		expected: []board.Move{{20, 11, "k", ""}, {20, 12, "k", ""},
-			{20, 13, "k", ""}, {20, 27, "k", ""}, {20, 28, "k", ""},
-			{20, 29, "k", ""}, {7, 22, "n", ""}},
+		expected: []board.Move{{From: 20, To: 11, Piece: "k", PromoteTo: ""},
+			{From: 20, To: 12, Piece: "k", PromoteTo: ""},
+			{From: 20, To: 13, Piece: "k", PromoteTo: ""},
+			{From: 20, To: 27, Piece: "k", PromoteTo: ""},
+			{From: 20, To: 28, Piece: "k", PromoteTo: ""},
+			{From: 20, To: 29, Piece: "k", PromoteTo: ""},
+			{From: 7, To: 22, Piece: "n", PromoteTo: ""}},
 		actual: GetAllMoves(cb4),
 	})
 
@@ -674,7 +687,7 @@ func perft(depth int, cb *board.Board) int {
 	return nodes
 }
 
-func divide(depth int, cb *board.Board, ranksFiles ...[]string) {
+func divide(depth int, cb *board.Board) {
 	ranks := []string{"1", "2", "3", "4", "5", "6", "7", "8"}
 	files := []string{"a", "b", "c", "d", "e", "f", "g", "h"}
 
