@@ -17,19 +17,6 @@ bb = bitboard, cb = chessboard
 Magic numbers 0, ..., 63 and 1<<0, ..., 1<<63 are squares of the chessboard.
 */
 
-// TODO: make reference tables (aka magic bbs)
-// 1 - attacked squares mask (excluding edges) & blocker pumutation = "masked blockers"
-// 2 - "masked blockers" * magics[attacker square] = "index mapping"
-// 3 - "index mapping" >> (64-n, n = bits in index mapping, bits.Len64()) = hash key for
-//
-//	that piece on that square with those blockers
-//
-// 4 - stored_attacks[hash key] = uint64(moves possible with those blockers)
-// attack():
-//
-//	1 - blockers = occupied & sliding_piece_attacks[square]
-//	2 - hash key = blockers magics[square] >> (64 - (WHAT IS THIS OBJ)[square])
-//	3 - return bishop_attacks[square][hash key]
 var rookMagics = [64]uint64{
 	0xa8002c000108020, 0x6c00049b0002001, 0x100200010090040, 0x2480041000800801,
 	0x280028004000800, 0x900410008040022, 0x280020001001080, 0x2880002041000080,
@@ -68,13 +55,13 @@ var bishopMagics = [64]uint64{
 	0x1000042304105, 0x10008830412a00, 0x2520081090008908, 0x40102000a0a60140,
 }
 
-var rookAttackBBs [64][4096]uint64 = buildRookMagicBB()
 var rookRelevantOccs [64]uint64
 var rookOneBitCounts [64]int
+var rookAttackBBs [64][4096]uint64 = buildRookMagicBB()
 
-var bishopAttackBBs [64][512]uint64 = buildBishopMagicBB()
 var bishopRelevantOccs [64]uint64
 var bishopOneBitCounts [64]int
+var bishopAttackBBs [64][512]uint64 = buildBishopMagicBB()
 
 func MovePiece(move board.Move, cb *board.Board) {
 	// TODO: Refactor to remove switch. Maybe make a parent array board.Occupied
@@ -243,7 +230,7 @@ func isValidMove(from, to int, pieceType string, cb *board.Board) bool {
 			return false
 		}
 	case "b":
-		if toBB&calculateBishopMoves(from, cb) == 0 {
+		if toBB&lookupBishopMoves(from, cb) == 0 {
 			return false
 		}
 	case "r":
@@ -251,7 +238,7 @@ func isValidMove(from, to int, pieceType string, cb *board.Board) bool {
 			return false
 		}
 	case "q":
-		if toBB&(lookupRookMoves(from, cb)|calculateBishopMoves(from, cb)) == 0 {
+		if toBB&(lookupRookMoves(from, cb)|lookupBishopMoves(from, cb)) == 0 {
 			return false
 		}
 	case "k":
@@ -312,7 +299,6 @@ func lookupRookMoves(square int, cb *board.Board) uint64 {
 }
 
 func buildRookMagicBB() [64][4096]uint64 {
-	// WIP rook pre-calculated magic bitboard attacks
 	var rookAttackBBs [64][4096]uint64
 	cb, err := board.FromFen("8/8/8/8/8/8/8/8 w - 0 1")
 	if err != nil {
@@ -444,7 +430,6 @@ func lookupBishopMoves(square int, cb *board.Board) uint64 {
 }
 
 func buildBishopMagicBB() [64][512]uint64 {
-	// WIP bishop pre-calculated magic bitboard attacks
 	var bishopAttackBBs [64][512]uint64
 	cb, err := board.FromFen("8/8/8/8/8/8/8/8 w - 0 1")
 	if err != nil {
@@ -508,8 +493,7 @@ func buildBishopMagicBB() [64][512]uint64 {
 }
 
 func getQueenMoves(square int, cb *board.Board) uint64 {
-	return lookupRookMoves(square, cb) | calculateBishopMoves(square, cb)
-	//return lookupRookMoves(square, cb) | lookupBishopMoves(square, cb)
+	return lookupRookMoves(square, cb) | lookupBishopMoves(square, cb)
 }
 
 // Return legal king moves.
@@ -558,7 +542,7 @@ func getAttackedSquares(cb *board.Board) uint64 {
 	}
 	pieces = read1Bits(cb.Bishops[cb.WToMove])
 	for _, square := range pieces {
-		attackSquares |= calculateBishopMoves(square, cb)
+		attackSquares |= lookupBishopMoves(square, cb)
 	}
 	pieces = read1Bits(cb.Rooks[cb.WToMove])
 	for _, square := range pieces {
@@ -608,7 +592,7 @@ func GetAllMoves(cb *board.Board) []board.Move {
 	pieces := []uint64{cb.Pawns[cb.WToMove], cb.Knights[cb.WToMove],
 		cb.Bishops[cb.WToMove], cb.Rooks[cb.WToMove], cb.Queens[cb.WToMove],
 	}
-	moveFuncs := []moveGenFunc{getPawnMoves, getKnightMoves, calculateBishopMoves,
+	moveFuncs := []moveGenFunc{getPawnMoves, getKnightMoves, lookupBishopMoves,
 		lookupRookMoves, getQueenMoves,
 	}
 	symbols := []string{"p", "n", "b", "r", "q"}
@@ -643,7 +627,7 @@ func getCheckingSquares(cb *board.Board) (uint64, int) {
 	kSquare := cb.KingSqs[cb.WToMove]
 	pAttackers := cb.PAttacks[cb.WToMove][kSquare] & cb.Pawns[opponent]
 	knightAttackers := cb.NAttacks[kSquare] & cb.Knights[opponent]
-	bqAttackers := calculateBishopMoves(kSquare, cb) & (cb.Bishops[opponent] |
+	bqAttackers := lookupBishopMoves(kSquare, cb) & (cb.Bishops[opponent] |
 		cb.Queens[opponent])
 	orthogAttackers := lookupRookMoves(cb.KingSqs[cb.WToMove], cb) &
 		(cb.Rooks[opponent] | cb.Queens[opponent])
