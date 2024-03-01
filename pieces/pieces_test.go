@@ -793,7 +793,6 @@ func TestSlidingPiecesMovesLookup(t *testing.T) {
 		}
 	}
 
-	kiwipete.Print()
 	bishops := kiwipete.Bishops[0] | kiwipete.Bishops[1]
 	bishop_squares := read1Bits(bishops)
 	for _, square := range bishop_squares {
