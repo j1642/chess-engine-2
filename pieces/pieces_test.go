@@ -777,9 +777,9 @@ func TestSlidingPiecesMovesLookup(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
+
 	rooks := kiwipete.Rooks[0] | kiwipete.Rooks[1]
 	rook_squares := read1Bits(rooks)
-
 	for _, square := range rook_squares {
 		kiwipete.WToMove = 1
 		if (1<<square)&kiwipete.Pieces[0] != 0 {
@@ -789,6 +789,22 @@ func TestSlidingPiecesMovesLookup(t *testing.T) {
 		lookupMoves := lookupRookMoves(square, kiwipete)
 		if calcMoves != lookupMoves {
 			t.Errorf("for a rook on sq %d, calculated moves != magic BB moves, calc=%v, lookup=%v",
+				square, read1Bits(calcMoves), read1Bits(lookupMoves))
+		}
+	}
+
+	kiwipete.Print()
+	bishops := kiwipete.Bishops[0] | kiwipete.Bishops[1]
+	bishop_squares := read1Bits(bishops)
+	for _, square := range bishop_squares {
+		kiwipete.WToMove = 1
+		if (1<<square)&kiwipete.Pieces[0] != 0 {
+			kiwipete.WToMove = 0
+		}
+		calcMoves := calculateBishopMoves(square, kiwipete)
+		lookupMoves := lookupBishopMoves(square, kiwipete)
+		if calcMoves != lookupMoves {
+			t.Errorf("for a bishop on sq %d, calculated moves != magic BB moves, calc=%v, lookup=%v",
 				square, read1Bits(calcMoves), read1Bits(lookupMoves))
 		}
 	}
