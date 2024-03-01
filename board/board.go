@@ -9,7 +9,7 @@ import (
 type Board struct {
 	// TODO: move occupancies into one array? Possible memory speed boost
 	// TODO: minimize int size for WToMove, KingSqs, EpSquare?
-	WToMove int // 1 or 0, true or false
+	WToMove uint // 1 or 0, true or false
 
 	Pieces  [2]uint64
 	Pawns   [2]uint64
@@ -170,25 +170,6 @@ func GetFiles() [4][8]int {
 	return [4][8]int{fileA, fileB, fileG, fileH}
 }
 
-/*
-func getFiles() [4]map[int]bool {
-    When only making knight BBs, maps are slower. Keep in case maps become
-    faster when used for more pieces.
-
-    fileA, fileB, fileG, fileH := make(map[int]bool, 8), make(map[int]bool, 8),
-        make(map[int]bool, 8), make(map[int]bool, 8)
-
-    for i := 0; i < 8; i++ {
-        fileA[i*8] = true
-        fileB[i*8+1] = true
-        fileG[i*8+6] = true
-        fileH[i*8+7] = true
-    }
-
-    return [4]map[int]bool{fileA, fileB, fileG, fileH}
-}
-*/
-
 type IntArray interface {
 	[8]int | [4]int | [3]int
 }
@@ -245,7 +226,7 @@ func makePawnBBs() [2][64]uint64 {
 
 func makeKnightBBs() [64]uint64 {
 	bbs := [64]uint64{}
-	directions := []int{}
+	var directions []int
 	files := GetFiles()
 
 	for sq := 0; sq < 64; sq++ {
@@ -261,34 +242,6 @@ func makeKnightBBs() [64]uint64 {
 		default:
 			directions = []int{17, 15, 10, -6, -17, -15, 6, -10}
 		}
-		/*
-		   190ms bin search vs 180ms linear search
-		   case binSearch(sq, files[0]):
-		       directions = []int{17, 10, -6, -15}
-		   case binSearch(sq, files[1]):
-		       directions = []int{17, 15, 10, -6, -17, -15}
-		   case binSearch(sq, files[2]):
-		       directions = []int{17, 15, -17, -15, 6, -10}
-		   case binSearch(sq, files[3]):
-		       directions = []int{15, -17, 6, -10}
-		*/
-
-		/*
-		   When only making knight BBs, maps are slower. Keep to check if maps are
-		   faster when used for more pieces.
-
-		   if  _, ok := files[0][sq]; ok {
-		       directions = []int{17, 10, -6, -15}
-		   } else if _, ok := files[1][sq]; ok {
-		       directions = []int{17, 15, 10, -6, -17, -15}
-		   } else if _, ok := files[2][sq]; ok {
-		       directions = []int{17, 15, -17, -15, 6, -10}
-		   } else if _, ok := files[3][sq]; ok {
-		       directions = []int{15, -17, 6, -10}
-		   } else {
-		       directions = []int{17, 15, 10, -6, -17, -15, 6, -10}
-		   }
-		*/
 
 		for _, d := range directions {
 			if sq+d < 0 || sq+d > 63 {
@@ -303,7 +256,7 @@ func makeKnightBBs() [64]uint64 {
 
 func makeKingBBs() [64]uint64 {
 	bbs := [64]uint64{}
-	directions := []int{}
+	var directions []int
 	files := GetFiles()
 
 	for sq := 0; sq < 64; sq++ {
@@ -363,7 +316,7 @@ func makeSlidingAttackBBs() [8][64]uint64 {
 }
 
 type Position struct {
-	WToMove int
+	WToMove uint
 
 	Pieces  [2]uint64
 	Pawns   [2]uint64
