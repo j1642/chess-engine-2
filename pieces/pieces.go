@@ -564,12 +564,12 @@ type readBitsFunc func(uint64) []int
 func GetAllMoves(cb *board.Board) []board.Move {
 	// Return slice of all pseudo-legal moves for color cb.WToMove (king moves
 	// are strictly legal)
-	cb.Pieces[cb.WToMove] ^= uint64(1 << cb.KingSqs[cb.WToMove])
+	cb.Pieces[cb.WToMove] ^= 1 << cb.KingSqs[cb.WToMove]
 	cb.WToMove ^= 1
 	// TODO: could inline getAttackedSquares() here to prevent 2x calls to read1Bits()
 	attackedSquares := getAttackedSquares(cb)
 	cb.WToMove ^= 1
-	cb.Pieces[cb.WToMove] ^= uint64(1 << cb.KingSqs[cb.WToMove])
+	cb.Pieces[cb.WToMove] ^= 1 << cb.KingSqs[cb.WToMove]
 
 	var capturesBlks uint64
 	var attackerCount int
@@ -589,27 +589,28 @@ func GetAllMoves(cb *board.Board) []board.Move {
 		return allMoves
 	}
 
-	pieces := []uint64{cb.Pawns[cb.WToMove], cb.Knights[cb.WToMove],
+	pieces := [5]uint64{cb.Pawns[cb.WToMove], cb.Knights[cb.WToMove],
 		cb.Bishops[cb.WToMove], cb.Rooks[cb.WToMove], cb.Queens[cb.WToMove],
 	}
-	moveFuncs := []moveGenFunc{getPawnMoves, getKnightMoves, lookupBishopMoves,
+	moveFuncs := [5]moveGenFunc{getPawnMoves, getKnightMoves, lookupBishopMoves,
 		lookupRookMoves, getQueenMoves,
 	}
-	symbols := []string{"p", "n", "b", "r", "q"}
+	symbols := [5]string{"p", "n", "b", "r", "q"}
 
 	// 29% perft() speed up and -40% malloc from having this loop in this function
 	for i, piece := range pieces {
 		for _, fromSq := range read1Bits(piece) {
 			moves := read1Bits(moveFuncs[i](fromSq, cb) & ^cb.Pieces[cb.WToMove])
 			for _, toSq := range moves {
-				if i == 0 && (toSq < 8 || toSq > 55) &&
-					(capturesBlks == 0 || uint64(1<<toSq)&capturesBlks != 0) {
-					allMoves = append(allMoves, board.Move{From: fromSq, To: toSq, Piece: "p", PromoteTo: "n"})
-					allMoves = append(allMoves, board.Move{From: fromSq, To: toSq, Piece: "p", PromoteTo: "b"})
-					allMoves = append(allMoves, board.Move{From: fromSq, To: toSq, Piece: "p", PromoteTo: "r"})
-					allMoves = append(allMoves, board.Move{From: fromSq, To: toSq, Piece: "p", PromoteTo: "q"})
-				} else if capturesBlks == 0 || uint64(1<<toSq)&capturesBlks != 0 {
-					allMoves = append(allMoves, board.Move{From: fromSq, To: toSq, Piece: symbols[i], PromoteTo: ""})
+				if capturesBlks == 0 || uint64(1<<toSq)&capturesBlks != 0 {
+					if i != 0 || (7 < toSq && toSq < 56) {
+						allMoves = append(allMoves, board.Move{From: fromSq, To: toSq, Piece: symbols[i], PromoteTo: ""})
+					} else {
+						allMoves = append(allMoves, board.Move{From: fromSq, To: toSq, Piece: "p", PromoteTo: "n"})
+						allMoves = append(allMoves, board.Move{From: fromSq, To: toSq, Piece: "p", PromoteTo: "b"})
+						allMoves = append(allMoves, board.Move{From: fromSq, To: toSq, Piece: "p", PromoteTo: "r"})
+						allMoves = append(allMoves, board.Move{From: fromSq, To: toSq, Piece: "p", PromoteTo: "q"})
+					}
 				}
 			}
 		}
