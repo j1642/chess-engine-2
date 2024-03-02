@@ -8,8 +8,8 @@ import (
 
 type Board struct {
 	// TODO: move occupancies into one array? Possible memory speed boost
-	// TODO: minimize int size for WToMove, KingSqs, EpSquare?
-	WToMove uint // 1 or 0, true or false
+	// White to move. 1=true, 0=false. Use uint because bools cannot be xor'd
+	WToMove uint
 
 	Pieces  [2]uint64
 	Pawns   [2]uint64
@@ -62,8 +62,8 @@ func New() *Board {
 	}
 }
 
+// Build a Board object from a Forsyth-Edwards notation (FEN) string
 func FromFen(fen string) (*Board, error) {
-	// Build a Board from Forsyth-Edwards notation (FEN).
 	/*
 	   TODO: What is a good design for changing board.Board fields based on piece type?
 	   Separate functions seem cluttered,
@@ -174,6 +174,7 @@ type IntArray interface {
 	[8]int | [4]int | [3]int
 }
 
+// Linear search for small arrays
 func ContainsN[T IntArray](n int, nums T) bool {
 	for i := 0; i < len(nums); i++ {
 		if n == nums[i] {
@@ -288,7 +289,7 @@ func makeSlidingAttackBBs() [8][64]uint64 {
 	fileAForbidden := [3]int{-9, -1, 7}
 	fileHForbidden := [3]int{9, 1, -7}
 
-	// Movement directions are ordered clockwise.
+	// Movement directions are ordered clockwise, starting from north
 	for i, dir := range [8]int{8, 9, 1, -7, -8, -9, -1, 7} {
 		for sq := 0; sq < 64; sq++ {
 			if ContainsN(sq, files[0]) && ContainsN(dir, fileAForbidden) {
@@ -411,28 +412,4 @@ func (cb *Board) Print() {
 		}
 	}
 	fmt.Println(squares[7])
-}
-
-func Print1Bits(bb uint64) {
-	squares := [64]int{}
-	for bb > 0 {
-		squares[bits.TrailingZeros64(bb)] = 1
-		bb &= bb - 1
-	}
-	for i := 56; i != 7; i++ {
-		if squares[i] == 0 {
-			fmt.Print("- ")
-		} else {
-			fmt.Print("1 ")
-		}
-		if i%8 == 7 {
-			i -= 16
-			fmt.Println()
-		}
-	}
-	if squares[7] == 1 {
-		fmt.Println("1")
-	} else {
-		fmt.Println("-")
-	}
 }
