@@ -79,7 +79,7 @@ func TestNegamax(t *testing.T) {
 		t.Error(err)
 	}
 	eval, bestMove := negamax(-(1 << 30), 1<<30, 1, cb)
-	expected := board.Move{From: 0, To: 1, Piece: "r", PromoteTo: ""}
+	expected := board.Move{From: 0, To: 1, Piece: 'r', PromoteTo: ' '}
 	if bestMove != expected {
 		t.Errorf("negamax best move: want=%v, got=%v, eval=%d",
 			expected, bestMove, eval)

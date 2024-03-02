@@ -34,8 +34,8 @@ type Board struct {
 
 type Move struct {
 	From, To  int
-	Piece     string
-	PromoteTo string
+	Piece     rune
+	PromoteTo rune
 }
 
 func New() *Board {

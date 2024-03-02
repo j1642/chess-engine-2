@@ -74,7 +74,7 @@ func MovePiece(move board.Move, cb *board.Board) {
 
 	cb.Pieces[cb.WToMove] ^= fromBB + toBB
 	switch move.Piece {
-	case "p":
+	case 'p':
 		cb.Pawns[cb.WToMove] ^= fromBB + toBB
 		if move.To-move.From == 16 || move.To-move.From == -16 {
 			cb.EpSquare = (move.To + move.From) / 2
@@ -92,13 +92,13 @@ func MovePiece(move board.Move, cb *board.Board) {
 		} else {
 			cb.EpSquare = 100
 		}
-	case "n":
+	case 'n':
 		cb.Knights[cb.WToMove] ^= fromBB + toBB
 		cb.EpSquare = 100
-	case "b":
+	case 'b':
 		cb.Bishops[cb.WToMove] ^= fromBB + toBB
 		cb.EpSquare = 100
-	case "r":
+	case 'r':
 		cb.Rooks[cb.WToMove] ^= fromBB + toBB
 		if move.From == 0 || move.From == 56 {
 			cb.CastleRights[cb.WToMove][0] = false
@@ -106,10 +106,10 @@ func MovePiece(move board.Move, cb *board.Board) {
 			cb.CastleRights[cb.WToMove][1] = false
 		}
 		cb.EpSquare = 100
-	case "q":
+	case 'q':
 		cb.Queens[cb.WToMove] ^= fromBB + toBB
 		cb.EpSquare = 100
-	case "k":
+	case 'k':
 		if move.To-move.From == 2 || move.To-move.From == -2 {
 			if cb.CastleRights[cb.WToMove][0] && (move.To == 2 || move.To == 58) {
 				cb.Rooks[cb.WToMove] ^= uint64(1<<(move.To-2) + 1<<(move.To+1))
@@ -126,6 +126,8 @@ func MovePiece(move board.Move, cb *board.Board) {
 		cb.CastleRights[cb.WToMove][0] = false
 		cb.CastleRights[cb.WToMove][1] = false
 		cb.EpSquare = 100
+	case ' ':
+		break
 	default:
 		panic("empty or invalid piece type")
 	}
@@ -164,18 +166,18 @@ func capturePiece(squareBB uint64, cb *board.Board) {
 	}
 }
 
-func promotePawn(toBB uint64, cb *board.Board, promoteTo ...string) {
+func promotePawn(toBB uint64, cb *board.Board, promoteTo ...rune) {
 	// TODO: Else never triggers b/c move.promoteTo always has a string
 	// Change to 'if promotoTo != ""'
 	if len(promoteTo) == 1 {
 		switch {
-		case promoteTo[0] == "q":
+		case promoteTo[0] == 'q':
 			cb.Queens[cb.WToMove] ^= toBB
-		case promoteTo[0] == "n":
+		case promoteTo[0] == 'n':
 			cb.Knights[cb.WToMove] ^= toBB
-		case promoteTo[0] == "b":
+		case promoteTo[0] == 'b':
 			cb.Bishops[cb.WToMove] ^= toBB
-		case promoteTo[0] == "r":
+		case promoteTo[0] == 'r':
 			cb.Rooks[cb.WToMove] ^= toBB
 		default:
 			panic("invalid promoteTo")
@@ -184,7 +186,7 @@ func promotePawn(toBB uint64, cb *board.Board, promoteTo ...string) {
 		fmt.Print("promote pawn to N, B, R, or Q: ")
 		userPromote := getUserInput()
 
-		if userPromote == "q" || userPromote == "n" || userPromote == "b" || userPromote == "r" {
+		if userPromote == 'q' || userPromote == 'n' || userPromote == 'b' || userPromote == 'r' {
 			promotePawn(toBB, cb, userPromote)
 		} else {
 			fmt.Println("invalid promotion type, try again")
@@ -195,7 +197,7 @@ func promotePawn(toBB uint64, cb *board.Board, promoteTo ...string) {
 	cb.Pawns[cb.WToMove] ^= toBB
 }
 
-func getUserInput() string {
+func getUserInput() rune {
 	scanner := bufio.NewScanner(os.Stdin)
 	scanner.Scan()
 	err := scanner.Err()
@@ -203,7 +205,8 @@ func getUserInput() string {
 		log.Println("failed to get input:", err)
 		return getUserInput()
 	}
-	return strings.ToLower(scanner.Text())
+	// TODO: make sure this returns the first rune, not the first byte
+	return rune(strings.ToLower(scanner.Text())[0])
 }
 
 // Use for user-submitted moves only?
@@ -566,7 +569,6 @@ func GetAllMoves(cb *board.Board) []board.Move {
 	// are strictly legal)
 	cb.Pieces[cb.WToMove] ^= 1 << cb.KingSqs[cb.WToMove]
 	cb.WToMove ^= 1
-	// TODO: could inline getAttackedSquares() here to prevent 2x calls to read1Bits()
 	attackedSquares := getAttackedSquares(cb)
 	cb.WToMove ^= 1
 	cb.Pieces[cb.WToMove] ^= 1 << cb.KingSqs[cb.WToMove]
@@ -580,9 +582,10 @@ func GetAllMoves(cb *board.Board) []board.Move {
 	kingSq := cb.KingSqs[cb.WToMove]
 	moves := read1Bits(getKingMoves(kingSq, attackedSquares, cb) & ^cb.Pieces[cb.WToMove])
 
+	// TODO: Trying to use a global allMoves did not work well
 	allMoves := make([]board.Move, len(moves), 35)
 	for i, toSq := range moves {
-		allMoves[i] = board.Move{From: kingSq, To: toSq, Piece: "k", PromoteTo: ""}
+		allMoves[i] = board.Move{From: kingSq, To: toSq, Piece: 'k', PromoteTo: ' '}
 	}
 	// If attackerCount > 1 and king has no moves, it is checkmate
 	if attackerCount > 1 {
@@ -595,7 +598,7 @@ func GetAllMoves(cb *board.Board) []board.Move {
 	moveFuncs := [5]moveGenFunc{getPawnMoves, getKnightMoves, lookupBishopMoves,
 		lookupRookMoves, getQueenMoves,
 	}
-	symbols := [5]string{"p", "n", "b", "r", "q"}
+	symbols := [5]rune{'p', 'n', 'b', 'r', 'q'}
 
 	// 29% perft() speed up and -40% malloc from having this loop in this function
 	for i, piece := range pieces {
@@ -604,12 +607,12 @@ func GetAllMoves(cb *board.Board) []board.Move {
 			for _, toSq := range moves {
 				if capturesBlks == 0 || uint64(1<<toSq)&capturesBlks != 0 {
 					if i != 0 || (7 < toSq && toSq < 56) {
-						allMoves = append(allMoves, board.Move{From: fromSq, To: toSq, Piece: symbols[i], PromoteTo: ""})
+						allMoves = append(allMoves, board.Move{From: fromSq, To: toSq, Piece: symbols[i], PromoteTo: ' '})
 					} else {
-						allMoves = append(allMoves, board.Move{From: fromSq, To: toSq, Piece: "p", PromoteTo: "n"})
-						allMoves = append(allMoves, board.Move{From: fromSq, To: toSq, Piece: "p", PromoteTo: "b"})
-						allMoves = append(allMoves, board.Move{From: fromSq, To: toSq, Piece: "p", PromoteTo: "r"})
-						allMoves = append(allMoves, board.Move{From: fromSq, To: toSq, Piece: "p", PromoteTo: "q"})
+						allMoves = append(allMoves, board.Move{From: fromSq, To: toSq, Piece: symbols[i], PromoteTo: 'n'})
+						allMoves = append(allMoves, board.Move{From: fromSq, To: toSq, Piece: symbols[i], PromoteTo: 'b'})
+						allMoves = append(allMoves, board.Move{From: fromSq, To: toSq, Piece: symbols[i], PromoteTo: 'r'})
+						allMoves = append(allMoves, board.Move{From: fromSq, To: toSq, Piece: symbols[i], PromoteTo: 'q'})
 					}
 				}
 			}
@@ -661,7 +664,6 @@ func getCheckingSquares(cb *board.Board) (uint64, int) {
 		if attacker != 0 {
 			attackerSquares := read1Bits(attacker)
 			attackerCount += len(attackerSquares)
-			// Possible optimization: check if attackerCount + len(attackers) > 1 before the loop
 			if len(attackerSquares) > 1 {
 				panic(panicMsgs[i])
 			}
