@@ -669,16 +669,10 @@ func perft(depth int, cb *board.Board) int {
 	nodes := 0
 	moves := GetAllMoves(cb)
 	pos := board.StorePosition(cb)
-	var attackedSquares uint64
 
 	for _, toFrom := range moves {
 		MovePiece(toFrom, cb)
-		if toFrom.Piece == "k" {
-			attackedSquares = uint64(0)
-		} else {
-			attackedSquares = getAttackedSquares(cb)
-		}
-		if cb.Kings[1^cb.WToMove]&attackedSquares == 0 {
+		if toFrom.Piece == "k" || cb.Kings[1^cb.WToMove]&getAttackedSquares(cb) == 0 {
 			nodes += perft(depth-1, cb)
 		}
 		board.RestorePosition(pos, cb)
