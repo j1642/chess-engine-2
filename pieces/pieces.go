@@ -530,30 +530,32 @@ func getKingMoves(square int, oppAttackedSquares uint64, cb *board.Board) uint64
 // Return the set of squares attacked by color cb.WToMove
 func getAttackedSquares(cb *board.Board) uint64 {
 	// TODO: Is there a way to avoid reading 1 bits when accumulating moves?
-	var pieces []int
 	attackSquares := uint64(0)
 
-	pieces = Read1BitsPawns(cb.Pawns[cb.WToMove])
-	for _, square := range pieces {
-		// Do not include pawn pushes.
-		attackSquares |= cb.PAttacks[cb.WToMove][square]
+	bb := cb.Pawns[cb.WToMove]
+	for bb > 0 {
+		attackSquares |= cb.PAttacks[cb.WToMove][bits.TrailingZeros64(bb)]
+		bb &= bb - 1
 	}
-
-	pieces = read1Bits(cb.Knights[cb.WToMove])
-	for _, square := range pieces {
-		attackSquares |= cb.NAttacks[square]
+	bb = cb.Knights[cb.WToMove]
+	for bb > 0 {
+		attackSquares |= cb.NAttacks[bits.TrailingZeros64(bb)]
+		bb &= bb - 1
 	}
-	pieces = read1Bits(cb.Bishops[cb.WToMove])
-	for _, square := range pieces {
-		attackSquares |= lookupBishopMoves(square, cb)
+	bb = cb.Bishops[cb.WToMove]
+	for bb > 0 {
+		attackSquares |= lookupBishopMoves(bits.TrailingZeros64(bb), cb)
+		bb &= bb - 1
 	}
-	pieces = read1Bits(cb.Rooks[cb.WToMove])
-	for _, square := range pieces {
-		attackSquares |= lookupRookMoves(square, cb)
+	bb = cb.Rooks[cb.WToMove]
+	for bb > 0 {
+		attackSquares |= lookupRookMoves(bits.TrailingZeros64(bb), cb)
+		bb &= bb - 1
 	}
-	pieces = read1Bits(cb.Queens[cb.WToMove])
-	for _, square := range pieces {
-		attackSquares |= getQueenMoves(square, cb)
+	bb = cb.Queens[cb.WToMove]
+	for bb > 0 {
+		attackSquares |= getQueenMoves(bits.TrailingZeros64(bb), cb)
+		bb &= bb - 1
 	}
 	// Do not include castling.
 	attackSquares |= cb.KAttacks[cb.KingSqs[cb.WToMove]]
@@ -564,9 +566,9 @@ func getAttackedSquares(cb *board.Board) uint64 {
 type moveGenFunc func(int, *board.Board) uint64
 type readBitsFunc func(uint64) []int
 
+// Return slice of all pseudo-legal moves for color cb.WToMove (king moves are
+// strictly legal)
 func GetAllMoves(cb *board.Board) []board.Move {
-	// Return slice of all pseudo-legal moves for color cb.WToMove (king moves
-	// are strictly legal)
 	cb.Pieces[cb.WToMove] ^= 1 << cb.KingSqs[cb.WToMove]
 	cb.WToMove ^= 1
 	attackedSquares := getAttackedSquares(cb)
