@@ -658,9 +658,9 @@ func GetCheckingSquares(cb *board.Board) (uint64, int) {
 		attackerCount += 1
 	}
 
-	panicMsgs := []string{">1 piece is checking king orthogonally",
+	panicMsgs := [2]string{">1 piece is checking king orthogonally",
 		">1 piece is checking king diagonally"}
-	attackers := []uint64{orthogAttackers, bqAttackers}
+	attackers := [2]uint64{orthogAttackers, bqAttackers}
 
 	// Add interposition squares if any exist.
 	for i, attacker := range attackers {
@@ -668,7 +668,13 @@ func GetCheckingSquares(cb *board.Board) (uint64, int) {
 			attackerSquares := read1Bits(attacker)
 			attackerCount += len(attackerSquares)
 			if len(attackerSquares) > 1 {
-				panic(panicMsgs[i])
+				if i == 0 && cb.PrevMove.From == cb.KingSqs[cb.WToMove]-8 &&
+					(cb.PrevMove.PromoteTo == 'r' || cb.PrevMove.PromoteTo == 'q') {
+					// Two pieces can orthogonally check a king if one was just promoted
+					// from a pawn, with the other piece previously protecting the pawn
+				} else {
+					panic(panicMsgs[i])
+				}
 			}
 			dir := findDirection(cb.KingSqs[cb.WToMove], attackerSquares[0])
 			attackers[i] = fillFromTo(cb.KingSqs[cb.WToMove], attackerSquares[0], dir)
