@@ -52,8 +52,13 @@ func evaluate(cb *board.Board) int {
 	// TODO: outpost squares? Tapering required
 	// TODO: remove knight moves to squares attacked by enemy pawns
 	moveCount := len(pieces.GetAllMoves(cb))
-	if moveCount == 0 {
-		fmt.Println("stalemate or checkmate")
+	// Checkmate and stalemate checks for the side to move
+	if moveCount == 0 && bits.OnesCount64(cb.Pieces[cb.WToMove]) > 0 {
+		fmt.Printf("stalemate or checkmate for WToMove=%d\n", cb.WToMove)
+		if _, countChecks := pieces.GetCheckingSquares(cb); countChecks > 0 {
+			eval = -1 * (1 << 30)
+		}
+		// else stalemate
 	}
 	cb.WToMove ^= 1
 	oppMoveCount := len(pieces.GetAllMoves(cb))

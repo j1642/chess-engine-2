@@ -515,7 +515,7 @@ func TestGetCheckingSquares(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	capturesBlockers, attackerCount := getCheckingSquares(cb)
+	capturesBlockers, attackerCount := GetCheckingSquares(cb)
 	tests := []checkingSquaresCase{
 		{
 			cb:             cb,
@@ -529,7 +529,7 @@ func TestGetCheckingSquares(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	capturesBlockers, attackerCount = getCheckingSquares(cb)
+	capturesBlockers, attackerCount = GetCheckingSquares(cb)
 	tests = append(tests, checkingSquaresCase{
 		cb:             cb,
 		expCapsBlks:    uint64(1 << 30),
@@ -542,7 +542,7 @@ func TestGetCheckingSquares(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	capturesBlockers, attackerCount = getCheckingSquares(cb)
+	capturesBlockers, attackerCount = GetCheckingSquares(cb)
 	tests = append(tests, checkingSquaresCase{
 		cb:             cb,
 		expCapsBlks:    uint64(1<<21 + 1<<22 + 1<<23),

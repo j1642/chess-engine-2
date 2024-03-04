@@ -578,7 +578,7 @@ func GetAllMoves(cb *board.Board) []board.Move {
 	var capturesBlks uint64
 	var attackerCount int
 	if cb.Kings[cb.WToMove]&attackedSquares != 0 {
-		capturesBlks, attackerCount = getCheckingSquares(cb)
+		capturesBlks, attackerCount = GetCheckingSquares(cb)
 	}
 
 	kingSq := cb.KingSqs[cb.WToMove]
@@ -626,7 +626,7 @@ func GetAllMoves(cb *board.Board) []board.Move {
 
 // Return the set of squares of pieces checking the king and interposition
 // squares, and the number of checking pieces.
-func getCheckingSquares(cb *board.Board) (uint64, int) {
+func GetCheckingSquares(cb *board.Board) (uint64, int) {
 	opponent := 1 ^ cb.WToMove
 	attackerCount := 0
 

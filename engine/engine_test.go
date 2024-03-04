@@ -3,6 +3,7 @@ package engine
 import (
 	"engine2/board"
 	_ "engine2/pieces"
+	_ "fmt"
 	"testing"
 )
 
@@ -20,6 +21,10 @@ func TestEvaluate(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	cornerCheckmate, err := board.FromFen("8/8/8/8/8/5K2/6Q1/7k b - - 0 1")
+	if err != nil {
+		t.Fatal(err)
+	}
 	tests := []evalTestCase{
 		{
 			cb:       board.New(),
@@ -32,6 +37,10 @@ func TestEvaluate(t *testing.T) {
 		{
 			cb:       cbLoneRook,
 			expected: 64,
+		},
+		{
+			cb:       cornerCheckmate,
+			expected: 1073741800,
 		},
 	}
 
