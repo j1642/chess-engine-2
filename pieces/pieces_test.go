@@ -306,9 +306,9 @@ func TestGetAttackedSquare(t *testing.T) {
 	cb := board.New()
 
 	expected := uint64(0xFFFF00) + 1<<1 + 1<<2 + 1<<3 + 1<<4 + 1<<5 + 1<<6
-	if getAttackedSquares(cb) != expected {
+	if GetAttackedSquares(cb) != expected {
 		t.Errorf("attacked/defended squares: want=%v, got=%v",
-			read1Bits(expected), read1Bits(getAttackedSquares(cb)))
+			read1Bits(expected), read1Bits(GetAttackedSquares(cb)))
 	}
 }
 
@@ -379,7 +379,7 @@ func TestGetKingMoves(t *testing.T) {
 	}
 	cb1.Pieces[cb1.WToMove] ^= uint64(1 << cb1.KingSqs[cb1.WToMove])
 	cb1.WToMove ^= 1
-	attkSquares := getAttackedSquares(cb1)
+	attkSquares := GetAttackedSquares(cb1)
 	cb1.WToMove ^= 1
 	cb1.Pieces[cb1.WToMove] ^= uint64(1 << cb1.KingSqs[cb1.WToMove])
 
@@ -397,7 +397,7 @@ func TestGetKingMoves(t *testing.T) {
 	}
 	cb2.Pieces[cb2.WToMove] ^= uint64(1 << cb2.KingSqs[cb2.WToMove])
 	cb2.WToMove ^= 1
-	attkSquares = getAttackedSquares(cb2)
+	attkSquares = GetAttackedSquares(cb2)
 	cb2.WToMove ^= 1
 	cb2.Pieces[cb2.WToMove] ^= uint64(1 << cb2.KingSqs[cb2.WToMove])
 
@@ -672,7 +672,7 @@ func perft(depth int, cb *board.Board) int {
 
 	for _, toFrom := range moves {
 		MovePiece(toFrom, cb)
-		if toFrom.Piece == 'k' || cb.Kings[1^cb.WToMove]&getAttackedSquares(cb) == 0 {
+		if toFrom.Piece == 'k' || cb.Kings[1^cb.WToMove]&GetAttackedSquares(cb) == 0 {
 			nodes += perft(depth-1, cb)
 		}
 		board.RestorePosition(pos, cb)
@@ -693,7 +693,7 @@ func divide(depth int, cb *board.Board) {
 	for _, fromTo := range moves {
 		nodes := 0
 		MovePiece(fromTo, cb)
-		attackedSquares := getAttackedSquares(cb)
+		attackedSquares := GetAttackedSquares(cb)
 		if cb.Kings[1^cb.WToMove]&attackedSquares == 0 {
 			nodes += perft(depth-1, cb)
 		}

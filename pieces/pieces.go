@@ -247,7 +247,7 @@ func isValidMove(from, to int, pieceType string, cb *board.Board) bool {
 	case "k":
 		cb.Pieces[cb.WToMove] ^= uint64(1 << cb.KingSqs[cb.WToMove])
 		cb.WToMove ^= 1
-		attkSquares := getAttackedSquares(cb)
+		attkSquares := GetAttackedSquares(cb)
 		cb.WToMove ^= 1
 		cb.Pieces[cb.WToMove] ^= uint64(1 << cb.KingSqs[cb.WToMove])
 		if toBB&getKingMoves(from, attkSquares, cb) == 0 {
@@ -528,7 +528,7 @@ func getKingMoves(square int, oppAttackedSquares uint64, cb *board.Board) uint64
 }
 
 // Return the set of squares attacked by color cb.WToMove
-func getAttackedSquares(cb *board.Board) uint64 {
+func GetAttackedSquares(cb *board.Board) uint64 {
 	// TODO: Is there a way to avoid reading 1 bits when accumulating moves?
 	attackSquares := uint64(0)
 
@@ -571,7 +571,7 @@ type readBitsFunc func(uint64) []int
 func GetAllMoves(cb *board.Board) []board.Move {
 	cb.Pieces[cb.WToMove] ^= 1 << cb.KingSqs[cb.WToMove]
 	cb.WToMove ^= 1
-	attackedSquares := getAttackedSquares(cb)
+	attackedSquares := GetAttackedSquares(cb)
 	cb.WToMove ^= 1
 	cb.Pieces[cb.WToMove] ^= 1 << cb.KingSqs[cb.WToMove]
 

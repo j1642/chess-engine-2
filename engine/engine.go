@@ -3,7 +3,7 @@ package engine
 import (
 	"engine2/board"
 	"engine2/pieces"
-	_ "fmt"
+	"fmt"
 	"math/bits"
 )
 
@@ -11,34 +11,26 @@ func negamax(alpha, beta, depth int, cb *board.Board) (int, board.Move) {
 	if depth == 0 {
 		return evaluate(cb), cb.PrevMove
 	}
-	//var attackedSquares uint64
 	var lastMove, bestMove board.Move
 	var score int
 	pos := board.StorePosition(cb)
 
 	for _, move := range pieces.GetAllMoves(cb) {
 		pieces.MovePiece(move, cb)
-		// No idea why `attacked squares` is used
-		/*
-			if move.Piece == "k" {
-				attackedSquares = 0
-			} else {
-				attackedSquares = pieces.GetAttackedSquares(cb)
+		// Check legality of pseudo-legal moves. King moves are strictly legal already
+		if move.Piece == 'k' || cb.Kings[1^cb.WToMove]&pieces.GetAttackedSquares(cb) == 0 {
+			score, lastMove = negamax(-1*beta, -1*alpha, depth-1, cb)
+			score *= -1
+			if score >= beta {
+				board.RestorePosition(pos, cb)
+				//fmt.Println("beta cut:", beta, lastMove)
+				return beta, lastMove
+			} else if score > alpha {
+				alpha = score
+				bestMove = lastMove
+				//fmt.Println("alpha =", alpha, "bestMoveSoFar = ", bestMove)
 			}
-			if cb.Kings[1^cb.WToMove]&attackedSquares == 0 {
-		*/
-		score, lastMove = negamax(-1*beta, -1*alpha, depth-1, cb)
-		score *= -1
-		if score >= beta {
-			board.RestorePosition(pos, cb)
-			//fmt.Println("beta cut:", beta, lastMove)
-			return beta, lastMove
-		} else if score > alpha {
-			alpha = score
-			bestMove = lastMove
-			//fmt.Println("alpha =", alpha, "bestMoveSoFar = ", bestMove)
 		}
-		//}
 		board.RestorePosition(pos, cb)
 	}
 
@@ -60,6 +52,9 @@ func evaluate(cb *board.Board) int {
 	// TODO: outpost squares? Tapering required
 	// TODO: remove knight moves to squares attacked by enemy pawns
 	moveCount := len(pieces.GetAllMoves(cb))
+	if moveCount == 0 {
+		fmt.Println("stalemate or checkmate")
+	}
 	cb.WToMove ^= 1
 	oppMoveCount := len(pieces.GetAllMoves(cb))
 	cb.WToMove ^= 1
