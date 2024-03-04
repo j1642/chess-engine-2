@@ -566,8 +566,9 @@ func GetAttackedSquares(cb *board.Board) uint64 {
 type moveGenFunc func(int, *board.Board) uint64
 type readBitsFunc func(uint64) []int
 
-// Return slice of all pseudo-legal moves for color cb.WToMove (king moves are
-// strictly legal)
+// Return slice of all pseudo-legal moves for color cb.WToMove, where any king
+// moves are strictly legal. However, if the king is in check, only legal moves
+// are returned
 func GetAllMoves(cb *board.Board) []board.Move {
 	cb.Pieces[cb.WToMove] ^= 1 << cb.KingSqs[cb.WToMove]
 	cb.WToMove ^= 1

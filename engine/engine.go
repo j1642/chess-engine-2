@@ -53,6 +53,9 @@ func evaluate(cb *board.Board) int {
 	// TODO: remove knight moves to squares attacked by enemy pawns
 	moveCount := len(pieces.GetAllMoves(cb))
 	// Checkmate and stalemate checks for the side to move
+	// BUG: when king is in check, GetAllMoves() returns legal moves only.
+	//   Otherwise, illegal pseudo-legal moves may be included, which need to be
+	//   removed to detect stalemate
 	if moveCount == 0 && bits.OnesCount64(cb.Pieces[cb.WToMove]) > 0 {
 		fmt.Printf("stalemate or checkmate for WToMove=%d\n", cb.WToMove)
 		if _, countChecks := pieces.GetCheckingSquares(cb); countChecks > 0 {
