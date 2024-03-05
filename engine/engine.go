@@ -7,34 +7,47 @@ import (
 	"math/bits"
 )
 
-func negamax(alpha, beta, depth int, cb *board.Board) (int, board.Move) {
+func negamax(alpha, beta, depth int, cb *board.Board) (int, board.Move, error) {
 	if depth == 0 {
-		return evaluate(cb), cb.PrevMove
+		return evaluate(cb), cb.PrevMove, nil
 	}
-	var lastMove, bestMove board.Move
+	//var lastMove, bestMove board.Move
+	var bestMove board.Move
 	var score int
+	var err error
 	pos := board.StorePosition(cb)
 
 	for _, move := range pieces.GetAllMoves(cb) {
 		pieces.MovePiece(move, cb)
+		if move != cb.PrevMove {
+			panic("move != cb.PrevMove")
+		}
 		// Check legality of pseudo-legal moves. King moves are strictly legal already
 		if move.Piece == 'k' || cb.Kings[1^cb.WToMove]&pieces.GetAttackedSquares(cb) == 0 {
-			score, lastMove = negamax(-1*beta, -1*alpha, depth-1, cb)
+			score, _, err = negamax(-1*beta, -1*alpha, depth-1, cb)
+			if err != nil {
+				board.RestorePosition(pos, cb)
+				continue // bestMove variable never assigned to
+			}
 			score *= -1
 			if score >= beta {
 				board.RestorePosition(pos, cb)
-				//fmt.Println("beta cut:", beta, lastMove)
-				return beta, lastMove
+				fmt.Println("beta cut:", beta, move)
+				return beta, move, nil
 			} else if score > alpha {
 				alpha = score
-				bestMove = lastMove
-				//fmt.Println("alpha =", alpha, "bestMoveSoFar = ", bestMove)
+				bestMove = move
+				fmt.Println("alpha =", alpha, "bestMoveSoFar = ", move)
 			}
 		}
 		board.RestorePosition(pos, cb)
 	}
 
-	return alpha, bestMove
+	if bestMove.To == bestMove.From && bestMove.From == int(bestMove.Piece) && bestMove.Piece == bestMove.PromoteTo {
+		return alpha, bestMove, fmt.Errorf("error: bestMove never assigned, got=%v", bestMove)
+	}
+
+	return alpha, bestMove, nil
 }
 
 // Return position evaluation in decipawns (0.1 pawns)
@@ -57,9 +70,9 @@ func evaluate(cb *board.Board) int {
 	//   Otherwise, illegal pseudo-legal moves may be included, which need to be
 	//   removed to detect stalemate
 	if moveCount == 0 && bits.OnesCount64(cb.Pieces[cb.WToMove]) > 0 {
-		fmt.Printf("stalemate or checkmate for WToMove=%d\n", cb.WToMove)
 		if _, countChecks := pieces.GetCheckingSquares(cb); countChecks > 0 {
-			eval = -1 * (1 << 30)
+			eval = -1 * (1 << 20)
+			fmt.Println("**********mate found***************")
 		}
 		// else stalemate
 	}

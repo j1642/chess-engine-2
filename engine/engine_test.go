@@ -3,7 +3,6 @@ package engine
 import (
 	"engine2/board"
 	_ "engine2/pieces"
-	_ "fmt"
 	"testing"
 )
 
@@ -40,7 +39,7 @@ func TestEvaluate(t *testing.T) {
 		},
 		{
 			cb:       cornerCheckmate,
-			expected: 1073741800,
+			expected: 1048552,
 		},
 	}
 
@@ -82,16 +81,52 @@ func TestEvaluatePawns(t *testing.T) {
 	runPawnEvalTests(t, tests)
 }
 
+type searchTestCase struct {
+	cb       *board.Board
+	expected board.Move
+	depth    int
+}
+
 func TestNegamax(t *testing.T) {
-	cb, err := board.FromFen("8/8/8/8/8/8/8/Rr6 w - - 0 1")
+	rookVRook, err := board.FromFen("8/8/8/8/8/8/8/Rr6 w - - 0 1")
 	if err != nil {
 		t.Error(err)
 	}
-	eval, bestMove := negamax(-(1 << 30), 1<<30, 1, cb)
-	expected := board.Move{From: 0, To: 1, Piece: 'r', PromoteTo: ' '}
-	if bestMove != expected {
-		t.Errorf("negamax best move: want=%v, got=%v, eval=%d",
-			expected, bestMove, eval)
+	/*
+		mateIn5Ply, err := board.FromFen("r2qk2r/pb4pp/1n2Pb2/2B2Q2/p1p5/2P5/2B2PPP/RN2R1K1 w - - 1 0")
+		if err != nil {
+			t.Error(err)
+		}
+	*/
+	mateIn3Ply, err := board.FromFen("r2qk2r/pb4pp/1n2PbQ1/2B5/p1p5/2P5/2B2PPP/RN2R1K1 b - - 1 0")
+	if err != nil {
+		t.Error(err)
+	}
+	mateIn2Ply, err := board.FromFen("r2qk2r/pb4p1/1n2Pbp1/2B5/p1p5/2P5/2B2PPP/RN2R1K1 w - - 1 0")
+	if err != nil {
+		t.Error(err)
+	}
+
+	// mate is detected when the side to move cannot move, so needs x+1 plies compared to "mate in X"
+	tests := []searchTestCase{
+		// Issue: returning empty moves when depth > 1
+		{cb: rookVRook, expected: board.Move{From: 0, To: 1, Piece: 'r', PromoteTo: ' '}, depth: 1},
+		{cb: mateIn3Ply, expected: board.Move{From: 55, To: 46, Piece: 'p', PromoteTo: ' '}, depth: 3},
+		{cb: mateIn2Ply, expected: board.Move{From: 10, To: 46, Piece: 'b', PromoteTo: ' '}, depth: 2},
+		//{cb: mateIn4Ply, expected: board.Move{From: 37, To: 46, Piece: 'q', PromoteTo: ' '}, depth: 4},
+	}
+
+	for _, tt := range tests {
+		// Unexplained bug: using math.MinInt, math.MaxInt as args breaks negamax
+		eval, actual, err := negamax(-(1 << 30), 1<<30, tt.depth, tt.cb)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if actual != tt.expected {
+			t.Errorf("negamax best move: want=%v, got=%v, eval=%d",
+				tt.expected, actual, eval)
+		}
+		tt.cb.Print()
 	}
 }
 
