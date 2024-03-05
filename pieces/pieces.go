@@ -582,14 +582,17 @@ func GetAllMoves(cb *board.Board) []board.Move {
 		capturesBlks, attackerCount = GetCheckingSquares(cb)
 	}
 
-	kingSq := cb.KingSqs[cb.WToMove]
-	moves := read1Bits(getKingMoves(kingSq, attackedSquares, cb) & ^cb.Pieces[cb.WToMove])
-
 	// TODO: Trying to use a global allMoves did not work well
-	allMoves := make([]board.Move, len(moves), 35)
-	for i, toSq := range moves {
-		allMoves[i] = board.Move{From: kingSq, To: toSq, Piece: 'k', PromoteTo: ' '}
+	allMoves := make([]board.Move, 0, 35)
+	kingSq := cb.KingSqs[cb.WToMove]
+	kingMovesBB := getKingMoves(kingSq, attackedSquares, cb) & ^cb.Pieces[cb.WToMove]
+
+	for kingMovesBB > 0 {
+		toSq := bits.TrailingZeros64(kingMovesBB)
+		allMoves = append(allMoves, board.Move{From: kingSq, To: toSq, Piece: 'k', PromoteTo: ' '})
+		kingMovesBB &= kingMovesBB - 1
 	}
+
 	// If attackerCount > 1 and king has no moves, it is checkmate
 	if attackerCount > 1 {
 		return allMoves
@@ -604,10 +607,16 @@ func GetAllMoves(cb *board.Board) []board.Move {
 	symbols := [5]rune{'p', 'n', 'b', 'r', 'q'}
 
 	// 29% perft() speed up and -40% malloc from having this loop in this function
-	for i, piece := range pieces {
-		for _, fromSq := range read1Bits(piece) {
-			moves := read1Bits(moveFuncs[i](fromSq, cb) & ^cb.Pieces[cb.WToMove])
-			for _, toSq := range moves {
+	for i, pieceBB := range pieces {
+		for pieceBB > 0 {
+			fromSq := bits.TrailingZeros64(pieceBB)
+			pieceBB &= pieceBB - 1
+
+			movesBB := moveFuncs[i](fromSq, cb) & ^cb.Pieces[cb.WToMove]
+			for movesBB > 0 {
+				toSq := bits.TrailingZeros64(movesBB)
+				movesBB &= movesBB - 1
+
 				if capturesBlks == 0 || uint64(1<<toSq)&capturesBlks != 0 {
 					if i != 0 || (7 < toSq && toSq < 56) {
 						allMoves = append(allMoves, board.Move{From: fromSq, To: toSq, Piece: symbols[i], PromoteTo: ' '})
@@ -740,8 +749,6 @@ func read1Bits(bb uint64) []int {
 	}
 	return squares
 }
-
-var Read1Bits = read1Bits
 
 func Read1BitsPawns(bb uint64) []int {
 	squares := make([]int, 0, 8)
