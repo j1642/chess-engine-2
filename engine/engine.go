@@ -66,32 +66,14 @@ func evaluate(cb *board.Board) int {
 
 	// TODO: outpost squares? Tapering required
 	// TODO: remove knight moves to squares attacked by enemy pawns
-	moveCount := len(pieces.GetAllMoves(cb))
-	// Checkmate and stalemate checks for the side to move
-	// BUG for stalemate: when king is in check, GetAllMoves() returns legal moves only.
-	//   Otherwise, illegal pseudo-legal moves may be included, which need to be
-	//   removed to detect stalemate
-	if moveCount == 0 && bits.OnesCount64(cb.Pieces[cb.WToMove]) > 0 {
-		if _, countChecks := pieces.GetCheckingSquares(cb); countChecks > 0 {
-			if cb.WToMove == 1 {
-				// White is out of moves and in checkmate
-				return -1 * 1 << 20
-			} else {
-				return 1 << 20
-			}
-		}
-		// else stalemate
-	}
-	cb.WToMove ^= 1
-	oppMoveCount := len(pieces.GetAllMoves(cb))
-	cb.WToMove ^= 1
-	if cb.WToMove == 1 {
-		eval += moveCount - oppMoveCount
-	} else {
-		eval += oppMoveCount - moveCount
-	}
 
 	eval += evalPawns(cb)
+	mobilityEval := evaluateMobility(cb)
+	if mobilityEval == 1<<20 || mobilityEval == -(1<<20) {
+		// checkmate or stalemate
+		return mobilityEval
+	}
+	eval += mobilityEval
 
 	// Negamax requires eval respective to the color-to-move
 	if cb.WToMove == 0 {
@@ -157,5 +139,41 @@ func evalPawns(cb *board.Board) int {
 		}
 	}
 
+	return eval
+}
+
+func evaluateMobility(cb *board.Board) int {
+	eval := 0
+	movesBB := pieces.GetAttackedSquares(cb)
+	moveCount := bits.OnesCount64(movesBB)
+	cb.WToMove ^= 1
+	oppMovesBB := pieces.GetAttackedSquares(cb)
+	oppMoveCount := bits.OnesCount64(oppMovesBB)
+	cb.WToMove ^= 1
+
+	if cb.Kings[cb.WToMove]&oppMovesBB != 0 {
+		// Only use slow getAllMoves() when king is in check, returns legal moves
+		moveCount = len(pieces.GetAllMoves(cb))
+	}
+	// Checkmate and stalemate checks for the side to move
+	// BUG for stalemate: when king is in check, GetAllMoves() returns legal moves only.
+	//   Otherwise, illegal pseudo-legal moves may be included, which need to be
+	//   removed to detect stalemate
+	if moveCount == 0 && bits.OnesCount64(cb.Pieces[cb.WToMove]) > 0 {
+		if _, countChecks := pieces.GetCheckingSquares(cb); countChecks > 0 {
+			if cb.WToMove == 1 {
+				// White is out of moves and in checkmate
+				return -1 * 1 << 20
+			} else {
+				return 1 << 20
+			}
+		}
+		// else stalemate
+	}
+	if cb.WToMove == 1 {
+		eval += moveCount - oppMoveCount
+	} else {
+		eval += oppMoveCount - moveCount
+	}
 	return eval
 }

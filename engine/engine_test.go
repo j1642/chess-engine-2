@@ -30,12 +30,14 @@ func TestEvaluate(t *testing.T) {
 			expected: 0,
 		},
 		{
-			cb:       cbRooks,
-			expected: -6,
+			cb: cbRooks,
+			//expected: -6,
+			expected: -7,
 		},
 		{
-			cb:       cbLoneRook,
-			expected: 64,
+			cb: cbLoneRook,
+			//expected: 64,
+			expected: 62,
 		},
 		{
 			cb:       cornerCheckmate,
@@ -112,7 +114,8 @@ func TestNegamax(t *testing.T) {
 
 	// mate is detected when the side to move cannot move, so the depth arg needs an extra ply
 	tests := []searchTestCase{
-		{cb: rookVRook, expectEval: 64, expectMove: board.Move{From: 0, To: 1, Piece: 'r', PromoteTo: ' '}, depth: 1},
+		{cb: rookVRook, expectEval: 63, expectMove: board.Move{From: 0, To: 1, Piece: 'r', PromoteTo: ' '}, depth: 1},
+		{cb: mate, expectEval: 1 << 20, expectMove: board.Move{From: 0, To: 0, Piece: 0, PromoteTo: 0}, depth: 0},
 		{cb: mate, expectEval: 1 << 20, expectMove: board.Move{From: 0, To: 0, Piece: 0, PromoteTo: 0}, depth: 1},
 		{cb: mateIn2Ply, expectEval: 1 << 20, expectMove: board.Move{From: 10, To: 46, Piece: 'b', PromoteTo: ' '}, depth: 2},
 		{cb: mateIn3Ply, expectEval: 1 << 20, expectMove: board.Move{From: 55, To: 46, Piece: 'p', PromoteTo: ' '}, depth: 3},
