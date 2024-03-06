@@ -97,10 +97,10 @@ func TestNegamax(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	/*mateIn3Ply, err := board.FromFen("r2qk2r/pb4pp/1n2PbQ1/2B5/p1p5/2P5/2B2PPP/RN2R1K1 b - - 1 0")
+	mateIn3Ply, err := board.FromFen("r2qk2r/pb4pp/1n2PbQ1/2B5/p1p5/2P5/2B2PPP/RN2R1K1 b - - 1 0")
 	if err != nil {
 		t.Error(err)
-	}*/
+	}
 	mateIn2Ply, err := board.FromFen("r2qk2r/pb4p1/1n2Pbp1/2B5/p1p5/2P5/2B2PPP/RN2R1K1 w - - 1 0")
 	if err != nil {
 		t.Error(err)
@@ -115,9 +115,8 @@ func TestNegamax(t *testing.T) {
 		{cb: rookVRook, expectEval: 64, expectMove: board.Move{From: 0, To: 1, Piece: 'r', PromoteTo: ' '}, depth: 1},
 		{cb: mate, expectEval: 1 << 20, expectMove: board.Move{From: 0, To: 0, Piece: 0, PromoteTo: 0}, depth: 1},
 		{cb: mateIn2Ply, expectEval: 1 << 20, expectMove: board.Move{From: 10, To: 46, Piece: 'b', PromoteTo: ' '}, depth: 2},
+		{cb: mateIn3Ply, expectEval: 1 << 20, expectMove: board.Move{From: 55, To: 46, Piece: 'p', PromoteTo: ' '}, depth: 3},
 		{cb: mateIn4Ply, expectEval: 1 << 20, expectMove: board.Move{From: 37, To: 46, Piece: 'q', PromoteTo: ' '}, depth: 4},
-		// tests fail
-		//{cb: mateIn3Ply, expectEval: 1<<20, expectMove: board.Move{From: 55, To: 46, Piece: 'p', PromoteTo: ' '}, depth: 3},
 	}
 
 	for i, tt := range tests {
