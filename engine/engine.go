@@ -3,51 +3,50 @@ package engine
 import (
 	"engine2/board"
 	"engine2/pieces"
-	"fmt"
 	"math/bits"
 )
 
-func negamax(alpha, beta, depth int, cb *board.Board) (int, board.Move, error) {
+func negamax(alpha, beta, depth int, cb *board.Board, orig_depth int) (int, board.Move) {
 	if depth == 0 {
-		return evaluate(cb), cb.PrevMove, nil
+		return evaluate(cb), cb.PrevMove
 	}
-	//var lastMove, bestMove board.Move
 	var bestMove board.Move
 	var score int
-	var err error
 	pos := board.StorePosition(cb)
 
-	for _, move := range pieces.GetAllMoves(cb) {
+	moves := pieces.GetAllMoves(cb)
+	if len(moves) == 0 {
+		// End of branch: heckmate or stalemate
+		score = -1 * 1 << 20
+		// Negamax evaluations are relative to the side cb.WToMove. Whichever side
+		// is about to move, being in checkmate is bad, and is a negative score
+		if depth == orig_depth && cb.WToMove == 0 {
+			score *= -1
+		}
+		return score, cb.PrevMove
+	}
+
+	for _, move := range moves {
 		pieces.MovePiece(move, cb)
 		if move != cb.PrevMove {
 			panic("move != cb.PrevMove")
 		}
 		// Check legality of pseudo-legal moves. King moves are strictly legal already
 		if move.Piece == 'k' || cb.Kings[1^cb.WToMove]&pieces.GetAttackedSquares(cb) == 0 {
-			score, _, err = negamax(-1*beta, -1*alpha, depth-1, cb)
-			if err != nil {
-				board.RestorePosition(pos, cb)
-				continue // bestMove variable never assigned to
-			}
+			score, _ = negamax(-1*beta, -1*alpha, depth-1, cb, orig_depth)
 			score *= -1
 			if score >= beta {
 				board.RestorePosition(pos, cb)
-				fmt.Println("beta cut:", beta, move)
-				return beta, move, nil
+				return beta, bestMove
 			} else if score > alpha {
 				alpha = score
 				bestMove = move
-				fmt.Println("alpha =", alpha, "bestMoveSoFar = ", move)
 			}
 		}
 		board.RestorePosition(pos, cb)
 	}
 
-	if bestMove.To == bestMove.From && bestMove.From == int(bestMove.Piece) && bestMove.Piece == bestMove.PromoteTo {
-		return alpha, bestMove, fmt.Errorf("error: bestMove never assigned, got=%v", bestMove)
-	}
-
-	return alpha, bestMove, nil
+	return alpha, bestMove
 }
 
 // Return position evaluation in decipawns (0.1 pawns)
@@ -66,13 +65,17 @@ func evaluate(cb *board.Board) int {
 	// TODO: remove knight moves to squares attacked by enemy pawns
 	moveCount := len(pieces.GetAllMoves(cb))
 	// Checkmate and stalemate checks for the side to move
-	// BUG: when king is in check, GetAllMoves() returns legal moves only.
+	// BUG for stalemate: when king is in check, GetAllMoves() returns legal moves only.
 	//   Otherwise, illegal pseudo-legal moves may be included, which need to be
 	//   removed to detect stalemate
 	if moveCount == 0 && bits.OnesCount64(cb.Pieces[cb.WToMove]) > 0 {
 		if _, countChecks := pieces.GetCheckingSquares(cb); countChecks > 0 {
-			eval = -1 * (1 << 20)
-			fmt.Println("**********mate found***************")
+			if cb.WToMove == 1 {
+				// White is out of moves and in checkmate
+				return -1 * 1 << 20
+			} else {
+				return 1 << 20
+			}
 		}
 		// else stalemate
 	}
