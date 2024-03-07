@@ -3,6 +3,7 @@ package board
 import (
 	"fmt"
 	"math/bits"
+	"math/rand/v2"
 	"strings"
 )
 
@@ -29,7 +30,8 @@ type Board struct {
 
 	EpSquare int
 
-	PrevMove Move
+	PrevMove    Move
+	Zobrist     uint64
 }
 
 type Move struct {
@@ -38,8 +40,17 @@ type Move struct {
 	PromoteTo rune
 }
 
+type Zobrist struct {
+	ColorPieceSq [2][6][64]uint64
+	BToMove      uint64
+	Castle       [2][2]uint64
+	EpFile       [8]uint64
+}
+
+var ZobristKeys Zobrist = buildZobristKeys()
+
 func New() *Board {
-	return &Board{
+	cb := &Board{
 		WToMove: 1,
 
 		Pieces:  [2]uint64{0xFFFF000000000000, 0xFFFF},
@@ -59,17 +70,105 @@ func New() *Board {
 		CastleRights: [2][2]bool{{true, true}, {true, true}},
 
 		EpSquare: 100,
+		Zobrist:  0,
 	}
+	cb.resetZobrist()
+
+	return cb
+}
+
+func (cb *Board) resetZobrist() {
+	zobrist := uint64(0)
+	for color := range len(cb.Pawns) {
+		pieceTypes := [6]uint64{cb.Pawns[color], cb.Knights[color], cb.Bishops[color],
+			cb.Rooks[color], cb.Queens[color], cb.Kings[color],
+		}
+		for i, pieceBB := range pieceTypes {
+			//pawnsBB := cb.Pawns[color]
+			for pieceBB > 0 {
+				zobrist ^= ZobristKeys.ColorPieceSq[color][i][bits.TrailingZeros64(pieceBB)]
+				fmt.Println("color, piece, square:", color, i, bits.TrailingZeros64(pieceBB))
+				pieceBB &= pieceBB - 1
+			}
+		}
+		/*
+		   knightsBB := cb.Knights[color]
+		   for knightsBB > 0 {
+		       zobrist ^= ZobristKeys.ColorPieceSq[color][1][bits.TrailingZeros64(knightsBB)]
+		       knightsBB &= knightsBB - 1
+		   }
+		   bishopsBB := cb.Bishops[color]
+		   for bishopsBB > 0 {
+		       zobrist ^= ZobristKeys.ColorPieceSq[color][2][bits.TrailingZeros64(bishopsBB)]
+		       bishopsBB &= bishopsBB - 1
+		   }
+		   rooksBB := cb.Rooks[color]
+		   for rooksBB > 0 {
+		       zobrist ^= ZobristKeys.ColorPieceSq[color][3][bits.TrailingZeros64(rooksBB)]
+		       rooksBB &= rooksBB - 1
+		   }
+		   queensBB := cb.Queens[color]
+		   for queensBB > 0 {
+		       zobrist ^= ZobristKeys.ColorPieceSq[color][4][bits.TrailingZeros64(queensBB)]
+		       queensBB &= queensBB - 1
+		   }
+		   kingsBB := cb.Kings[color]
+		   for kingsBB > 0 {
+		       zobrist ^= ZobristKeys.ColorPieceSq[color][5][bits.TrailingZeros64(kingsBB)]
+		       kingsBB &= kingsBB - 1
+		   }
+		*/
+	}
+
+	for i := range len(cb.CastleRights) {
+		for j := range len(cb.CastleRights[0]) {
+			if cb.CastleRights[i][j] {
+				zobrist ^= ZobristKeys.Castle[i][j]
+				fmt.Println("castle color, qk:", i, j)
+			}
+		}
+	}
+
+	if cb.WToMove == 0 {
+		zobrist ^= ZobristKeys.BToMove
+	}
+
+	// square 100 is an unused placeholder
+	if cb.EpSquare != 100 {
+		zobrist ^= ZobristKeys.EpFile[cb.EpSquare%8]
+	}
+
+	cb.Zobrist = zobrist
+}
+
+func buildZobristKeys() Zobrist {
+	keys := Zobrist{}
+	prng := rand.New(rand.NewPCG(17, 41))
+
+	colorPieceSq := [2][6][64]uint64{}
+	for color := 0; color < len(colorPieceSq); color++ {
+		for pieceType := 0; pieceType < len(colorPieceSq[0]); pieceType++ {
+			for square := 0; square < len(colorPieceSq[0][0]); square++ {
+				colorPieceSq[color][pieceType][square] = prng.Uint64()
+			}
+		}
+	}
+	keys.ColorPieceSq = colorPieceSq
+	keys.BToMove = prng.Uint64()
+	for i := 0; i < len(keys.EpFile); i++ {
+		keys.EpFile[i] = prng.Uint64()
+	}
+	for color := 0; color < len(keys.Castle); color++ {
+		for qsideKside := 0; qsideKside < len(keys.Castle[0]); qsideKside++ {
+			keys.Castle[color][qsideKside] = prng.Uint64()
+		}
+	}
+
+	return keys
 }
 
 // Build a Board object from a Forsyth-Edwards notation (FEN) string
 func FromFen(fen string) (*Board, error) {
-	/*
-	   TODO: What is a good design for changing board.Board fields based on piece type?
-	   Separate functions seem cluttered,
-	   a map[rune]uint64 is nice for making uint64 but not for changing Board fields,
-	   and switch statements seem too stuck in the details.
-	*/
 	var color int
 	cb := &Board{}
 	square := 56
@@ -153,6 +252,7 @@ func FromFen(fen string) (*Board, error) {
 	cb.NAttacks = makeKnightBBs()
 	cb.KAttacks = makeKingBBs()
 	cb.SlidingAttacks = makeSlidingAttackBBs()
+	cb.resetZobrist()
 
 	return cb, nil
 }
@@ -333,6 +433,7 @@ type Position struct {
 	EpSquare int
 
 	PrevMove Move
+	Zobrist  uint64
 }
 
 func StorePosition(cb *Board) *Position {
@@ -352,6 +453,7 @@ func StorePosition(cb *Board) *Position {
 		EpSquare: cb.EpSquare,
 
 		PrevMove: cb.PrevMove,
+		Zobrist:  cb.Zobrist,
 	}
 }
 
@@ -370,6 +472,7 @@ func RestorePosition(pos *Position, cb *Board) {
 
 	cb.EpSquare = pos.EpSquare
 	cb.PrevMove = pos.PrevMove
+	cb.Zobrist = pos.Zobrist
 }
 
 func (cb *Board) Print() {

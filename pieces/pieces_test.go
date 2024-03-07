@@ -292,7 +292,7 @@ func TestPromotePawn(t *testing.T) {
 		Pawns:   [2]uint64{1 << 1, 1 << 63},
 		Queens:  [2]uint64{0, 0},
 	}
-	promotePawn(uint64(1<<63), cb, 'q')
+	promotePawn(uint64(1<<63), 63, cb, 'q')
 
 	if cb.Pawns[1] != uint64(0) {
 		t.Errorf("pawn did not promote: want=0, got=%b", cb.Pawns[1])

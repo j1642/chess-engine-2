@@ -6,7 +6,6 @@ import (
 	"engine2/board"
 	"fmt"
 	"log"
-	_ "math"
 	"math/bits"
 	"os"
 	"strings"
@@ -64,22 +63,28 @@ var bishopOneBitCounts [64]int
 var bishopAttackBBs [64][512]uint64 = buildBishopMagicBB()
 
 func MovePiece(move board.Move, cb *board.Board) {
-	// TODO: Refactor to remove switch. Maybe make a parent array board.Occupied
+	// TODO: Refactor to remove switch?
 	fromBB := uint64(1 << move.From)
 	toBB := uint64(1 << move.To)
+	if cb.EpSquare != 100 {
+		cb.Zobrist ^= board.ZobristKeys.EpFile[cb.EpSquare%8]
+	}
 
 	if toBB&(cb.Pieces[1^cb.WToMove]^cb.Kings[1^cb.WToMove]) != 0 {
-		capturePiece(toBB, cb)
+		capturePiece(toBB, move.To, cb)
 	}
 
 	cb.Pieces[cb.WToMove] ^= fromBB + toBB
+
 	switch move.Piece {
 	case 'p':
 		cb.Pawns[cb.WToMove] ^= fromBB + toBB
 		if move.To-move.From == 16 || move.To-move.From == -16 {
 			cb.EpSquare = (move.To + move.From) / 2
+			cb.Zobrist ^= board.ZobristKeys.EpFile[cb.EpSquare%8]
+			cb.Zobrist ^= board.ZobristKeys.ColorPieceSq[cb.WToMove][0][move.To]
 		} else if move.To < 8 || move.To > 55 {
-			promotePawn(toBB, cb, move.PromoteTo)
+			promotePawn(toBB, move.To, cb, move.PromoteTo)
 			cb.EpSquare = 100
 		} else if move.To == cb.EpSquare {
 			captureSq := move.To + 8
@@ -89,15 +94,22 @@ func MovePiece(move board.Move, cb *board.Board) {
 			cb.Pawns[1^cb.WToMove] ^= uint64(1 << captureSq)
 			cb.Pieces[1^cb.WToMove] ^= uint64(1 << captureSq)
 			cb.EpSquare = 100
+			cb.Zobrist ^= board.ZobristKeys.ColorPieceSq[cb.WToMove][0][move.To]
 		} else {
 			cb.EpSquare = 100
+			cb.Zobrist ^= board.ZobristKeys.ColorPieceSq[cb.WToMove][0][move.To]
 		}
+		cb.Zobrist ^= board.ZobristKeys.ColorPieceSq[cb.WToMove][0][move.From]
 	case 'n':
 		cb.Knights[cb.WToMove] ^= fromBB + toBB
 		cb.EpSquare = 100
+		cb.Zobrist ^= board.ZobristKeys.ColorPieceSq[cb.WToMove][1][move.From]
+		cb.Zobrist ^= board.ZobristKeys.ColorPieceSq[cb.WToMove][1][move.To]
 	case 'b':
 		cb.Bishops[cb.WToMove] ^= fromBB + toBB
 		cb.EpSquare = 100
+		cb.Zobrist ^= board.ZobristKeys.ColorPieceSq[cb.WToMove][2][move.From]
+		cb.Zobrist ^= board.ZobristKeys.ColorPieceSq[cb.WToMove][2][move.To]
 	case 'r':
 		cb.Rooks[cb.WToMove] ^= fromBB + toBB
 		if move.From == 0 || move.From == 56 {
@@ -106,9 +118,13 @@ func MovePiece(move board.Move, cb *board.Board) {
 			cb.CastleRights[cb.WToMove][1] = false
 		}
 		cb.EpSquare = 100
+		cb.Zobrist ^= board.ZobristKeys.ColorPieceSq[cb.WToMove][3][move.From]
+		cb.Zobrist ^= board.ZobristKeys.ColorPieceSq[cb.WToMove][3][move.To]
 	case 'q':
 		cb.Queens[cb.WToMove] ^= fromBB + toBB
 		cb.EpSquare = 100
+		cb.Zobrist ^= board.ZobristKeys.ColorPieceSq[cb.WToMove][4][move.From]
+		cb.Zobrist ^= board.ZobristKeys.ColorPieceSq[cb.WToMove][4][move.To]
 	case 'k':
 		if move.To-move.From == 2 || move.To-move.From == -2 {
 			if cb.CastleRights[cb.WToMove][0] && (move.To == 2 || move.To == 58) {
@@ -126,6 +142,8 @@ func MovePiece(move board.Move, cb *board.Board) {
 		cb.CastleRights[cb.WToMove][0] = false
 		cb.CastleRights[cb.WToMove][1] = false
 		cb.EpSquare = 100
+		cb.Zobrist ^= board.ZobristKeys.ColorPieceSq[cb.WToMove][5][move.From]
+		cb.Zobrist ^= board.ZobristKeys.ColorPieceSq[cb.WToMove][5][move.To]
 	case ' ':
 		break
 	default:
@@ -134,19 +152,23 @@ func MovePiece(move board.Move, cb *board.Board) {
 
 	cb.PrevMove = move
 	cb.WToMove ^= 1
+	cb.Zobrist ^= board.ZobristKeys.BToMove
 }
 
-func capturePiece(squareBB uint64, cb *board.Board) {
+func capturePiece(squareBB uint64, square int, cb *board.Board) {
 	opponent := 1 ^ cb.WToMove
 	cb.Pieces[opponent] ^= squareBB
 
 	switch {
 	case squareBB&cb.Pawns[opponent] != 0:
 		cb.Pawns[opponent] ^= squareBB
+		cb.Zobrist ^= board.ZobristKeys.ColorPieceSq[opponent][0][square]
 	case squareBB&cb.Knights[opponent] != 0:
 		cb.Knights[opponent] ^= squareBB
+		cb.Zobrist ^= board.ZobristKeys.ColorPieceSq[opponent][1][square]
 	case squareBB&cb.Bishops[opponent] != 0:
 		cb.Bishops[opponent] ^= squareBB
+		cb.Zobrist ^= board.ZobristKeys.ColorPieceSq[opponent][2][square]
 	case squareBB&cb.Rooks[opponent] != 0:
 		// int type mixing here seems ok based on investigation
 		if opponent == 0 && squareBB == 1<<56 {
@@ -159,26 +181,32 @@ func capturePiece(squareBB uint64, cb *board.Board) {
 			cb.CastleRights[opponent][1] = false
 		}
 		cb.Rooks[opponent] ^= squareBB
+		cb.Zobrist ^= board.ZobristKeys.ColorPieceSq[opponent][3][square]
 	case squareBB&cb.Queens[opponent] != 0:
 		cb.Queens[opponent] ^= squareBB
+		cb.Zobrist ^= board.ZobristKeys.ColorPieceSq[opponent][4][square]
 	default:
 		panic("no captured piece bitboard matches")
 	}
 }
 
-func promotePawn(toBB uint64, cb *board.Board, promoteTo ...rune) {
+func promotePawn(toBB uint64, square int, cb *board.Board, promoteTo ...rune) {
 	// TODO: Else never triggers b/c move.promoteTo always has a string
 	// Change to 'if promotoTo != ""'
 	if len(promoteTo) == 1 {
 		switch {
 		case promoteTo[0] == 'q':
 			cb.Queens[cb.WToMove] ^= toBB
+			cb.Zobrist ^= board.ZobristKeys.ColorPieceSq[cb.WToMove][4][square]
 		case promoteTo[0] == 'n':
 			cb.Knights[cb.WToMove] ^= toBB
+			cb.Zobrist ^= board.ZobristKeys.ColorPieceSq[cb.WToMove][1][square]
 		case promoteTo[0] == 'b':
 			cb.Bishops[cb.WToMove] ^= toBB
+			cb.Zobrist ^= board.ZobristKeys.ColorPieceSq[cb.WToMove][2][square]
 		case promoteTo[0] == 'r':
 			cb.Rooks[cb.WToMove] ^= toBB
+			cb.Zobrist ^= board.ZobristKeys.ColorPieceSq[cb.WToMove][3][square]
 		default:
 			panic("invalid promoteTo")
 		}
@@ -187,10 +215,10 @@ func promotePawn(toBB uint64, cb *board.Board, promoteTo ...rune) {
 		userPromote := getUserInput()
 
 		if userPromote == 'q' || userPromote == 'n' || userPromote == 'b' || userPromote == 'r' {
-			promotePawn(toBB, cb, userPromote)
+			promotePawn(toBB, square, cb, userPromote)
 		} else {
 			fmt.Println("invalid promotion type, try again")
-			promotePawn(toBB, cb)
+			promotePawn(toBB, square, cb)
 		}
 	}
 

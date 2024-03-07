@@ -1,7 +1,6 @@
 package board
 
 import (
-	_ "fmt"
 	"reflect"
 	"testing"
 )
@@ -358,4 +357,26 @@ func TestFromFen(t *testing.T) {
 		t.Errorf("cb.EpSquare: want=16, got=%d\n", cb.EpSquare)
 	}
 
+}
+
+func TestResetZobrist(t *testing.T) {
+	cb, err := FromFen("r3k3/8/8/8/8/8/8/R3K2R w KQq - 0 1")
+	if err != nil {
+		t.Error(err)
+	}
+	expected := uint64(0)
+	expected ^= ZobristKeys.ColorPieceSq[0][3][56]
+	expected ^= ZobristKeys.ColorPieceSq[0][5][60]
+	expected ^= ZobristKeys.ColorPieceSq[1][3][0]
+	expected ^= ZobristKeys.ColorPieceSq[1][3][7]
+	expected ^= ZobristKeys.ColorPieceSq[1][5][4]
+	expected ^= ZobristKeys.Castle[0][0]
+	expected ^= ZobristKeys.Castle[1][0] ^ ZobristKeys.Castle[1][1]
+	if expected != cb.Zobrist {
+		t.Errorf("resetZobrist: want=%d, got=%d", expected, cb.Zobrist)
+	}
+
+}
+func TestZobristHashing(t *testing.T) {
+	//moves, captures, promotions, castling, en passant
 }
