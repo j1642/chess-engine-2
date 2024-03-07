@@ -143,11 +143,33 @@ func evalPawns(cb *board.Board) int {
 }
 
 func evaluateMobility(cb *board.Board) int {
-	eval := 0
-	movesBB := pieces.GetAttackedSquares(cb)
-	moveCount := bits.OnesCount64(movesBB)
 	cb.WToMove ^= 1
 	oppMovesBB := pieces.GetAttackedSquares(cb)
+	cb.WToMove ^= 1
+
+	movesBB := pieces.GetAttackedSquares(cb)
+	origMovesBB := movesBB
+	// Include legal king moves and castling
+	movesBB |= pieces.GetKingMoves(cb.KingSqs[cb.WToMove], oppMovesBB, cb)
+	// Include pawn forward moves
+	pawnsBB := cb.Pawns[cb.WToMove]
+	for pawnsBB > 0 {
+		movesBB |= pieces.GetPawnMoves(bits.TrailingZeros64(pawnsBB), cb)
+		pawnsBB &= pawnsBB - 1
+	}
+	movesBB &= ^cb.Pieces[cb.WToMove]
+	moveCount := bits.OnesCount64(movesBB)
+
+	cb.WToMove ^= 1
+	// Include legal king moves and castling
+	oppMovesBB |= pieces.GetKingMoves(cb.KingSqs[cb.WToMove], origMovesBB, cb)
+	// Include pawn forward moves
+	oppPawnsBB := cb.Pawns[cb.WToMove]
+	for oppPawnsBB > 0 {
+		oppMovesBB |= pieces.GetPawnMoves(bits.TrailingZeros64(oppPawnsBB), cb)
+		oppPawnsBB &= oppPawnsBB - 1
+	}
+	oppMovesBB &= ^cb.Pieces[cb.WToMove]
 	oppMoveCount := bits.OnesCount64(oppMovesBB)
 	cb.WToMove ^= 1
 
@@ -170,6 +192,7 @@ func evaluateMobility(cb *board.Board) int {
 		}
 		// else stalemate
 	}
+	eval := 0
 	if cb.WToMove == 1 {
 		eval += moveCount - oppMoveCount
 	} else {

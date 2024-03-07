@@ -250,7 +250,7 @@ func isValidMove(from, to int, pieceType string, cb *board.Board) bool {
 		attkSquares := GetAttackedSquares(cb)
 		cb.WToMove ^= 1
 		cb.Pieces[cb.WToMove] ^= uint64(1 << cb.KingSqs[cb.WToMove])
-		if toBB&getKingMoves(from, attkSquares, cb) == 0 {
+		if toBB&GetKingMoves(from, attkSquares, cb) == 0 {
 			return false
 		}
 	default:
@@ -364,7 +364,7 @@ func buildRookMagicBB() [64][4096]uint64 {
 	return rookAttackBBs
 }
 
-func getPawnMoves(square int, cb *board.Board) uint64 {
+func GetPawnMoves(square int, cb *board.Board) uint64 {
 	opponent := 1 ^ cb.WToMove
 
 	if square < 8 || square > 55 {
@@ -500,7 +500,7 @@ func getQueenMoves(square int, cb *board.Board) uint64 {
 }
 
 // Return legal king moves.
-func getKingMoves(square int, oppAttackedSquares uint64, cb *board.Board) uint64 {
+func GetKingMoves(square int, oppAttackedSquares uint64, cb *board.Board) uint64 {
 	occupied := cb.Pieces[0] | cb.Pieces[1]
 	moves := cb.KAttacks[square] & ^oppAttackedSquares & ^cb.Pieces[cb.WToMove]
 
@@ -585,7 +585,7 @@ func GetAllMoves(cb *board.Board) []board.Move {
 	// TODO: Trying to use a global allMoves did not work well
 	allMoves := make([]board.Move, 0, 35)
 	kingSq := cb.KingSqs[cb.WToMove]
-	kingMovesBB := getKingMoves(kingSq, attackedSquares, cb) & ^cb.Pieces[cb.WToMove]
+	kingMovesBB := GetKingMoves(kingSq, attackedSquares, cb) & ^cb.Pieces[cb.WToMove]
 
 	for kingMovesBB > 0 {
 		toSq := bits.TrailingZeros64(kingMovesBB)
@@ -601,7 +601,7 @@ func GetAllMoves(cb *board.Board) []board.Move {
 	pieces := [5]uint64{cb.Pawns[cb.WToMove], cb.Knights[cb.WToMove],
 		cb.Bishops[cb.WToMove], cb.Rooks[cb.WToMove], cb.Queens[cb.WToMove],
 	}
-	moveFuncs := [5]moveGenFunc{getPawnMoves, getKnightMoves, lookupBishopMoves,
+	moveFuncs := [5]moveGenFunc{GetPawnMoves, getKnightMoves, lookupBishopMoves,
 		lookupRookMoves, getQueenMoves,
 	}
 	symbols := [5]rune{'p', 'n', 'b', 'r', 'q'}

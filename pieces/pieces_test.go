@@ -30,17 +30,17 @@ func TestPawnMoves(t *testing.T) {
 		{
 			// W double push and e.p. square attack
 			expected: uint64(1<<16 + 1<<17 + 1<<25),
-			actual:   getPawnMoves(9, cb),
+			actual:   GetPawnMoves(9, cb),
 		},
 		{
 			// W blocked
 			expected: uint64(0),
-			actual:   getPawnMoves(31, cb),
+			actual:   GetPawnMoves(31, cb),
 		},
 		{
 			// W partially blocked
 			expected: uint64(1 << 23),
-			actual:   getPawnMoves(15, cb),
+			actual:   GetPawnMoves(15, cb),
 		},
 	}
 	cb1, err := board.FromFen("8/3k4/8/8/8/N7/PPPPPPPP/R1BQKBNR w - - 0 1")
@@ -50,7 +50,7 @@ func TestPawnMoves(t *testing.T) {
 
 	wTests = append(wTests, moveTestCase{
 		expected: uint64(0),
-		actual:   getPawnMoves(8, cb1),
+		actual:   GetPawnMoves(8, cb1),
 	})
 
 	cb.WToMove = 0
@@ -58,17 +58,17 @@ func TestPawnMoves(t *testing.T) {
 		{
 			// B blocked
 			expected: uint64(0),
-			actual:   getPawnMoves(39, cb),
+			actual:   GetPawnMoves(39, cb),
 		},
 		{
 			// B partially blocked
 			expected: uint64(1 << 46),
-			actual:   getPawnMoves(54, cb),
+			actual:   GetPawnMoves(54, cb),
 		},
 		{
 			// B attack and double push
 			expected: uint64(1<<40 + 1<<41 + 1<<33),
-			actual:   getPawnMoves(49, cb),
+			actual:   GetPawnMoves(49, cb),
 		},
 	}
 
@@ -387,7 +387,7 @@ func TestGetKingMoves(t *testing.T) {
 		{
 			// Cannot move into check, castle through check, or move into friendly piece.
 			expected: uint64(1<<12 + 1<<13),
-			actual:   getKingMoves(cb1.KingSqs[1], attkSquares, cb1),
+			actual:   GetKingMoves(cb1.KingSqs[1], attkSquares, cb1),
 		},
 	}
 
@@ -404,7 +404,7 @@ func TestGetKingMoves(t *testing.T) {
 	tests = append(tests, moveTestCase{
 		// Cannot castle out of check or capture protected piece.
 		expected: uint64(1<<61 + 1<<59),
-		actual:   getKingMoves(cb2.KingSqs[0], attkSquares, cb2),
+		actual:   GetKingMoves(cb2.KingSqs[0], attkSquares, cb2),
 	})
 
 	runMoveGenTests(t, tests)
