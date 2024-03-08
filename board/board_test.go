@@ -375,8 +375,4 @@ func TestResetZobrist(t *testing.T) {
 	if expected != cb.Zobrist {
 		t.Errorf("resetZobrist: want=%d, got=%d", expected, cb.Zobrist)
 	}
-
-}
-func TestZobristHashing(t *testing.T) {
-	//moves, captures, promotions, castling, en passant
 }

@@ -30,8 +30,8 @@ type Board struct {
 
 	EpSquare int
 
-	PrevMove    Move
-	Zobrist     uint64
+	PrevMove Move
+	Zobrist  uint64
 }
 
 type Move struct {
@@ -84,47 +84,17 @@ func (cb *Board) resetZobrist() {
 			cb.Rooks[color], cb.Queens[color], cb.Kings[color],
 		}
 		for i, pieceBB := range pieceTypes {
-			//pawnsBB := cb.Pawns[color]
 			for pieceBB > 0 {
 				zobrist ^= ZobristKeys.ColorPieceSq[color][i][bits.TrailingZeros64(pieceBB)]
-				fmt.Println("color, piece, square:", color, i, bits.TrailingZeros64(pieceBB))
 				pieceBB &= pieceBB - 1
 			}
 		}
-		/*
-		   knightsBB := cb.Knights[color]
-		   for knightsBB > 0 {
-		       zobrist ^= ZobristKeys.ColorPieceSq[color][1][bits.TrailingZeros64(knightsBB)]
-		       knightsBB &= knightsBB - 1
-		   }
-		   bishopsBB := cb.Bishops[color]
-		   for bishopsBB > 0 {
-		       zobrist ^= ZobristKeys.ColorPieceSq[color][2][bits.TrailingZeros64(bishopsBB)]
-		       bishopsBB &= bishopsBB - 1
-		   }
-		   rooksBB := cb.Rooks[color]
-		   for rooksBB > 0 {
-		       zobrist ^= ZobristKeys.ColorPieceSq[color][3][bits.TrailingZeros64(rooksBB)]
-		       rooksBB &= rooksBB - 1
-		   }
-		   queensBB := cb.Queens[color]
-		   for queensBB > 0 {
-		       zobrist ^= ZobristKeys.ColorPieceSq[color][4][bits.TrailingZeros64(queensBB)]
-		       queensBB &= queensBB - 1
-		   }
-		   kingsBB := cb.Kings[color]
-		   for kingsBB > 0 {
-		       zobrist ^= ZobristKeys.ColorPieceSq[color][5][bits.TrailingZeros64(kingsBB)]
-		       kingsBB &= kingsBB - 1
-		   }
-		*/
 	}
 
 	for i := range len(cb.CastleRights) {
 		for j := range len(cb.CastleRights[0]) {
 			if cb.CastleRights[i][j] {
 				zobrist ^= ZobristKeys.Castle[i][j]
-				fmt.Println("castle color, qk:", i, j)
 			}
 		}
 	}

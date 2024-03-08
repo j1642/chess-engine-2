@@ -75,7 +75,6 @@ func TestPawnMoves(t *testing.T) {
 	runMoveGenTests(t, wTests)
 	runMoveGenTests(t, bTests)
 }
-
 func TestRookMoves(t *testing.T) {
 	cb := board.New()
 	tests := []moveTestCase{
@@ -801,5 +800,52 @@ func TestSlidingPiecesMovesLookup(t *testing.T) {
 			t.Errorf("for a bishop on sq %d, calculated moves != magic BB moves, calc=%v, lookup=%v",
 				square, read1Bits(calcMoves), read1Bits(lookupMoves))
 		}
+	}
+}
+
+func TestZobristHashing(t *testing.T) {
+	// Moves, captures, promotions, castling, the color to move, and any en
+	// passant square affect the position hash
+	cb, err := board.FromFen("r3k2r/1Pp5/8/8/8/8/8/R3K2R w KQkq - 0 1")
+	if err != nil {
+		t.Error(err)
+	}
+	curZobrist := cb.Zobrist
+
+	MovePiece(board.Move{From: 0, To: 56, Piece: 'r', PromoteTo: ' '}, cb)
+	curZobrist ^= board.ZobristKeys.ColorPieceSq[1][3][0]
+	curZobrist ^= board.ZobristKeys.ColorPieceSq[1][3][56]
+	curZobrist ^= board.ZobristKeys.ColorPieceSq[0][3][56]
+	curZobrist ^= board.ZobristKeys.BToMove
+	curZobrist ^= board.ZobristKeys.Castle[0][0] ^ board.ZobristKeys.Castle[1][0]
+	if curZobrist != cb.Zobrist {
+		t.Errorf("zobrist: want=%d, got=%d", curZobrist, cb.Zobrist)
+	}
+
+	MovePiece(board.Move{From: 63, To: 7, Piece: 'r', PromoteTo: ' '}, cb)
+	curZobrist ^= board.ZobristKeys.ColorPieceSq[0][3][63]
+	curZobrist ^= board.ZobristKeys.ColorPieceSq[0][3][7]
+	curZobrist ^= board.ZobristKeys.ColorPieceSq[1][3][7]
+	curZobrist ^= board.ZobristKeys.BToMove
+	curZobrist ^= board.ZobristKeys.Castle[0][1] ^ board.ZobristKeys.Castle[1][1]
+	if curZobrist != cb.Zobrist {
+		t.Errorf("zobrist: want=%d, got=%d", curZobrist, cb.Zobrist)
+	}
+
+	MovePiece(board.Move{From: 49, To: 57, Piece: 'p', PromoteTo: 'q'}, cb)
+	curZobrist ^= board.ZobristKeys.ColorPieceSq[1][0][49]
+	curZobrist ^= board.ZobristKeys.ColorPieceSq[1][4][57]
+	curZobrist ^= board.ZobristKeys.BToMove
+	if curZobrist != cb.Zobrist {
+		t.Errorf("zobrist: want=%d, got=%d", curZobrist, cb.Zobrist)
+	}
+
+	MovePiece(board.Move{From: 50, To: 34, Piece: 'p', PromoteTo: ' '}, cb)
+	curZobrist ^= board.ZobristKeys.ColorPieceSq[0][0][50]
+	curZobrist ^= board.ZobristKeys.ColorPieceSq[0][0][34]
+	curZobrist ^= board.ZobristKeys.BToMove
+	curZobrist ^= board.ZobristKeys.EpFile[cb.EpSquare%8]
+	if curZobrist != cb.Zobrist {
+		t.Errorf("zobrist: want=%d, got=%d", curZobrist, cb.Zobrist)
 	}
 }

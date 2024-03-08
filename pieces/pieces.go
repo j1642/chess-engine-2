@@ -113,8 +113,14 @@ func MovePiece(move board.Move, cb *board.Board) {
 	case 'r':
 		cb.Rooks[cb.WToMove] ^= fromBB + toBB
 		if move.From == 0 || move.From == 56 {
+			if cb.CastleRights[cb.WToMove][0] == true {
+				cb.Zobrist ^= board.ZobristKeys.Castle[cb.WToMove][0]
+			}
 			cb.CastleRights[cb.WToMove][0] = false
 		} else if move.From == 7 || move.From == 63 {
+			if cb.CastleRights[cb.WToMove][1] == true {
+				cb.Zobrist ^= board.ZobristKeys.Castle[cb.WToMove][1]
+			}
 			cb.CastleRights[cb.WToMove][1] = false
 		}
 		cb.EpSquare = 100
@@ -139,6 +145,12 @@ func MovePiece(move board.Move, cb *board.Board) {
 		}
 		cb.Kings[cb.WToMove] ^= fromBB + toBB
 		cb.KingSqs[cb.WToMove] = move.To
+		if cb.CastleRights[cb.WToMove][0] == true {
+			cb.Zobrist ^= board.ZobristKeys.Castle[cb.WToMove][0]
+		}
+		if cb.CastleRights[cb.WToMove][1] == true {
+			cb.Zobrist ^= board.ZobristKeys.Castle[cb.WToMove][1]
+		}
 		cb.CastleRights[cb.WToMove][0] = false
 		cb.CastleRights[cb.WToMove][1] = false
 		cb.EpSquare = 100
@@ -173,12 +185,16 @@ func capturePiece(squareBB uint64, square int, cb *board.Board) {
 		// int type mixing here seems ok based on investigation
 		if opponent == 0 && squareBB == 1<<56 {
 			cb.CastleRights[opponent][0] = false
+			cb.Zobrist ^= board.ZobristKeys.Castle[opponent][0]
 		} else if opponent == 0 && squareBB == 1<<63 {
 			cb.CastleRights[opponent][1] = false
+			cb.Zobrist ^= board.ZobristKeys.Castle[opponent][1]
 		} else if opponent == 1 && squareBB == 0 {
 			cb.CastleRights[opponent][0] = false
+			cb.Zobrist ^= board.ZobristKeys.Castle[opponent][0]
 		} else if opponent == 1 && squareBB == 1<<7 {
 			cb.CastleRights[opponent][1] = false
+			cb.Zobrist ^= board.ZobristKeys.Castle[opponent][1]
 		}
 		cb.Rooks[opponent] ^= squareBB
 		cb.Zobrist ^= board.ZobristKeys.ColorPieceSq[opponent][3][square]
