@@ -100,6 +100,7 @@ func MovePiece(move board.Move, cb *board.Board) {
 			cb.Zobrist ^= board.ZobristKeys.ColorPieceSq[cb.WToMove][0][move.To]
 		}
 		cb.Zobrist ^= board.ZobristKeys.ColorPieceSq[cb.WToMove][0][move.From]
+		cb.HalfMoves = 1
 	case 'n':
 		cb.Knights[cb.WToMove] ^= fromBB + toBB
 		cb.EpSquare = 100
@@ -165,11 +166,13 @@ func MovePiece(move board.Move, cb *board.Board) {
 	cb.PrevMove = move
 	cb.WToMove ^= 1
 	cb.Zobrist ^= board.ZobristKeys.BToMove
+	cb.HalfMoves += 1
 }
 
 func capturePiece(squareBB uint64, square int, cb *board.Board) {
 	opponent := 1 ^ cb.WToMove
 	cb.Pieces[opponent] ^= squareBB
+	cb.HalfMoves = 1
 
 	switch {
 	case squareBB&cb.Pawns[opponent] != 0:

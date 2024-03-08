@@ -28,10 +28,10 @@ type Board struct {
 	KingSqs      [2]int
 	CastleRights [2][2]bool // [b, w][queenside, kingside]
 
-	EpSquare int
-
-	PrevMove Move
-	Zobrist  uint64
+	EpSquare  int
+	PrevMove  Move
+	Zobrist   uint64
+	HalfMoves uint8
 }
 
 type Move struct {
@@ -138,7 +138,9 @@ func buildZobristKeys() Zobrist {
 }
 
 // Build a Board object from a Forsyth-Edwards notation (FEN) string
+// example: "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
 func FromFen(fen string) (*Board, error) {
+	// TODO: apply halfmove count
 	var color int
 	cb := &Board{}
 	square := 56
@@ -400,10 +402,10 @@ type Position struct {
 	KingSqs      [2]int
 	CastleRights [2][2]bool
 
-	EpSquare int
-
-	PrevMove Move
-	Zobrist  uint64
+	EpSquare  int
+	PrevMove  Move
+	Zobrist   uint64
+	HalfMoves uint8
 }
 
 func StorePosition(cb *Board) *Position {
@@ -420,10 +422,10 @@ func StorePosition(cb *Board) *Position {
 		KingSqs:      cb.KingSqs,
 		CastleRights: cb.CastleRights,
 
-		EpSquare: cb.EpSquare,
-
-		PrevMove: cb.PrevMove,
-		Zobrist:  cb.Zobrist,
+		EpSquare:  cb.EpSquare,
+		PrevMove:  cb.PrevMove,
+		Zobrist:   cb.Zobrist,
+		HalfMoves: cb.HalfMoves,
 	}
 }
 
@@ -443,6 +445,7 @@ func RestorePosition(pos *Position, cb *Board) {
 	cb.EpSquare = pos.EpSquare
 	cb.PrevMove = pos.PrevMove
 	cb.Zobrist = pos.Zobrist
+	cb.HalfMoves = pos.HalfMoves
 }
 
 func (cb *Board) Print() {
