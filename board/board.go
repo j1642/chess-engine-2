@@ -47,6 +47,11 @@ type Zobrist struct {
 	EpFile       [8]uint64
 }
 
+var pawn_attack_bb = makePawnBBs()
+var knight_attack_bb = makeKnightBBs()
+var king_attack_bb = makeKingBBs()
+var sliding_attack_bb = makeSlidingAttackBBs()
+
 var ZobristKeys Zobrist = buildZobristKeys()
 
 func New() *Board {
@@ -61,10 +66,10 @@ func New() *Board {
 		Queens:  [2]uint64{1 << 59, 1 << 3},
 		Kings:   [2]uint64{1 << 60, 1 << 4},
 
-		PAttacks:       makePawnBBs(),
-		NAttacks:       makeKnightBBs(),
-		KAttacks:       makeKingBBs(),
-		SlidingAttacks: makeSlidingAttackBBs(),
+		PAttacks:       pawn_attack_bb,
+		NAttacks:       knight_attack_bb,
+		KAttacks:       king_attack_bb,
+		SlidingAttacks: sliding_attack_bb,
 
 		KingSqs:      [2]int{60, 4},
 		CastleRights: [2][2]bool{{true, true}, {true, true}},
@@ -220,10 +225,10 @@ func FromFen(fen string) (*Board, error) {
 	cb.Pieces[1] = cb.Pawns[1] | cb.Knights[1] | cb.Bishops[1] |
 		cb.Rooks[1] | cb.Queens[1] | cb.Kings[1]
 
-	cb.PAttacks = makePawnBBs()
-	cb.NAttacks = makeKnightBBs()
-	cb.KAttacks = makeKingBBs()
-	cb.SlidingAttacks = makeSlidingAttackBBs()
+	cb.PAttacks = pawn_attack_bb
+	cb.NAttacks = knight_attack_bb
+	cb.KAttacks = king_attack_bb
+	cb.SlidingAttacks = sliding_attack_bb
 	cb.resetZobrist()
 
 	return cb, nil
