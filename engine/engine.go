@@ -6,7 +6,18 @@ import (
 	"math/bits"
 )
 
-func negamax(alpha, beta, depth int, cb *board.Board, orig_depth int) (int, board.Move) {
+type TtEntry struct {
+	Hash uint64
+	Move board.Move
+	Eval int
+	Age  uint8
+	Node rune // 'p': principal variation node, 'a': all node, 'c': cut node
+}
+
+var tTable = make(map[uint64]TtEntry, 500_000)
+var Negamax = negamax
+
+func negamax(alpha, beta, depth int, cb *board.Board, orig_depth int, orig_age uint8) (int, board.Move) {
 	if depth == 0 {
 		return evaluate(cb), cb.PrevMove
 	}
@@ -17,7 +28,7 @@ func negamax(alpha, beta, depth int, cb *board.Board, orig_depth int) (int, boar
 	moves := pieces.GetAllMoves(cb)
 	if len(moves) == 0 {
 		// End of branch when depth > 0, checkmate or stalemate
-		score = -1 * 1 << 20
+		score = -1 * (1 << 20)
 		// Negamax evaluations are relative to the side cb.WToMove. Whichever side
 		// is about to move, being in checkmate is bad, and is a negative score
 		if depth == orig_depth && cb.WToMove == 0 {
@@ -30,20 +41,48 @@ func negamax(alpha, beta, depth int, cb *board.Board, orig_depth int) (int, boar
 		pieces.MovePiece(move, cb)
 		// Check legality of pseudo-legal moves. King moves are strictly legal already
 		if move.Piece == 'k' || cb.Kings[1^cb.WToMove]&pieces.GetAttackedSquares(cb) == 0 {
-			score, _ = negamax(-1*beta, -1*alpha, depth-1, cb, orig_depth)
-			score *= -1
-			// What is the root cause that requires this superficial solution?
-			// Makes a test pass, but might be incorrect
-			if depth == orig_depth && cb.WToMove == 1 && (score == 1<<20 || score == -(1<<20)) {
+			if stored, ok := tTable[cb.Zobrist]; ok && stored.Hash == cb.Zobrist {
+				//stored.Eval *= -1
+				//from 1st engine
+				switch stored.Node {
+				case 'c':
+					//alpha = max(alpha, stored.Eval)
+					//alpha = stored.Eval //1st engine
+					return stored.Eval, stored.Move
+				case 'a':
+					//beta = stored.Eval //1st engine
+				case 'p':
+					if stored.Eval >= beta {
+						return beta, move
+					} else if stored.Eval > alpha {
+						alpha = stored.Eval
+					}
+				default:
+					panic("invalid node type")
+				}
+				board.RestorePosition(pos, cb)
+				continue
+			} else {
+				score, _ = negamax(-1*beta, -1*alpha, depth-1, cb, orig_depth, orig_age)
 				score *= -1
+				// What is the root cause that requires this superficial solution?
+				// Makes a test pass, but might be incorrect
+				if depth == orig_depth && cb.WToMove == 1 && (score == 1<<20 || score == -(1<<20)) {
+					score *= -1
+				}
 			}
 
 			if score >= beta {
+				// TODO: store beta or score?
+				tTable[cb.Zobrist] = TtEntry{Hash: cb.Zobrist, Eval: beta, Age: orig_age, Move: move, Node: 'c'}
 				board.RestorePosition(pos, cb)
-				return beta, bestMove
+				return beta, move
 			} else if score > alpha {
 				alpha = score
 				bestMove = move
+				tTable[cb.Zobrist] = TtEntry{Hash: cb.Zobrist, Eval: score, Age: orig_age, Move: bestMove, Node: 'p'}
+			} else {
+				tTable[cb.Zobrist] = TtEntry{Hash: cb.Zobrist, Eval: score, Age: orig_age, Move: bestMove, Node: 'a'}
 			}
 		}
 		board.RestorePosition(pos, cb)

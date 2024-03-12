@@ -125,7 +125,7 @@ func TestNegamax(t *testing.T) {
 	for i, tt := range tests {
 		// Unexplained bug: using math.MinInt, math.MaxInt as args breaks negamax
 		// Note: eval is from a search leaf node, not evaulate(cb)
-		eval, actualMove := negamax(-(1 << 30), 1<<30, tt.depth, tt.cb, tt.depth)
+		eval, actualMove := negamax(-(1 << 30), 1<<30, tt.depth, tt.cb, tt.depth, tt.cb.HalfMoves)
 
 		if actualMove != tt.expectMove {
 			t.Errorf("negamax best move[%d]: want=%v, got=%v, eval=%d",
