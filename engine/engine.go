@@ -14,6 +14,8 @@ type TtEntry struct {
 	Node rune // 'p': principal variation node, 'a': all node, 'c': cut node
 }
 
+const MATE = 1 << 20
+
 var tTable = make(map[uint64]TtEntry, 500_000)
 var Negamax = negamax
 
@@ -28,12 +30,9 @@ func negamax(alpha, beta, depth int, cb *board.Board, orig_depth int, orig_age u
 	moves := pieces.GetAllMoves(cb)
 	if len(moves) == 0 {
 		// End of branch when depth > 0, checkmate or stalemate
-		score = -1 * (1 << 20)
-		// Negamax evaluations are relative to the side cb.WToMove. Whichever side
-		// is about to move, being in checkmate is bad, and is a negative score
-		if depth == orig_depth && cb.WToMove == 0 {
-			score *= -1
-		}
+		score = -MATE
+		// Negamax evaluations are relative to the side to move. Regardless of
+		// the side to move, being in checkmate is bad, and is a negative score
 		return score, cb.PrevMove
 	}
 
@@ -42,15 +41,11 @@ func negamax(alpha, beta, depth int, cb *board.Board, orig_depth int, orig_age u
 		// Check legality of pseudo-legal moves. King moves are strictly legal already
 		if move.Piece == 'k' || cb.Kings[1^cb.WToMove]&pieces.GetAttackedSquares(cb) == 0 {
 			if stored, ok := tTable[cb.Zobrist]; ok && stored.Hash == cb.Zobrist {
-				//stored.Eval *= -1
-				//from 1st engine
+				board.RestorePosition(pos, cb)
 				switch stored.Node {
 				case 'c':
-					//alpha = max(alpha, stored.Eval)
-					//alpha = stored.Eval //1st engine
 					return stored.Eval, stored.Move
 				case 'a':
-					//beta = stored.Eval //1st engine
 				case 'p':
 					if stored.Eval >= beta {
 						return beta, move
@@ -60,20 +55,13 @@ func negamax(alpha, beta, depth int, cb *board.Board, orig_depth int, orig_age u
 				default:
 					panic("invalid node type")
 				}
-				board.RestorePosition(pos, cb)
 				continue
 			} else {
 				score, _ = negamax(-1*beta, -1*alpha, depth-1, cb, orig_depth, orig_age)
 				score *= -1
-				// What is the root cause that requires this superficial solution?
-				// Makes a test pass, but might be incorrect
-				if depth == orig_depth && cb.WToMove == 1 && (score == 1<<20 || score == -(1<<20)) {
-					score *= -1
-				}
 			}
 
 			if score >= beta {
-				// TODO: store beta or score?
 				tTable[cb.Zobrist] = TtEntry{Hash: cb.Zobrist, Eval: beta, Age: orig_age, Move: move, Node: 'c'}
 				board.RestorePosition(pos, cb)
 				return beta, move
@@ -108,7 +96,7 @@ func evaluate(cb *board.Board) int {
 
 	eval += evalPawns(cb)
 	mobilityEval := evaluateMobility(cb)
-	if mobilityEval == 1<<20 || mobilityEval == -(1<<20) {
+	if mobilityEval == -MATE {
 		// checkmate or stalemate
 		return mobilityEval
 	}
@@ -222,20 +210,16 @@ func evaluateMobility(cb *board.Board) int {
 	//   removed to detect stalemate
 	if moveCount == 0 && bits.OnesCount64(cb.Pieces[cb.WToMove]) > 0 {
 		if _, countChecks := pieces.GetCheckingSquares(cb); countChecks > 0 {
-			if cb.WToMove == 1 {
-				// White is out of moves and in checkmate
-				return -1 * 1 << 20
-			} else {
-				return 1 << 20
-			}
+			// Mate is always bad for the side-to-move, so it is a negative eval
+			return -MATE
 		}
 		// else stalemate
 	}
-	eval := 0
+	mobilityEval := 0
 	if cb.WToMove == 1 {
-		eval += moveCount - oppMoveCount
+		mobilityEval += moveCount - oppMoveCount
 	} else {
-		eval += oppMoveCount - moveCount
+		mobilityEval += oppMoveCount - moveCount
 	}
-	return eval
+	return mobilityEval
 }

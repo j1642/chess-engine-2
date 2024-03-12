@@ -20,10 +20,15 @@ func TestEvaluate(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	cornerCheckmate, err := board.FromFen("8/8/8/8/8/5K2/6Q1/7k b - - 0 1")
+	whiteMatesBlack, err := board.FromFen("8/8/8/8/8/5K2/6Q1/7k b - - 0 1")
 	if err != nil {
 		t.Fatal(err)
 	}
+	blackMatesWhite, err := board.FromFen("8/8/8/8/8/5k2/6q1/7K w - - 0 1")
+	if err != nil {
+		t.Fatal(err)
+	}
+
 	tests := []evalTestCase{
 		{
 			cb:       board.New(),
@@ -32,20 +37,31 @@ func TestEvaluate(t *testing.T) {
 		{
 			cb:       cbRooks,
 			expected: -6,
-			//expected: -7,
 		},
 		{
-			cb: cbLoneRook,
-			//expected: 64,
+			cb:       cbLoneRook,
 			expected: 62,
 		},
 		{
-			cb:       cornerCheckmate,
-			expected: 1 << 20,
+			cb:       whiteMatesBlack,
+			expected: -MATE,
+		},
+		{
+			cb:       blackMatesWhite,
+			expected: -MATE,
 		},
 	}
 
 	runEvalTests(t, tests)
+}
+
+func runEvalTests(t *testing.T, tests []evalTestCase) {
+	for _, tt := range tests {
+		actual := evaluate(tt.cb)
+		if tt.expected != actual {
+			t.Errorf("eval: want=%d, got=%d", tt.expected, actual)
+		}
+	}
 }
 
 func TestEvaluatePawns(t *testing.T) {
@@ -83,6 +99,15 @@ func TestEvaluatePawns(t *testing.T) {
 	runPawnEvalTests(t, tests)
 }
 
+func runPawnEvalTests(t *testing.T, tests []evalTestCase) {
+	for _, tt := range tests {
+		actual := evalPawns(tt.cb)
+		if tt.expected != actual {
+			t.Errorf("pawnEval: want=%d, got=%d", tt.expected, actual)
+		}
+	}
+}
+
 type searchTestCase struct {
 	cb         *board.Board
 	expectEval int
@@ -91,15 +116,19 @@ type searchTestCase struct {
 }
 
 func TestNegamax(t *testing.T) {
-	rookVRook, err := board.FromFen("8/8/8/8/8/8/8/Rr6 w - - 0 1")
+	wRookCapturesBRook, err := board.FromFen("8/8/8/8/8/8/8/Rr6 w - - 0 1")
 	if err != nil {
 		t.Error(err)
 	}
-	mateIn4Ply, err := board.FromFen("r2qk2r/pb4pp/1n2Pb2/2B2Q2/p1p5/2P5/2B2PPP/RN2R1K1 w - - 1 0")
+	bRookCapturesWRook, err := board.FromFen("8/8/8/8/8/8/8/rR6 b - - 0 1")
 	if err != nil {
 		t.Error(err)
 	}
-	mateIn3Ply, err := board.FromFen("r2qk2r/pb4pp/1n2PbQ1/2B5/p1p5/2P5/2B2PPP/RN2R1K1 b - - 1 0")
+	mateDepth0, err := board.FromFen("r2qk2r/pb4p1/1n2PbB1/2B5/p1p5/2P5/5PPP/RN2R1K1 b - - 1 0")
+	if err != nil {
+		t.Error(err)
+	}
+	mateDepth1, err := board.FromFen("r2qk2r/pb4p1/1n2PbB1/2B5/p1p5/2P5/5PPP/RN2R1K1 b - - 1 0")
 	if err != nil {
 		t.Error(err)
 	}
@@ -107,24 +136,29 @@ func TestNegamax(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	mate, err := board.FromFen("r2qk2r/pb4p1/1n2PbB1/2B5/p1p5/2P5/5PPP/RN2R1K1 b - - 1 0")
+	mateIn3Ply, err := board.FromFen("r2qk2r/pb4pp/1n2PbQ1/2B5/p1p5/2P5/2B2PPP/RN2R1K1 b - - 1 0")
+	if err != nil {
+		t.Error(err)
+	}
+	mateIn4Ply, err := board.FromFen("r2qk2r/pb4pp/1n2Pb2/2B2Q2/p1p5/2P5/2B2PPP/RN2R1K1 w - - 1 0")
 	if err != nil {
 		t.Error(err)
 	}
 
+	// TODO: Some of the expectEval might be wrong
 	// mate is detected when the side to move cannot move, so the depth arg needs an extra ply
 	tests := []searchTestCase{
-		{cb: rookVRook, expectEval: 62, expectMove: board.Move{From: 0, To: 1, Piece: 'r', PromoteTo: ' '}, depth: 1},
-		{cb: mate, expectEval: 1 << 20, expectMove: board.Move{From: 0, To: 0, Piece: 0, PromoteTo: 0}, depth: 0},
-		{cb: mate, expectEval: 1 << 20, expectMove: board.Move{From: 0, To: 0, Piece: 0, PromoteTo: 0}, depth: 1},
-		{cb: mateIn2Ply, expectEval: 1 << 20, expectMove: board.Move{From: 10, To: 46, Piece: 'b', PromoteTo: ' '}, depth: 2},
-		{cb: mateIn3Ply, expectEval: 1 << 20, expectMove: board.Move{From: 55, To: 46, Piece: 'p', PromoteTo: ' '}, depth: 3},
-		{cb: mateIn4Ply, expectEval: 1 << 20, expectMove: board.Move{From: 37, To: 46, Piece: 'q', PromoteTo: ' '}, depth: 4},
+		{cb: wRookCapturesBRook, expectEval: 62, expectMove: board.Move{From: 0, To: 1, Piece: 'r', PromoteTo: ' '}, depth: 1},
+		{cb: bRookCapturesWRook, expectEval: 62, expectMove: board.Move{From: 0, To: 1, Piece: 'r', PromoteTo: ' '}, depth: 1},
+		{cb: mateDepth0, expectEval: -MATE, expectMove: board.Move{From: 0, To: 0, Piece: 0, PromoteTo: 0}, depth: 0},
+		{cb: mateDepth1, expectEval: -MATE, expectMove: board.Move{From: 0, To: 0, Piece: 0, PromoteTo: 0}, depth: 1},
+		{cb: mateIn2Ply, expectEval: MATE, expectMove: board.Move{From: 10, To: 46, Piece: 'b', PromoteTo: ' '}, depth: 2},
+		{cb: mateIn3Ply, expectEval: -MATE, expectMove: board.Move{From: 55, To: 46, Piece: 'p', PromoteTo: ' '}, depth: 3},
+		{cb: mateIn4Ply, expectEval: MATE, expectMove: board.Move{From: 37, To: 46, Piece: 'q', PromoteTo: ' '}, depth: 4},
 	}
 
 	for i, tt := range tests {
 		// Unexplained bug: using math.MinInt, math.MaxInt as args breaks negamax
-		// Note: eval is from a search leaf node, not evaulate(cb)
 		eval, actualMove := negamax(-(1 << 30), 1<<30, tt.depth, tt.cb, tt.depth, tt.cb.HalfMoves)
 
 		if actualMove != tt.expectMove {
@@ -133,24 +167,6 @@ func TestNegamax(t *testing.T) {
 		}
 		if eval != tt.expectEval {
 			t.Errorf("negamax eval[%d]: want=%d, got=%d", i, tt.expectEval, eval)
-		}
-	}
-}
-
-func runEvalTests(t *testing.T, tests []evalTestCase) {
-	for _, tt := range tests {
-		actual := evaluate(tt.cb)
-		if tt.expected != actual {
-			t.Errorf("eval: want=%d, got=%d", tt.expected, actual)
-		}
-	}
-}
-
-func runPawnEvalTests(t *testing.T, tests []evalTestCase) {
-	for _, tt := range tests {
-		actual := evalPawns(tt.cb)
-		if tt.expected != actual {
-			t.Errorf("pawnEval: want=%d, got=%d", tt.expected, actual)
 		}
 	}
 }
