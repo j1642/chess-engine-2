@@ -3,7 +3,9 @@ package engine
 import (
 	"engine2/board"
 	_ "engine2/pieces"
+	"fmt"
 	"testing"
+	"time"
 )
 
 type evalTestCase struct {
@@ -168,5 +170,38 @@ func TestNegamax(t *testing.T) {
 		if eval != tt.expectEval {
 			t.Errorf("negamax eval[%d]: want=%d, got=%d", i, tt.expectEval, eval)
 		}
+	}
+}
+
+func TestIterativeDeepening(t *testing.T) {
+	kiwipete1, err := board.FromFen("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1")
+	if err != nil {
+		t.Error(err)
+	}
+	kiwipete2, err := board.FromFen("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1")
+	if err != nil {
+		t.Error(err)
+	}
+
+	depth := 7
+	start := time.Now()
+	eval1, move1 := iterativeDeepening(kiwipete1, depth)
+	elapsed := time.Since(start)
+	fmt.Println("iter:", elapsed)
+
+	start = time.Now()
+	eval2, move2 := negamax(-(1 << 30), 1<<30, depth, kiwipete2, depth, kiwipete2.HalfMoves)
+	elapsed = time.Since(start)
+	fmt.Println("nega:", elapsed)
+
+	emptyMove := board.Move{}
+	if move1 == emptyMove {
+		t.Errorf("iter deep returned an empty Move")
+	}
+	if move1 != move2 {
+		t.Errorf("iter deep failed: %v != %v", move1, move2)
+	}
+	if eval1 != 1 {
+		t.Errorf("iter deep failed: %d != %d", eval1, eval2)
 	}
 }

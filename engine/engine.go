@@ -3,6 +3,7 @@ package engine
 import (
 	"engine2/board"
 	"engine2/pieces"
+	"fmt"
 	"math/bits"
 )
 
@@ -19,7 +20,8 @@ const MATE = 1 << 20
 var tTable = make(map[uint64]TtEntry, 500_000)
 var Negamax = negamax
 
-func negamax(alpha, beta, depth int, cb *board.Board, orig_depth int, orig_age uint8) (int, board.Move) {
+func negamax(alpha, beta, depth int, cb *board.Board, orig_depth int, orig_age uint8, pvMoves ...board.Move) (int, board.Move) {
+	//fmt.Println("entering negamax()")
 	if depth == 0 {
 		return evaluate(cb), cb.PrevMove
 	}
@@ -36,7 +38,33 @@ func negamax(alpha, beta, depth int, cb *board.Board, orig_depth int, orig_age u
 		return score, cb.PrevMove
 	}
 
+	if len(pvMoves) > 0 {
+		// TODO: this adds a duplicate move, might be faster to linear search and swap with the first item
+		/*
+		   fmt.Println("len pvMoves:", len(pvMoves))
+		*/
+		fmt.Println("orig, depth:", orig_depth, depth)
+		fmt.Println("pvMoves:", pvMoves)
+		foundPvMode := false
+		for _, move := range moves {
+			if move == pvMoves[orig_depth-depth] {
+				foundPvMode = true
+				break
+			}
+		}
+		if !foundPvMode {
+			panic("invalid move in this position?")
+		}
+		moves = append(moves, pvMoves[orig_depth-depth])
+		fmt.Println("pvMove:", pvMoves[orig_depth-depth])
+		moves[0], moves[len(moves)-1] = moves[len(moves)-1], moves[0]
+	}
+	emptyMove := board.Move{}
+
 	for _, move := range moves {
+		if move == emptyMove {
+			panic("empty move")
+		}
 		pieces.MovePiece(move, cb)
 		// Check legality of pseudo-legal moves. King moves are strictly legal already
 		if move.Piece == 'k' || cb.Kings[1^cb.WToMove]&pieces.GetAttackedSquares(cb) == 0 {
@@ -57,20 +85,20 @@ func negamax(alpha, beta, depth int, cb *board.Board, orig_depth int, orig_age u
 				}
 				continue
 			} else {
-				score, _ = negamax(-1*beta, -1*alpha, depth-1, cb, orig_depth, orig_age)
+				score, _ = negamax(-1*beta, -1*alpha, depth-1, cb, orig_depth, orig_age, pvMoves...)
 				score *= -1
 			}
 
 			if score >= beta {
-				tTable[cb.Zobrist] = TtEntry{Hash: cb.Zobrist, Eval: beta, Age: orig_age, Move: move, Node: 'c'}
+				//tTable[cb.Zobrist] = TtEntry{Hash: cb.Zobrist, Eval: beta, Age: orig_age, Move: move, Node: 'c'}
 				board.RestorePosition(pos, cb)
 				return beta, move
 			} else if score > alpha {
 				alpha = score
 				bestMove = move
-				tTable[cb.Zobrist] = TtEntry{Hash: cb.Zobrist, Eval: score, Age: orig_age, Move: bestMove, Node: 'p'}
+				//tTable[cb.Zobrist] = TtEntry{Hash: cb.Zobrist, Eval: score, Age: orig_age, Move: bestMove, Node: 'p'}
 			} else {
-				tTable[cb.Zobrist] = TtEntry{Hash: cb.Zobrist, Eval: score, Age: orig_age, Move: bestMove, Node: 'a'}
+				//tTable[cb.Zobrist] = TtEntry{Hash: cb.Zobrist, Eval: score, Age: orig_age, Move: bestMove, Node: 'a'}
 			}
 		}
 		board.RestorePosition(pos, cb)
@@ -222,4 +250,19 @@ func evaluateMobility(cb *board.Board) int {
 		mobilityEval += oppMoveCount - moveCount
 	}
 	return mobilityEval
+}
+
+// Successively call negamax() with increasing depth. It is generally faster than
+// one search to a given depth
+func iterativeDeepening(cb *board.Board, depth int) (int, board.Move) {
+	var eval int
+	var move board.Move
+	pvMoves := make([]board.Move, 0, depth)
+
+	for ply := 1; ply <= depth; ply++ {
+		eval, move = negamax(-(1 << 30), 1<<30, ply, cb, ply, cb.HalfMoves, pvMoves...)
+		pvMoves = append(pvMoves, move)
+	}
+
+	return eval, move
 }
