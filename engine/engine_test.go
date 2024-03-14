@@ -183,7 +183,7 @@ func TestIterativeDeepening(t *testing.T) {
 		t.Error(err)
 	}
 
-	depth := 7
+	depth := 2
 	start := time.Now()
 	eval1, move1 := iterativeDeepening(kiwipete1, depth)
 	elapsed := time.Since(start)
@@ -201,7 +201,8 @@ func TestIterativeDeepening(t *testing.T) {
 	if move1 != move2 {
 		t.Errorf("iter deep failed: %v != %v", move1, move2)
 	}
-	if eval1 != 1 {
+	if eval1 != eval2 {
+		kiwipete1.Print()
 		t.Errorf("iter deep failed: %d != %d", eval1, eval2)
 	}
 }

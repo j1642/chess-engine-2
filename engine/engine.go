@@ -4,6 +4,7 @@ import (
 	"engine2/board"
 	"engine2/pieces"
 	"fmt"
+	"log"
 	"math/bits"
 )
 
@@ -19,9 +20,9 @@ const MATE = 1 << 20
 
 var tTable = make(map[uint64]TtEntry, 500_000)
 var Negamax = negamax
+var emptyMove = board.Move{}
 
 func negamax(alpha, beta, depth int, cb *board.Board, orig_depth int, orig_age uint8, pvMoves ...board.Move) (int, board.Move) {
-	//fmt.Println("entering negamax()")
 	if depth == 0 {
 		return evaluate(cb), cb.PrevMove
 	}
@@ -38,28 +39,39 @@ func negamax(alpha, beta, depth int, cb *board.Board, orig_depth int, orig_age u
 		return score, cb.PrevMove
 	}
 
-	if len(pvMoves) > 0 {
-		// TODO: this adds a duplicate move, might be faster to linear search and swap with the first item
-		/*
-		   fmt.Println("len pvMoves:", len(pvMoves))
-		*/
+	// PV move given from iter. deepening and the side to move is the original side to move
+	if len(pvMoves) > 0 && pvMoves[orig_depth-depth] != emptyMove { //&& orig_depth % 2 == depth % 2 {
 		fmt.Println("orig, depth:", orig_depth, depth)
 		fmt.Println("pvMoves:", pvMoves)
-		foundPvMode := false
-		for _, move := range moves {
-			if move == pvMoves[orig_depth-depth] {
-				foundPvMode = true
-				break
+		// When orig - depth == 1, a new pvMove needs to be found organically
+		if orig_depth > 1 && depth != 1 {
+			if orig_depth-depth >= len(pvMoves) {
+				log.Fatalf("out of bounds error: len=%d, idx=%d", len(pvMoves), orig_depth-depth)
 			}
+			pvMove := pvMoves[orig_depth-depth]
+			// Linear search confirms the move exists, remove eventually?
+			foundPvMode := false
+			for _, move := range moves {
+				//if move == pvMove[orig_depth-depth] {
+				if move == pvMove {
+					foundPvMode = true
+					break
+				}
+			}
+			if !foundPvMode {
+				cb.Print()
+				// was panicking b/c tried to add white PV move on black's turn
+				//panic("invalid move in this position?")
+				fmt.Println(moves)
+				log.Fatalf("invalid move in this position? move=%v", pvMove)
+			}
+
+			// TODO: this adds a duplicate move, might be faster to linear search and swap with the first item
+			moves = append(moves, pvMoves[orig_depth-depth])
+			fmt.Println("pvMove:", pvMoves[orig_depth-depth])
+			moves[0], moves[len(moves)-1] = moves[len(moves)-1], moves[0]
 		}
-		if !foundPvMode {
-			panic("invalid move in this position?")
-		}
-		moves = append(moves, pvMoves[orig_depth-depth])
-		fmt.Println("pvMove:", pvMoves[orig_depth-depth])
-		moves[0], moves[len(moves)-1] = moves[len(moves)-1], moves[0]
 	}
-	emptyMove := board.Move{}
 
 	for _, move := range moves {
 		if move == emptyMove {
@@ -97,6 +109,16 @@ func negamax(alpha, beta, depth int, cb *board.Board, orig_depth int, orig_age u
 				alpha = score
 				bestMove = move
 				//tTable[cb.Zobrist] = TtEntry{Hash: cb.Zobrist, Eval: score, Age: orig_age, Move: bestMove, Node: 'p'}
+				if len(pvMoves) != 0 {
+					if orig_depth-depth >= len(pvMoves) {
+						fmt.Println("pvMoves:", pvMoves)
+						log.Fatalf("index error: len=%d, idx=%d", len(pvMoves), orig_depth-depth)
+					}
+					if bestMove != emptyMove {
+						pvMoves[orig_depth-depth] = bestMove
+						fmt.Printf("pvMoves[%d] = %v ***************\n", orig_depth-depth, bestMove)
+					}
+				}
 			} else {
 				//tTable[cb.Zobrist] = TtEntry{Hash: cb.Zobrist, Eval: score, Age: orig_age, Move: bestMove, Node: 'a'}
 			}
@@ -104,6 +126,15 @@ func negamax(alpha, beta, depth int, cb *board.Board, orig_depth int, orig_age u
 		board.RestorePosition(pos, cb)
 	}
 
+	/*
+	   if orig_depth-depth >= len(pvMoves) {
+	       log.Fatalf("index error: len=%d, idx=%d", len(pvMoves), orig_depth-depth)
+	   }
+	   if bestMove != emptyMove {
+	       pvMoves[orig_depth-depth] = bestMove
+	       fmt.Printf("pvMoves[%d] = %v ***************\n", orig_depth-depth, bestMove)
+	   }
+	*/
 	return alpha, bestMove
 }
 
@@ -254,14 +285,24 @@ func evaluateMobility(cb *board.Board) int {
 
 // Successively call negamax() with increasing depth. It is generally faster than
 // one search to a given depth
+var IterativeDeepening = iterativeDeepening
+
 func iterativeDeepening(cb *board.Board, depth int) (int, board.Move) {
 	var eval int
 	var move board.Move
-	pvMoves := make([]board.Move, 0, depth)
+	pvMoves := make([]board.Move, depth)
 
 	for ply := 1; ply <= depth; ply++ {
+		fmt.Println("starting ID ply", ply)
+		/*
+		   if move.From == 0 && move.To == 0 {
+		       eval, move = negamax(-(1 << 30), 1<<30, ply, cb, ply, cb.HalfMoves)
+		   } else {
+		*/
 		eval, move = negamax(-(1 << 30), 1<<30, ply, cb, ply, cb.HalfMoves, pvMoves...)
-		pvMoves = append(pvMoves, move)
+		//}
+		pvMoves[0] = move
+		fmt.Println("new [0] pv:", move, "*************")
 	}
 
 	return eval, move
