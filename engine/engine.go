@@ -51,25 +51,25 @@ func negamax(alpha, beta, depth int, cb *board.Board, orig_depth int, orig_age u
 			pvMove := pvMoves[orig_depth-depth]
 			// Linear search confirms the move exists, remove eventually?
 			foundPvMode := false
-			for _, move := range moves {
+			for i, move := range moves {
 				//if move == pvMove[orig_depth-depth] {
 				if move == pvMove {
 					foundPvMode = true
+					moves[0], moves[i] = moves[i], moves[0]
 					break
 				}
 			}
 			if !foundPvMode {
 				cb.Print()
+				fmt.Println("white to move:", cb.WToMove)
 				// was panicking b/c tried to add white PV move on black's turn
 				//panic("invalid move in this position?")
 				fmt.Println(moves)
 				log.Fatalf("invalid move in this position? move=%v", pvMove)
 			}
 
-			// TODO: this adds a duplicate move, might be faster to linear search and swap with the first item
-			moves = append(moves, pvMoves[orig_depth-depth])
-			fmt.Println("pvMove:", pvMoves[orig_depth-depth])
-			moves[0], moves[len(moves)-1] = moves[len(moves)-1], moves[0]
+			// clear pvMove after using because it is only used in one branch of the tree
+			pvMoves[orig_depth-depth] = emptyMove
 		}
 	}
 

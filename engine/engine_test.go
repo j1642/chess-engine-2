@@ -183,7 +183,7 @@ func TestIterativeDeepening(t *testing.T) {
 		t.Error(err)
 	}
 
-	depth := 2
+	depth := 3
 	start := time.Now()
 	eval1, move1 := iterativeDeepening(kiwipete1, depth)
 	elapsed := time.Since(start)
