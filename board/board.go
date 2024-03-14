@@ -25,19 +25,18 @@ type Board struct {
 	KAttacks       [64]uint64
 	SlidingAttacks [8][64]uint64
 
-	KingSqs      [2]int
+	KingSqs      [2]int8
 	CastleRights [2][2]bool // [b, w][queenside, kingside]
 
-	EpSquare  int
+	EpSquare  int8
 	PrevMove  Move
 	Zobrist   uint64
 	HalfMoves uint8
 }
 
 type Move struct {
-	From, To  int
-	Piece     rune
-	PromoteTo rune
+	From, To         int8
+	Piece, PromoteTo uint8
 }
 
 type Zobrist struct {
@@ -71,7 +70,7 @@ func New() *Board {
 		KAttacks:       king_attack_bb,
 		SlidingAttacks: sliding_attack_bb,
 
-		KingSqs:      [2]int{60, 4},
+		KingSqs:      [2]int8{60, 4},
 		CastleRights: [2][2]bool{{true, true}, {true, true}},
 
 		EpSquare: 100,
@@ -148,7 +147,7 @@ func FromFen(fen string) (*Board, error) {
 	// TODO: apply halfmove count
 	var color int
 	cb := &Board{}
-	square := 56
+	square := int8(56)
 	firstSpace := strings.IndexByte(fen, ' ')
 	secondSpace := strings.IndexByte(fen[firstSpace+1:], ' ')
 
@@ -172,7 +171,7 @@ func FromFen(fen string) (*Board, error) {
 		switch {
 		case '1' <= char && char <= '8':
 			// Negate the "square += 1" at the end of the loop
-			square += int(char-'0') - 1
+			square += int8(char-'0') - 1
 		case char == '/':
 			// Negate the "square += 1" at the end of the loop
 			square -= 17
@@ -215,8 +214,8 @@ func FromFen(fen string) (*Board, error) {
 			cb.EpSquare = 100
 		case 'a' <= char && char <= 'h':
 			// rank 1: square=0+column, rank 2: square=8+column, ...
-			rank := 8 * (int(fen[i+firstSpace+1]-'0') - 1)
-			cb.EpSquare = (int(char - 'a')) + rank
+			rank := 8 * (int8(fen[i+firstSpace+1]-'0') - 1)
+			cb.EpSquare = (int8(char - 'a')) + rank
 		}
 	}
 
@@ -234,25 +233,25 @@ func FromFen(fen string) (*Board, error) {
 	return cb, nil
 }
 
-func GetFiles() [4][8]int {
-	fileA, fileB, fileG, fileH := [8]int{}, [8]int{}, [8]int{}, [8]int{}
+func GetFiles() [4][8]int8 {
+	fileA, fileB, fileG, fileH := [8]int8{}, [8]int8{}, [8]int8{}, [8]int8{}
 
-	for i := 0; i < 8; i++ {
+	for i := int8(0); i < 8; i++ {
 		fileA[i] = i * 8
 		fileB[i] = i*8 + 1
 		fileG[i] = i*8 + 6
 		fileH[i] = i*8 + 7
 	}
 
-	return [4][8]int{fileA, fileB, fileG, fileH}
+	return [4][8]int8{fileA, fileB, fileG, fileH}
 }
 
 type IntArray interface {
-	[8]int | [4]int | [3]int
+	[8]int8 | [4]int8 | [3]int8
 }
 
 // Linear search for small arrays
-func ContainsN[T IntArray](n int, nums T) bool {
+func ContainsN[T IntArray](n int8, nums T) bool {
 	for i := 0; i < len(nums); i++ {
 		if n == nums[i] {
 			return true
@@ -304,21 +303,21 @@ func makePawnBBs() [2][64]uint64 {
 
 func makeKnightBBs() [64]uint64 {
 	bbs := [64]uint64{}
-	var directions []int
+	var directions []int8
 	files := GetFiles()
 
-	for sq := 0; sq < 64; sq++ {
+	for sq := int8(0); sq < 64; sq++ {
 		switch {
 		case ContainsN(sq, files[0]):
-			directions = []int{17, 10, -6, -15}
+			directions = []int8{17, 10, -6, -15}
 		case ContainsN(sq, files[1]):
-			directions = []int{17, 15, 10, -6, -17, -15}
+			directions = []int8{17, 15, 10, -6, -17, -15}
 		case ContainsN(sq, files[2]):
-			directions = []int{17, 15, -17, -15, 6, -10}
+			directions = []int8{17, 15, -17, -15, 6, -10}
 		case ContainsN(sq, files[3]):
-			directions = []int{15, -17, 6, -10}
+			directions = []int8{15, -17, 6, -10}
 		default:
-			directions = []int{17, 15, 10, -6, -17, -15, 6, -10}
+			directions = []int8{17, 15, 10, -6, -17, -15, 6, -10}
 		}
 
 		for _, d := range directions {
@@ -334,19 +333,19 @@ func makeKnightBBs() [64]uint64 {
 
 func makeKingBBs() [64]uint64 {
 	bbs := [64]uint64{}
-	var directions []int
+	var directions []int8
 	files := GetFiles()
 
-	for sq := 0; sq < 64; sq++ {
+	for sq := int8(0); sq < 64; sq++ {
 		switch {
 		// file A
 		case ContainsN(sq, files[0]):
-			directions = []int{8, 9, 1, -7, -8}
+			directions = []int8{8, 9, 1, -7, -8}
 		// file H
 		case ContainsN(sq, files[3]):
-			directions = []int{8, 7, -1, -9, -8}
+			directions = []int8{8, 7, -1, -9, -8}
 		default:
-			directions = []int{7, 8, 9, -1, 1, -9, -8, -7}
+			directions = []int8{7, 8, 9, -1, 1, -9, -8, -7}
 		}
 
 		for _, d := range directions {
@@ -363,19 +362,19 @@ func makeKingBBs() [64]uint64 {
 func makeSlidingAttackBBs() [8][64]uint64 {
 	bbs := [8][64]uint64{}
 	files := GetFiles()
-	fileAForbidden := [3]int{-9, -1, 7}
-	fileHForbidden := [3]int{9, 1, -7}
+	fileAForbidden := [3]int8{-9, -1, 7}
+	fileHForbidden := [3]int8{9, 1, -7}
 
 	// Movement directions are ordered clockwise, starting from north
-	for i, dir := range [8]int{8, 9, 1, -7, -8, -9, -1, 7} {
-		for sq := 0; sq < 64; sq++ {
+	for i, dir := range [8]int8{8, 9, 1, -7, -8, -9, -1, 7} {
+		for sq := int8(0); sq < 64; sq++ {
 			if ContainsN(sq, files[0]) && ContainsN(dir, fileAForbidden) {
 				continue
 			} else if ContainsN(sq, files[3]) && ContainsN(dir, fileHForbidden) {
 				continue
 			}
 
-			for j := 1; j < 8; j++ {
+			for j := int8(1); j < 8; j++ {
 				newSq := j*dir + sq
 				if newSq < 0 || newSq > 63 {
 					break
@@ -404,10 +403,10 @@ type Position struct {
 	Queens  [2]uint64
 	Kings   [2]uint64
 
-	KingSqs      [2]int
+	KingSqs      [2]int8
 	CastleRights [2][2]bool
 
-	EpSquare  int
+	EpSquare  int8
 	PrevMove  Move
 	Zobrist   uint64
 	HalfMoves uint8

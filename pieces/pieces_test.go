@@ -240,7 +240,7 @@ func TestIsValidMove(t *testing.T) {
 
 func TestMovePiece(t *testing.T) {
 	cb := board.New()
-	MovePiece(board.Move{To: 8, From: 16, Piece: 'p', PromoteTo: ' '}, cb)
+	MovePiece(board.Move{To: 8, From: 16, Piece: PAWN, PromoteTo: NO_PIECE}, cb)
 
 	if cb.WToMove != 0 {
 		t.Errorf("WToMove: want=0, got=%d", cb.WToMove)
@@ -253,13 +253,13 @@ func TestMovePiece(t *testing.T) {
 		t.Errorf("wPieces: want=\n%b,\ngot=\n%b",
 			uint64(1<<17)-1-1<<8, cb.Pieces[1])
 	}
-	MovePiece(board.Move{From: 57, To: 42, Piece: 'n', PromoteTo: ' '}, cb)
-	MovePiece(board.Move{From: 16, To: 24, Piece: 'p', PromoteTo: ' '}, cb)
+	MovePiece(board.Move{From: 57, To: 42, Piece: KNIGHT, PromoteTo: NO_PIECE}, cb)
+	MovePiece(board.Move{From: 16, To: 24, Piece: PAWN, PromoteTo: NO_PIECE}, cb)
 	// Waiting move by ng8
-	MovePiece(board.Move{From: 62, To: 45, Piece: 'n', PromoteTo: ' '}, cb)
-	MovePiece(board.Move{From: 24, To: 32, Piece: 'p', PromoteTo: ' '}, cb)
+	MovePiece(board.Move{From: 62, To: 45, Piece: KNIGHT, PromoteTo: NO_PIECE}, cb)
+	MovePiece(board.Move{From: 24, To: 32, Piece: PAWN, PromoteTo: NO_PIECE}, cb)
 
-	MovePiece(board.Move{From: 42, To: 32, Piece: 'n', PromoteTo: ' '}, cb)
+	MovePiece(board.Move{From: 42, To: 32, Piece: KNIGHT, PromoteTo: NO_PIECE}, cb)
 
 	if cb.WToMove != 1 {
 		t.Errorf("WToMove: want=1, got=%d", cb.WToMove)
@@ -291,7 +291,7 @@ func TestPromotePawn(t *testing.T) {
 		Pawns:   [2]uint64{1 << 1, 1 << 63},
 		Queens:  [2]uint64{0, 0},
 	}
-	promotePawn(uint64(1<<63), 63, cb, 'q')
+	promotePawn(uint64(1<<63), 63, cb, QUEEN)
 
 	if cb.Pawns[1] != uint64(0) {
 		t.Errorf("pawn did not promote: want=0, got=%b", cb.Pawns[1])
@@ -318,7 +318,7 @@ func TestCastling(t *testing.T) {
 		t.Error(err)
 	}
 
-	MovePiece(board.Move{From: 4, To: 2, Piece: 'k', PromoteTo: ' '}, cb)
+	MovePiece(board.Move{From: 4, To: 2, Piece: KING, PromoteTo: NO_PIECE}, cb)
 	if cb.Kings[1] != uint64(1<<2) {
 		t.Errorf("w king did not castle queenside. want=2, got=%v", read1Bits(cb.Kings[1]))
 	}
@@ -329,7 +329,7 @@ func TestCastling(t *testing.T) {
 		t.Errorf("w king castle rights: want=[false false], got=%v", cb.CastleRights[1])
 	}
 
-	MovePiece(board.Move{From: 60, To: 62, Piece: 'k', PromoteTo: ' '}, cb)
+	MovePiece(board.Move{From: 60, To: 62, Piece: KING, PromoteTo: NO_PIECE}, cb)
 	if cb.Kings[0] != uint64(1<<62) {
 		t.Errorf("b king did not castle kingside. want=62, got=%v", read1Bits(cb.Kings[0]))
 	}
@@ -348,7 +348,7 @@ func TestCastlingRightsLostByRookMoveAndCapture(t *testing.T) {
 		t.Error(err)
 	}
 
-	MovePiece(board.Move{From: 0, To: 56, Piece: 'r', PromoteTo: ' '}, cb)
+	MovePiece(board.Move{From: 0, To: 56, Piece: ROOK, PromoteTo: NO_PIECE}, cb)
 	if cb.Rooks[1] != uint64(1<<7+1<<56) {
 		t.Errorf("wrong rook squares: want=[7, 56], got=%v", read1Bits(cb.Rooks[1]))
 	}
@@ -359,7 +359,7 @@ func TestCastlingRightsLostByRookMoveAndCapture(t *testing.T) {
 		t.Errorf("b king castle rights: want=[false true], got=%v", cb.CastleRights[0])
 	}
 
-	MovePiece(board.Move{From: 63, To: 7, Piece: 'r', PromoteTo: ' '}, cb)
+	MovePiece(board.Move{From: 63, To: 7, Piece: ROOK, PromoteTo: NO_PIECE}, cb)
 	if cb.Rooks[0] != uint64(1<<7) {
 		t.Errorf("wrong rook squares: want=7, got=%v", read1Bits(cb.Rooks[0]))
 	}
@@ -448,7 +448,7 @@ func TestFillFromTo(t *testing.T) {
 }
 
 type intIntTestCase struct {
-	expected, actual int
+	expected, actual int8
 }
 
 func TestFindDirection(t *testing.T) {
@@ -573,14 +573,14 @@ func TestGetAllMoves(t *testing.T) {
 	tests := []allMovesTestCase{
 		{
 			// One checking piece which can be captured or blocked.
-			expected: []board.Move{{From: 6, To: 5, Piece: 'k', PromoteTo: ' '},
-				{From: 6, To: 7, Piece: 'k', PromoteTo: ' '},
-				{From: 6, To: 13, Piece: 'k', PromoteTo: ' '},
-				{From: 6, To: 15, Piece: 'k', PromoteTo: ' '},
-				{From: 2, To: 38, Piece: 'b', PromoteTo: ' '},
-				{From: 56, To: 62, Piece: 'r', PromoteTo: ' '},
-				{From: 63, To: 62, Piece: 'r', PromoteTo: ' '},
-				{From: 3, To: 30, Piece: 'q', PromoteTo: ' '}},
+			expected: []board.Move{{From: 6, To: 5, Piece: KING, PromoteTo: NO_PIECE},
+				{From: 6, To: 7, Piece: KING, PromoteTo: NO_PIECE},
+				{From: 6, To: 13, Piece: KING, PromoteTo: NO_PIECE},
+				{From: 6, To: 15, Piece: KING, PromoteTo: NO_PIECE},
+				{From: 2, To: 38, Piece: BISHOP, PromoteTo: NO_PIECE},
+				{From: 56, To: 62, Piece: ROOK, PromoteTo: NO_PIECE},
+				{From: 63, To: 62, Piece: ROOK, PromoteTo: NO_PIECE},
+				{From: 3, To: 30, Piece: QUEEN, PromoteTo: NO_PIECE}},
 			actual: GetAllMoves(cb),
 		},
 	}
@@ -591,10 +591,10 @@ func TestGetAllMoves(t *testing.T) {
 	}
 	tests = append(tests, allMovesTestCase{
 		// Two checking pieces, so only the king can move.
-		expected: []board.Move{{From: 6, To: 5, Piece: 'k', PromoteTo: ' '},
-			{From: 6, To: 7, Piece: 'k', PromoteTo: ' '},
-			{From: 6, To: 13, Piece: 'k', PromoteTo: ' '},
-			{From: 6, To: 15, Piece: 'k', PromoteTo: ' '}},
+		expected: []board.Move{{From: 6, To: 5, Piece: KING, PromoteTo: NO_PIECE},
+			{From: 6, To: 7, Piece: KING, PromoteTo: NO_PIECE},
+			{From: 6, To: 13, Piece: KING, PromoteTo: NO_PIECE},
+			{From: 6, To: 15, Piece: KING, PromoteTo: NO_PIECE}},
 		actual: GetAllMoves(cb1),
 	})
 
@@ -604,7 +604,7 @@ func TestGetAllMoves(t *testing.T) {
 	}
 	tests = append(tests, allMovesTestCase{
 		// Only one move is possible: pawn blocks check.
-		expected: []board.Move{{From: 54, To: 46, Piece: 'p', PromoteTo: ' '}},
+		expected: []board.Move{{From: 54, To: 46, Piece: PAWN, PromoteTo: NO_PIECE}},
 		actual:   GetAllMoves(cb2),
 	})
 
@@ -613,9 +613,9 @@ func TestGetAllMoves(t *testing.T) {
 		t.Error(err)
 	}
 	tests = append(tests, allMovesTestCase{
-		expected: []board.Move{{From: 13, To: 4, Piece: 'k', PromoteTo: ' '},
-			{From: 13, To: 22, Piece: 'k', PromoteTo: ' '},
-			{From: 21, To: 30, Piece: 'p', PromoteTo: ' '}},
+		expected: []board.Move{{From: 13, To: 4, Piece: KING, PromoteTo: NO_PIECE},
+			{From: 13, To: 22, Piece: KING, PromoteTo: NO_PIECE},
+			{From: 21, To: 30, Piece: PAWN, PromoteTo: NO_PIECE}},
 		actual: GetAllMoves(cb3),
 	})
 
@@ -624,13 +624,13 @@ func TestGetAllMoves(t *testing.T) {
 		t.Error(err)
 	}
 	tests = append(tests, allMovesTestCase{
-		expected: []board.Move{{From: 20, To: 11, Piece: 'k', PromoteTo: ' '},
-			{From: 20, To: 12, Piece: 'k', PromoteTo: ' '},
-			{From: 20, To: 13, Piece: 'k', PromoteTo: ' '},
-			{From: 20, To: 27, Piece: 'k', PromoteTo: ' '},
-			{From: 20, To: 28, Piece: 'k', PromoteTo: ' '},
-			{From: 20, To: 29, Piece: 'k', PromoteTo: ' '},
-			{From: 7, To: 22, Piece: 'n', PromoteTo: ' '}},
+		expected: []board.Move{{From: 20, To: 11, Piece: KING, PromoteTo: NO_PIECE},
+			{From: 20, To: 12, Piece: KING, PromoteTo: NO_PIECE},
+			{From: 20, To: 13, Piece: KING, PromoteTo: NO_PIECE},
+			{From: 20, To: 27, Piece: KING, PromoteTo: NO_PIECE},
+			{From: 20, To: 28, Piece: KING, PromoteTo: NO_PIECE},
+			{From: 20, To: 29, Piece: KING, PromoteTo: NO_PIECE},
+			{From: 7, To: 22, Piece: KNIGHT, PromoteTo: NO_PIECE}},
 		actual: GetAllMoves(cb4),
 	})
 
@@ -639,7 +639,7 @@ func TestGetAllMoves(t *testing.T) {
 
 func TestRead1Bits(t *testing.T) {
 	nums := read1Bits(uint64(0b11001))
-	expected := []int{0, 3, 4}
+	expected := []int8{0, 3, 4}
 
 	for i, num := range nums {
 		if num != expected[i] {
@@ -671,7 +671,7 @@ func perft(depth int, cb *board.Board) int {
 
 	for _, toFrom := range moves {
 		MovePiece(toFrom, cb)
-		if toFrom.Piece == 'k' || cb.Kings[1^cb.WToMove]&GetAttackedSquares(cb) == 0 {
+		if toFrom.Piece == KING || cb.Kings[1^cb.WToMove]&GetAttackedSquares(cb) == 0 {
 			nodes += perft(depth-1, cb)
 		}
 		board.RestorePosition(pos, cb)
@@ -779,7 +779,7 @@ func TestSlidingPiecesMovesLookup(t *testing.T) {
 		if (1<<square)&kiwipete.Pieces[0] != 0 {
 			kiwipete.WToMove = 0
 		}
-		calcMoves := calculateRookMoves(square, kiwipete)
+		calcMoves := calculateRookMoves(int(square), kiwipete)
 		lookupMoves := lookupRookMoves(square, kiwipete)
 		if calcMoves != lookupMoves {
 			t.Errorf("for a rook on sq %d, calculated moves != magic BB moves, calc=%v, lookup=%v",
@@ -794,7 +794,7 @@ func TestSlidingPiecesMovesLookup(t *testing.T) {
 		if (1<<square)&kiwipete.Pieces[0] != 0 {
 			kiwipete.WToMove = 0
 		}
-		calcMoves := calculateBishopMoves(square, kiwipete)
+		calcMoves := calculateBishopMoves(int(square), kiwipete)
 		lookupMoves := lookupBishopMoves(square, kiwipete)
 		if calcMoves != lookupMoves {
 			t.Errorf("for a bishop on sq %d, calculated moves != magic BB moves, calc=%v, lookup=%v",
@@ -812,7 +812,7 @@ func TestZobristHashing(t *testing.T) {
 	}
 	curZobrist := cb.Zobrist
 
-	MovePiece(board.Move{From: 0, To: 56, Piece: 'r', PromoteTo: ' '}, cb)
+	MovePiece(board.Move{From: 0, To: 56, Piece: ROOK, PromoteTo: NO_PIECE}, cb)
 	curZobrist ^= board.ZobristKeys.ColorPieceSq[1][3][0]
 	curZobrist ^= board.ZobristKeys.ColorPieceSq[1][3][56]
 	curZobrist ^= board.ZobristKeys.ColorPieceSq[0][3][56]
@@ -822,7 +822,7 @@ func TestZobristHashing(t *testing.T) {
 		t.Errorf("zobrist: want=%d, got=%d", curZobrist, cb.Zobrist)
 	}
 
-	MovePiece(board.Move{From: 63, To: 7, Piece: 'r', PromoteTo: ' '}, cb)
+	MovePiece(board.Move{From: 63, To: 7, Piece: ROOK, PromoteTo: NO_PIECE}, cb)
 	curZobrist ^= board.ZobristKeys.ColorPieceSq[0][3][63]
 	curZobrist ^= board.ZobristKeys.ColorPieceSq[0][3][7]
 	curZobrist ^= board.ZobristKeys.ColorPieceSq[1][3][7]
@@ -832,7 +832,7 @@ func TestZobristHashing(t *testing.T) {
 		t.Errorf("zobrist: want=%d, got=%d", curZobrist, cb.Zobrist)
 	}
 
-	MovePiece(board.Move{From: 49, To: 57, Piece: 'p', PromoteTo: 'q'}, cb)
+	MovePiece(board.Move{From: 49, To: 57, Piece: PAWN, PromoteTo: QUEEN}, cb)
 	curZobrist ^= board.ZobristKeys.ColorPieceSq[1][0][49]
 	curZobrist ^= board.ZobristKeys.ColorPieceSq[1][4][57]
 	curZobrist ^= board.ZobristKeys.BToMove
@@ -840,7 +840,7 @@ func TestZobristHashing(t *testing.T) {
 		t.Errorf("zobrist: want=%d, got=%d", curZobrist, cb.Zobrist)
 	}
 
-	MovePiece(board.Move{From: 50, To: 34, Piece: 'p', PromoteTo: ' '}, cb)
+	MovePiece(board.Move{From: 50, To: 34, Piece: PAWN, PromoteTo: NO_PIECE}, cb)
 	curZobrist ^= board.ZobristKeys.ColorPieceSq[0][0][50]
 	curZobrist ^= board.ZobristKeys.ColorPieceSq[0][0][34]
 	curZobrist ^= board.ZobristKeys.BToMove

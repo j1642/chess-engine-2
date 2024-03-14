@@ -2,7 +2,7 @@ package engine
 
 import (
 	"engine2/board"
-	_ "engine2/pieces"
+	"engine2/pieces"
 	"fmt"
 	"testing"
 	"time"
@@ -150,13 +150,13 @@ func TestNegamax(t *testing.T) {
 	// TODO: Some of the expectEval might be wrong
 	// mate is detected when the side to move cannot move, so the depth arg needs an extra ply
 	tests := []searchTestCase{
-		{cb: wRookCapturesBRook, expectEval: 62, expectMove: board.Move{From: 0, To: 1, Piece: 'r', PromoteTo: ' '}, depth: 1},
-		{cb: bRookCapturesWRook, expectEval: 62, expectMove: board.Move{From: 0, To: 1, Piece: 'r', PromoteTo: ' '}, depth: 1},
+		{cb: wRookCapturesBRook, expectEval: 62, expectMove: board.Move{From: 0, To: 1, Piece: pieces.ROOK, PromoteTo: pieces.NO_PIECE}, depth: 1},
+		{cb: bRookCapturesWRook, expectEval: 62, expectMove: board.Move{From: 0, To: 1, Piece: pieces.ROOK, PromoteTo: pieces.NO_PIECE}, depth: 1},
 		{cb: mateDepth0, expectEval: -MATE, expectMove: board.Move{From: 0, To: 0, Piece: 0, PromoteTo: 0}, depth: 0},
 		{cb: mateDepth1, expectEval: -MATE, expectMove: board.Move{From: 0, To: 0, Piece: 0, PromoteTo: 0}, depth: 1},
-		{cb: mateIn2Ply, expectEval: MATE, expectMove: board.Move{From: 10, To: 46, Piece: 'b', PromoteTo: ' '}, depth: 2},
-		{cb: mateIn3Ply, expectEval: -MATE, expectMove: board.Move{From: 55, To: 46, Piece: 'p', PromoteTo: ' '}, depth: 3},
-		{cb: mateIn4Ply, expectEval: MATE, expectMove: board.Move{From: 37, To: 46, Piece: 'q', PromoteTo: ' '}, depth: 4},
+		{cb: mateIn2Ply, expectEval: MATE, expectMove: board.Move{From: 10, To: 46, Piece: pieces.BISHOP, PromoteTo: pieces.NO_PIECE}, depth: 2},
+		{cb: mateIn3Ply, expectEval: -MATE, expectMove: board.Move{From: 55, To: 46, Piece: pieces.PAWN, PromoteTo: pieces.NO_PIECE}, depth: 3},
+		{cb: mateIn4Ply, expectEval: MATE, expectMove: board.Move{From: 37, To: 46, Piece: pieces.QUEEN, PromoteTo: pieces.NO_PIECE}, depth: 4},
 	}
 
 	for i, tt := range tests {

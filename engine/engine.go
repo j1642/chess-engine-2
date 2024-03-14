@@ -240,7 +240,7 @@ func evaluateMobility(cb *board.Board) int {
 	// Include pawn forward moves
 	pawnsBB := cb.Pawns[cb.WToMove]
 	for pawnsBB > 0 {
-		movesBB |= pieces.GetPawnMoves(bits.TrailingZeros64(pawnsBB), cb)
+		movesBB |= pieces.GetPawnMoves(int8(bits.TrailingZeros64(pawnsBB)), cb)
 		pawnsBB &= pawnsBB - 1
 	}
 	movesBB &= ^cb.Pieces[cb.WToMove]
@@ -252,7 +252,7 @@ func evaluateMobility(cb *board.Board) int {
 	// Include pawn forward moves
 	oppPawnsBB := cb.Pawns[cb.WToMove]
 	for oppPawnsBB > 0 {
-		oppMovesBB |= pieces.GetPawnMoves(bits.TrailingZeros64(oppPawnsBB), cb)
+		oppMovesBB |= pieces.GetPawnMoves(int8(bits.TrailingZeros64(oppPawnsBB)), cb)
 		oppPawnsBB &= oppPawnsBB - 1
 	}
 	oppMovesBB &= ^cb.Pieces[cb.WToMove]

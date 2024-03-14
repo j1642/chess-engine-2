@@ -62,6 +62,16 @@ var bishopRelevantOccs [64]uint64
 var bishopOneBitCounts [64]int
 var bishopAttackBBs [64][512]uint64 = buildBishopMagicBB()
 
+const (
+	PAWN     = uint8(0)
+	KNIGHT   = uint8(1)
+	BISHOP   = uint8(2)
+	ROOK     = uint8(3)
+	QUEEN    = uint8(4)
+	KING     = uint8(5)
+	NO_PIECE = uint8(9)
+)
+
 func MovePiece(move board.Move, cb *board.Board) {
 	// TODO: Refactor to remove switch?
 	fromBB := uint64(1 << move.From)
@@ -77,7 +87,7 @@ func MovePiece(move board.Move, cb *board.Board) {
 	cb.Pieces[cb.WToMove] ^= fromBB + toBB
 
 	switch move.Piece {
-	case 'p':
+	case PAWN:
 		cb.Pawns[cb.WToMove] ^= fromBB + toBB
 		if move.To-move.From == 16 || move.To-move.From == -16 {
 			cb.EpSquare = (move.To + move.From) / 2
@@ -101,17 +111,17 @@ func MovePiece(move board.Move, cb *board.Board) {
 		}
 		cb.Zobrist ^= board.ZobristKeys.ColorPieceSq[cb.WToMove][0][move.From]
 		cb.HalfMoves = 1
-	case 'n':
+	case KNIGHT:
 		cb.Knights[cb.WToMove] ^= fromBB + toBB
 		cb.EpSquare = 100
 		cb.Zobrist ^= board.ZobristKeys.ColorPieceSq[cb.WToMove][1][move.From]
 		cb.Zobrist ^= board.ZobristKeys.ColorPieceSq[cb.WToMove][1][move.To]
-	case 'b':
+	case BISHOP:
 		cb.Bishops[cb.WToMove] ^= fromBB + toBB
 		cb.EpSquare = 100
 		cb.Zobrist ^= board.ZobristKeys.ColorPieceSq[cb.WToMove][2][move.From]
 		cb.Zobrist ^= board.ZobristKeys.ColorPieceSq[cb.WToMove][2][move.To]
-	case 'r':
+	case ROOK:
 		cb.Rooks[cb.WToMove] ^= fromBB + toBB
 		if move.From == 0 || move.From == 56 {
 			if cb.CastleRights[cb.WToMove][0] == true {
@@ -127,12 +137,12 @@ func MovePiece(move board.Move, cb *board.Board) {
 		cb.EpSquare = 100
 		cb.Zobrist ^= board.ZobristKeys.ColorPieceSq[cb.WToMove][3][move.From]
 		cb.Zobrist ^= board.ZobristKeys.ColorPieceSq[cb.WToMove][3][move.To]
-	case 'q':
+	case QUEEN:
 		cb.Queens[cb.WToMove] ^= fromBB + toBB
 		cb.EpSquare = 100
 		cb.Zobrist ^= board.ZobristKeys.ColorPieceSq[cb.WToMove][4][move.From]
 		cb.Zobrist ^= board.ZobristKeys.ColorPieceSq[cb.WToMove][4][move.To]
-	case 'k':
+	case KING:
 		if move.To-move.From == 2 || move.To-move.From == -2 {
 			if cb.CastleRights[cb.WToMove][0] && (move.To == 2 || move.To == 58) {
 				cb.Rooks[cb.WToMove] ^= uint64(1<<(move.To-2) + 1<<(move.To+1))
@@ -157,7 +167,7 @@ func MovePiece(move board.Move, cb *board.Board) {
 		cb.EpSquare = 100
 		cb.Zobrist ^= board.ZobristKeys.ColorPieceSq[cb.WToMove][5][move.From]
 		cb.Zobrist ^= board.ZobristKeys.ColorPieceSq[cb.WToMove][5][move.To]
-	case ' ':
+	case NO_PIECE:
 		break
 	default:
 		panic("empty or invalid piece type")
@@ -169,7 +179,7 @@ func MovePiece(move board.Move, cb *board.Board) {
 	cb.HalfMoves += 1
 }
 
-func capturePiece(squareBB uint64, square int, cb *board.Board) {
+func capturePiece(squareBB uint64, square int8, cb *board.Board) {
 	opponent := 1 ^ cb.WToMove
 	cb.Pieces[opponent] ^= squareBB
 	cb.HalfMoves = 1
@@ -209,21 +219,21 @@ func capturePiece(squareBB uint64, square int, cb *board.Board) {
 	}
 }
 
-func promotePawn(toBB uint64, square int, cb *board.Board, promoteTo ...rune) {
+func promotePawn(toBB uint64, square int8, cb *board.Board, promoteTo ...uint8) {
 	// TODO: Else never triggers b/c move.promoteTo always has a string
 	// Change to 'if promotoTo != ""'
 	if len(promoteTo) == 1 {
 		switch {
-		case promoteTo[0] == 'q':
+		case promoteTo[0] == QUEEN:
 			cb.Queens[cb.WToMove] ^= toBB
 			cb.Zobrist ^= board.ZobristKeys.ColorPieceSq[cb.WToMove][4][square]
-		case promoteTo[0] == 'n':
+		case promoteTo[0] == KNIGHT:
 			cb.Knights[cb.WToMove] ^= toBB
 			cb.Zobrist ^= board.ZobristKeys.ColorPieceSq[cb.WToMove][1][square]
-		case promoteTo[0] == 'b':
+		case promoteTo[0] == BISHOP:
 			cb.Bishops[cb.WToMove] ^= toBB
 			cb.Zobrist ^= board.ZobristKeys.ColorPieceSq[cb.WToMove][2][square]
-		case promoteTo[0] == 'r':
+		case promoteTo[0] == ROOK:
 			cb.Rooks[cb.WToMove] ^= toBB
 			cb.Zobrist ^= board.ZobristKeys.ColorPieceSq[cb.WToMove][3][square]
 		default:
@@ -233,7 +243,8 @@ func promotePawn(toBB uint64, square int, cb *board.Board, promoteTo ...rune) {
 		fmt.Print("promote pawn to N, B, R, or Q: ")
 		userPromote := getUserInput()
 
-		if userPromote == 'q' || userPromote == 'n' || userPromote == 'b' || userPromote == 'r' {
+		if userPromote == QUEEN || userPromote == KNIGHT || userPromote == BISHOP ||
+			userPromote == ROOK {
 			promotePawn(toBB, square, cb, userPromote)
 		} else {
 			fmt.Println("invalid promotion type, try again")
@@ -244,7 +255,7 @@ func promotePawn(toBB uint64, square int, cb *board.Board, promoteTo ...rune) {
 	cb.Pawns[cb.WToMove] ^= toBB
 }
 
-func getUserInput() rune {
+func getUserInput() uint8 {
 	scanner := bufio.NewScanner(os.Stdin)
 	scanner.Scan()
 	err := scanner.Err()
@@ -253,20 +264,33 @@ func getUserInput() rune {
 		return getUserInput()
 	}
 	// TODO: make sure this returns the first rune, not the first byte
-	return rune(strings.ToLower(scanner.Text())[0])
+	var piece uint8
+	switch strings.ToLower(scanner.Text())[0] {
+	case byte('n'):
+		piece = KNIGHT
+	case byte('b'):
+		piece = BISHOP
+	case byte('r'):
+		piece = ROOK
+	case byte('q'):
+		piece = QUEEN
+	default:
+		return getUserInput()
+	}
+	return piece
 }
 
 // Use for user-submitted moves only?
 // Checks for blocking pieces and disallows captures of friendly pieces.
 // Does not consider check, pins, or legality of a pawn movement direction.
-func isValidMove(from, to int, pieceType string, cb *board.Board) bool {
+func isValidMove(from, to int8, pieceType string, cb *board.Board) bool {
 	if from < 0 || from > 63 || to < 0 || to > 63 || to == from {
 		return false
 	}
 	toBB := uint64(1 << to)
 	diff := to - from
 	// to == from already excluded, no 0 move bugs from pawnDirections.
-	pawnDirections := [2][4]int{{-7, -8, -9, -16},
+	pawnDirections := [2][4]int8{{-7, -8, -9, -16},
 		{7, 8, 9, 16},
 	}
 
@@ -340,7 +364,7 @@ func calculateRookMoves(square int, cb *board.Board) uint64 {
 	return moves
 }
 
-func lookupRookMoves(square int, cb *board.Board) uint64 {
+func lookupRookMoves(square int8, cb *board.Board) uint64 {
 	occupied := cb.Pieces[0] | cb.Pieces[1]
 	masked_blockers := rookRelevantOccs[square] & occupied
 	idx := (masked_blockers * rookMagics[square]) >> (64 - rookOneBitCounts[square])
@@ -411,7 +435,7 @@ func buildRookMagicBB() [64][4096]uint64 {
 	return rookAttackBBs
 }
 
-func GetPawnMoves(square int, cb *board.Board) uint64 {
+func GetPawnMoves(square int8, cb *board.Board) uint64 {
 	opponent := 1 ^ cb.WToMove
 
 	if square < 8 || square > 55 {
@@ -420,7 +444,7 @@ func GetPawnMoves(square int, cb *board.Board) uint64 {
 
 	moves := cb.PAttacks[cb.WToMove][square] & (cb.Pieces[opponent] | uint64(1<<cb.EpSquare))
 
-	var dir, low, high int
+	var dir, low, high int8
 	if cb.WToMove == 1 {
 		dir = 8
 		low = 7
@@ -441,7 +465,7 @@ func GetPawnMoves(square int, cb *board.Board) uint64 {
 	return moves
 }
 
-func getKnightMoves(square int, cb *board.Board) uint64 {
+func getKnightMoves(square int8, cb *board.Board) uint64 {
 	return cb.NAttacks[square]
 }
 
@@ -471,7 +495,7 @@ func calculateBishopMoves(square int, cb *board.Board) uint64 {
 	return moves
 }
 
-func lookupBishopMoves(square int, cb *board.Board) uint64 {
+func lookupBishopMoves(square int8, cb *board.Board) uint64 {
 	occupied := cb.Pieces[0] | cb.Pieces[1]
 	masked_blockers := bishopRelevantOccs[square] & occupied
 	idx := (masked_blockers * bishopMagics[square]) >> (64 - bishopOneBitCounts[square])
@@ -542,12 +566,12 @@ func buildBishopMagicBB() [64][512]uint64 {
 	return bishopAttackBBs
 }
 
-func getQueenMoves(square int, cb *board.Board) uint64 {
+func getQueenMoves(square int8, cb *board.Board) uint64 {
 	return lookupRookMoves(square, cb) | lookupBishopMoves(square, cb)
 }
 
 // Return legal king moves.
-func GetKingMoves(square int, oppAttackedSquares uint64, cb *board.Board) uint64 {
+func GetKingMoves(square int8, oppAttackedSquares uint64, cb *board.Board) uint64 {
 	occupied := cb.Pieces[0] | cb.Pieces[1]
 	moves := cb.KAttacks[square] & ^oppAttackedSquares & ^cb.Pieces[cb.WToMove]
 
@@ -591,17 +615,17 @@ func GetAttackedSquares(cb *board.Board) uint64 {
 	}
 	bb = cb.Bishops[cb.WToMove]
 	for bb > 0 {
-		attackSquares |= lookupBishopMoves(bits.TrailingZeros64(bb), cb)
+		attackSquares |= lookupBishopMoves(int8(bits.TrailingZeros64(bb)), cb)
 		bb &= bb - 1
 	}
 	bb = cb.Rooks[cb.WToMove]
 	for bb > 0 {
-		attackSquares |= lookupRookMoves(bits.TrailingZeros64(bb), cb)
+		attackSquares |= lookupRookMoves(int8(bits.TrailingZeros64(bb)), cb)
 		bb &= bb - 1
 	}
 	bb = cb.Queens[cb.WToMove]
 	for bb > 0 {
-		attackSquares |= getQueenMoves(bits.TrailingZeros64(bb), cb)
+		attackSquares |= getQueenMoves(int8(bits.TrailingZeros64(bb)), cb)
 		bb &= bb - 1
 	}
 	// Do not include castling.
@@ -610,8 +634,7 @@ func GetAttackedSquares(cb *board.Board) uint64 {
 	return attackSquares
 }
 
-type moveGenFunc func(int, *board.Board) uint64
-type readBitsFunc func(uint64) []int
+type moveGenFunc func(int8, *board.Board) uint64
 
 // Return slice of all pseudo-legal moves for color cb.WToMove, where any king
 // moves are strictly legal. However, if the king is in check, only legal moves
@@ -634,9 +657,10 @@ func GetAllMoves(cb *board.Board) []board.Move {
 	kingSq := cb.KingSqs[cb.WToMove]
 	kingMovesBB := GetKingMoves(kingSq, attackedSquares, cb) & ^cb.Pieces[cb.WToMove]
 
+	var toSq int8
 	for kingMovesBB > 0 {
-		toSq := bits.TrailingZeros64(kingMovesBB)
-		allMoves = append(allMoves, board.Move{From: kingSq, To: toSq, Piece: 'k', PromoteTo: ' '})
+		toSq = int8(bits.TrailingZeros64(kingMovesBB))
+		allMoves = append(allMoves, board.Move{From: kingSq, To: toSq, Piece: KING, PromoteTo: NO_PIECE})
 		kingMovesBB &= kingMovesBB - 1
 	}
 
@@ -651,27 +675,28 @@ func GetAllMoves(cb *board.Board) []board.Move {
 	moveFuncs := [5]moveGenFunc{GetPawnMoves, getKnightMoves, lookupBishopMoves,
 		lookupRookMoves, getQueenMoves,
 	}
-	symbols := [5]rune{'p', 'n', 'b', 'r', 'q'}
+	symbols := [5]uint8{PAWN, KNIGHT, BISHOP, ROOK, QUEEN}
 
 	// 29% perft() speed up and -40% malloc from having this loop in this function
+	var fromSq int8
 	for i, pieceBB := range pieces {
 		for pieceBB > 0 {
-			fromSq := bits.TrailingZeros64(pieceBB)
+			fromSq = int8(bits.TrailingZeros64(pieceBB))
 			pieceBB &= pieceBB - 1
 
 			movesBB := moveFuncs[i](fromSq, cb) & ^cb.Pieces[cb.WToMove]
 			for movesBB > 0 {
-				toSq := bits.TrailingZeros64(movesBB)
+				toSq = int8(bits.TrailingZeros64(movesBB))
 				movesBB &= movesBB - 1
 
 				if capturesBlks == 0 || uint64(1<<toSq)&capturesBlks != 0 {
 					if i != 0 || (7 < toSq && toSq < 56) {
-						allMoves = append(allMoves, board.Move{From: fromSq, To: toSq, Piece: symbols[i], PromoteTo: ' '})
+						allMoves = append(allMoves, board.Move{From: fromSq, To: toSq, Piece: symbols[i], PromoteTo: NO_PIECE})
 					} else {
-						allMoves = append(allMoves, board.Move{From: fromSq, To: toSq, Piece: symbols[i], PromoteTo: 'n'})
-						allMoves = append(allMoves, board.Move{From: fromSq, To: toSq, Piece: symbols[i], PromoteTo: 'b'})
-						allMoves = append(allMoves, board.Move{From: fromSq, To: toSq, Piece: symbols[i], PromoteTo: 'r'})
-						allMoves = append(allMoves, board.Move{From: fromSq, To: toSq, Piece: symbols[i], PromoteTo: 'q'})
+						allMoves = append(allMoves, board.Move{From: fromSq, To: toSq, Piece: symbols[i], PromoteTo: KNIGHT})
+						allMoves = append(allMoves, board.Move{From: fromSq, To: toSq, Piece: symbols[i], PromoteTo: BISHOP})
+						allMoves = append(allMoves, board.Move{From: fromSq, To: toSq, Piece: symbols[i], PromoteTo: ROOK})
+						allMoves = append(allMoves, board.Move{From: fromSq, To: toSq, Piece: symbols[i], PromoteTo: QUEEN})
 					}
 				}
 			}
@@ -725,7 +750,7 @@ func GetCheckingSquares(cb *board.Board) (uint64, int) {
 			attackerCount += len(attackerSquares)
 			if len(attackerSquares) > 1 {
 				if i == 0 && cb.PrevMove.From == cb.KingSqs[cb.WToMove]-8 &&
-					(cb.PrevMove.PromoteTo == 'r' || cb.PrevMove.PromoteTo == 'q') {
+					(cb.PrevMove.PromoteTo == ROOK || cb.PrevMove.PromoteTo == QUEEN) {
 					// Two pieces can orthogonally check a king if one was just promoted
 					// from a pawn, with the other piece previously protecting the pawn
 				} else {
@@ -742,7 +767,7 @@ func GetCheckingSquares(cb *board.Board) (uint64, int) {
 
 // Return a bitboard of squares between `from and `to`, excluding `from`
 // and including `to`
-func fillFromTo(from, to, direction int) uint64 {
+func fillFromTo(from, to, direction int8) uint64 {
 	bb := uint64(0)
 	for sq := from + direction; sq != to; sq += direction {
 		bb += 1 << sq
@@ -754,8 +779,8 @@ func fillFromTo(from, to, direction int) uint64 {
 
 // Return the direction from one square to another. Assumes (from, to) is an
 // orthogonal or diagonal move
-func findDirection(from, to int) int {
-	var dir int
+func findDirection(from, to int8) int8 {
+	var dir int8
 	diff := to - from
 	// TODO: Change to lookup table for files, or use bitboards.
 	files := board.GetFiles()
@@ -787,11 +812,11 @@ func findDirection(from, to int) int {
 	return dir
 }
 
-func read1Bits(bb uint64) []int {
+func read1Bits(bb uint64) []int8 {
 	// Using TrailingZeros64() seems as fast as bitshifting right while bb>0.
-	squares := make([]int, 0, 4)
+	squares := make([]int8, 0, 4)
 	for bb > 0 {
-		squares = append(squares, bits.TrailingZeros64(bb))
+		squares = append(squares, int8(bits.TrailingZeros64(bb)))
 		bb &= bb - 1
 	}
 	return squares
