@@ -9,14 +9,19 @@ import (
 )
 
 type TtEntry struct {
-	Hash uint64
-	Move board.Move
-	Eval int
-	Age  uint8
-	Node rune // 'p': principal variation node, 'a': all node, 'c': cut node
+	Hash      uint64
+	Eval      int
+	Move      board.Move
+	Node, Age uint8
 }
 
-const MATE = 1 << 20
+const (
+	MATE = 1 << 20
+
+	PV_NODE  = uint8(0)
+	ALL_NODE = uint8(1)
+	CUT_NODE = uint8(2)
+)
 
 var tTable = make(map[uint64]TtEntry, 500_000)
 var Negamax = negamax
@@ -79,14 +84,14 @@ func negamax(alpha, beta, depth int, cb *board.Board, orig_depth int, orig_age u
 		}
 		pieces.MovePiece(move, cb)
 		// Check legality of pseudo-legal moves. King moves are strictly legal already
-		if move.Piece == 'k' || cb.Kings[1^cb.WToMove]&pieces.GetAttackedSquares(cb) == 0 {
+		if move.Piece == pieces.KING || cb.Kings[1^cb.WToMove]&pieces.GetAttackedSquares(cb) == 0 {
 			if stored, ok := tTable[cb.Zobrist]; ok && stored.Hash == cb.Zobrist {
 				board.RestorePosition(pos, cb)
 				switch stored.Node {
-				case 'c':
+				case CUT_NODE:
 					return stored.Eval, stored.Move
-				case 'a':
-				case 'p':
+				case ALL_NODE:
+				case PV_NODE:
 					if stored.Eval >= beta {
 						return beta, move
 					} else if stored.Eval > alpha {
@@ -102,13 +107,13 @@ func negamax(alpha, beta, depth int, cb *board.Board, orig_depth int, orig_age u
 			}
 
 			if score >= beta {
-				//tTable[cb.Zobrist] = TtEntry{Hash: cb.Zobrist, Eval: beta, Age: orig_age, Move: move, Node: 'c'}
+				//tTable[cb.Zobrist] = TtEntry{Hash: cb.Zobrist, Eval: beta, Age: orig_age, Move: move, Node: CUT_NODE}
 				board.RestorePosition(pos, cb)
 				return beta, move
 			} else if score > alpha {
 				alpha = score
 				bestMove = move
-				//tTable[cb.Zobrist] = TtEntry{Hash: cb.Zobrist, Eval: score, Age: orig_age, Move: bestMove, Node: 'p'}
+				//tTable[cb.Zobrist] = TtEntry{Hash: cb.Zobrist, Eval: score, Age: orig_age, Move: bestMove, Node: PV_NODE}
 				if len(pvMoves) != 0 {
 					if orig_depth-depth >= len(pvMoves) {
 						fmt.Println("pvMoves:", pvMoves)
@@ -120,7 +125,7 @@ func negamax(alpha, beta, depth int, cb *board.Board, orig_depth int, orig_age u
 					}
 				}
 			} else {
-				//tTable[cb.Zobrist] = TtEntry{Hash: cb.Zobrist, Eval: score, Age: orig_age, Move: bestMove, Node: 'a'}
+				//tTable[cb.Zobrist] = TtEntry{Hash: cb.Zobrist, Eval: score, Age: orig_age, Move: bestMove, Node: ALL_NODE}
 			}
 		}
 		board.RestorePosition(pos, cb)
@@ -283,11 +288,14 @@ func evaluateMobility(cb *board.Board) int {
 	return mobilityEval
 }
 
-// Successively call negamax() with increasing depth. It is generally faster than
-// one search to a given depth
 var IterativeDeepening = iterativeDeepening
 
+// Successively call negamax() with increasing depth. It is generally faster than
+// one search to a given depth
 func iterativeDeepening(cb *board.Board, depth int) (int, board.Move) {
+	// TODO: Using one slice of pvMoves is difficult to update during the recursion
+	// The wiki's PV page has info on making a new PV slice when a new alpha is set,
+	// and that slice bubbles up the call stack
 	var eval int
 	var move board.Move
 	pvMoves := make([]board.Move, depth)
