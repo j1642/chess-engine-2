@@ -3,8 +3,6 @@ package engine
 import (
 	"engine2/board"
 	"engine2/pieces"
-	"fmt"
-	//"log"
 	"math/bits"
 )
 
@@ -27,13 +25,7 @@ var tTable = make(map[uint64]TtEntry, 1_000_000)
 var Negamax = negamax
 var emptyMove = board.Move{}
 
-type pvLine struct {
-	moves []board.Move
-	count int
-}
-
-// func negamax(alpha, beta, depth int, cb *board.Board, orig_depth int, orig_age uint8, pvMoves ...board.Move) (int, board.Move) {
-func negamax(alpha, beta, depth int, cb *board.Board, orig_depth int, orig_age uint8, parentPVLine *pvLine) (int, board.Move) {
+func negamax(alpha, beta, depth int, cb *board.Board, orig_depth int, orig_age uint8, parentPartialPV *[]board.Move, completePV *pvLine) (int, board.Move) {
 	if depth == 0 {
 		return evaluate(cb), cb.PrevMove
 	}
@@ -50,47 +42,29 @@ func negamax(alpha, beta, depth int, cb *board.Board, orig_depth int, orig_age u
 		return score, cb.PrevMove
 	}
 
-	/*
-		// PV move given from iter. deepening and the side to move is the original side to move
-		if len(pvMoves) > 0 && pvMoves[orig_depth-depth] != emptyMove { //&& orig_depth % 2 == depth % 2 {
-			fmt.Println("orig, depth:", orig_depth, depth)
-			fmt.Println("pvMoves:", pvMoves)
-			// When orig - depth == 1, a new pvMove needs to be found organically
-			if orig_depth > 1 && depth != 1 {
-				if orig_depth-depth >= len(pvMoves) {
-					log.Fatalf("out of bounds error: len=%d, idx=%d", len(pvMoves), orig_depth-depth)
-				}
-				pvMove := pvMoves[orig_depth-depth]
-				// Linear search confirms the move exists, remove eventually?
-				foundPvMode := false
-				for i, move := range moves {
-					//if move == pvMove[orig_depth-depth] {
-					if move == pvMove {
-						foundPvMode = true
-						moves[0], moves[i] = moves[i], moves[0]
-						break
-					}
-				}
-				if !foundPvMode {
-					cb.Print()
-					fmt.Println("white to move:", cb.WToMove)
-					// was panicking b/c tried to add white PV move on black's turn
-					//panic("invalid move in this position?")
-					fmt.Println(moves)
-					log.Fatalf("invalid move in this position? move=%v", pvMove)
-				}
-
-				// clear pvMove after using because it is only used in one branch of the tree
-				pvMoves[orig_depth-depth] = emptyMove
+	// if a PV move exists for this depth and it has not been used yet
+	if len(completePV.moves) > 0 && orig_depth > 1 && depth > 1 && len(completePV.moves) >= orig_depth-depth && !(completePV.alreadyUsed)[orig_depth-depth] {
+		pvMove := completePV.moves[orig_depth-depth]
+		// Linear search confirms the move exists, remove eventually?
+		foundPvMode := false
+		for i, move := range moves {
+			if move == pvMove {
+				foundPvMode = true
+				moves[0], moves[i] = moves[i], moves[0]
+				completePV.alreadyUsed[orig_depth-depth] = true
+				break
 			}
 		}
-	*/
+		if !foundPvMode {
+			panic("invalid move in this position")
+		}
+	}
 
-	line := pvLine{}
+	line := make([]board.Move, 0)
 
 	for _, move := range moves {
 		if move == emptyMove {
-			panic("empty move")
+			panic("cannot do an empty move")
 		}
 		pieces.MovePiece(move, cb)
 		// Check legality of pseudo-legal moves. King moves are strictly legal already
@@ -112,8 +86,7 @@ func negamax(alpha, beta, depth int, cb *board.Board, orig_depth int, orig_age u
 				}
 				continue
 			} else {
-				//score, _ = negamax(-1*beta, -1*alpha, depth-1, cb, orig_depth, orig_age, pvMoves...)
-				score, _ = negamax(-1*beta, -1*alpha, depth-1, cb, orig_depth, orig_age, &line)
+				score, _ = negamax(-1*beta, -1*alpha, depth-1, cb, orig_depth, orig_age, &line, completePV)
 				score *= -1
 			}
 
@@ -125,32 +98,19 @@ func negamax(alpha, beta, depth int, cb *board.Board, orig_depth int, orig_age u
 				alpha = score
 				bestMove = move
 				//tTable[cb.Zobrist] = TtEntry{Hash: cb.Zobrist, Eval: score, Age: orig_age, Move: bestMove, Node: PV_NODE}
-				if len(parentPVLine.moves) == 0 {
-					parentPVLine.moves = append(parentPVLine.moves, move)
+				// PV block
+				if len(*parentPartialPV) == 0 {
+					*parentPartialPV = append(*parentPartialPV, move)
 				} else {
-					//parentPVLine.moves[parentPVLine.count-1] = move
-					parentPVLine.moves[0] = move
+					(*parentPartialPV)[0] = move
 				}
-				for i := range line.moves {
-					if len(parentPVLine.moves) <= i+1 {
-						parentPVLine.moves = append(parentPVLine.moves, line.moves[i])
+				for i := range line {
+					if len(*parentPartialPV) <= i+1 {
+						*parentPartialPV = append(*parentPartialPV, line[i])
 					} else {
-						parentPVLine.moves[1+i] = line.moves[i]
+						(*parentPartialPV)[1+i] = line[i]
 					}
-					parentPVLine.count = line.count + 1
 				}
-				/*
-					if len(pvMoves) != 0 {
-						if orig_depth-depth >= len(pvMoves) {
-							fmt.Println("pvMoves:", pvMoves)
-							log.Fatalf("index error: len=%d, idx=%d", len(pvMoves), orig_depth-depth)
-						}
-						if bestMove != emptyMove {
-							pvMoves[orig_depth-depth] = bestMove
-							fmt.Printf("pvMoves[%d] = %v ***************\n", orig_depth-depth, bestMove)
-						}
-					}
-				*/
 			} else {
 				//tTable[cb.Zobrist] = TtEntry{Hash: cb.Zobrist, Eval: score, Age: orig_age, Move: bestMove, Node: ALL_NODE}
 			}
@@ -158,15 +118,6 @@ func negamax(alpha, beta, depth int, cb *board.Board, orig_depth int, orig_age u
 		board.RestorePosition(pos, cb)
 	}
 
-	/*
-	   if orig_depth-depth >= len(pvMoves) {
-	       log.Fatalf("index error: len=%d, idx=%d", len(pvMoves), orig_depth-depth)
-	   }
-	   if bestMove != emptyMove {
-	       pvMoves[orig_depth-depth] = bestMove
-	       fmt.Printf("pvMoves[%d] = %v ***************\n", orig_depth-depth, bestMove)
-	   }
-	*/
 	return alpha, bestMove
 }
 
@@ -317,29 +268,26 @@ func evaluateMobility(cb *board.Board) int {
 
 var IterativeDeepening = iterativeDeepening
 
+type pvLine struct {
+	moves       []board.Move
+	alreadyUsed []bool
+}
+
 // Successively call negamax() with increasing depth. It is generally faster than
 // one search to a given depth
 func iterativeDeepening(cb *board.Board, depth int) (int, board.Move) {
-	// TODO: Using one slice of pvMoves is difficult to update during the recursion
-	// The wiki's PV page has info on making a new PV slice when a new alpha is set,
-	// and that slice bubbles up the call stack
 	var eval int
 	var move board.Move
-	//pvMoves := make([]board.Move, 0, 1)
-	line := pvLine{}
+	line := make([]board.Move, 0)
+	completePVLine := pvLine{}
+	completePVLine.alreadyUsed = make([]bool, depth)
 
 	for ply := 1; ply <= depth; ply++ {
-		fmt.Println("starting ID ply", ply)
-		/*
-		   if move.From == 0 && move.To == 0 {
-		       eval, move = negamax(-(1 << 30), 1<<30, ply, cb, ply, cb.HalfMoves)
-		   } else {
-		*/
-		eval, move = negamax(-(1 << 30), 1<<30, ply, cb, ply, cb.HalfMoves, &line)
-		//}
-		//pvMoves[0] = move
-		fmt.Println("new [0] pv:", move, "*************")
-		fmt.Println("final pvMoves:", line)
+		eval, move = negamax(-(1 << 30), 1<<30, ply, cb, ply, cb.HalfMoves, &line, &completePVLine)
+		completePVLine.moves = line
+		for i := range completePVLine.alreadyUsed {
+			completePVLine.alreadyUsed[i] = false
+		}
 	}
 
 	return eval, move

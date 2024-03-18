@@ -162,8 +162,11 @@ func TestNegamax(t *testing.T) {
 	for i, tt := range tests {
 		// Unexplained bug: using math.MinInt, math.MaxInt as args breaks negamax
 		//line := make([]board.Move, 0, tt.depth)
-		line := pvLine{}
-		eval, actualMove := negamax(-(1 << 30), 1<<30, tt.depth, tt.cb, tt.depth, tt.cb.HalfMoves, &line)
+		line := make([]board.Move, tt.depth)
+		completePVLine := pvLine{}
+		completePVLine.alreadyUsed = make([]bool, tt.depth)
+
+		eval, actualMove := negamax(-(1 << 30), 1<<30, tt.depth, tt.cb, tt.depth, tt.cb.HalfMoves, &line, &completePVLine)
 
 		if actualMove != tt.expectMove {
 			t.Errorf("negamax best move[%d]: want=%v, got=%v, eval=%d",
@@ -185,16 +188,18 @@ func TestIterativeDeepening(t *testing.T) {
 		t.Error(err)
 	}
 
-	depth := 3
+	depth := 4
 	start := time.Now()
 	eval1, move1 := iterativeDeepening(kiwipete1, depth)
 	elapsed := time.Since(start)
 	fmt.Println("iter:", elapsed)
 
-	//line := make([]board.Move, 0, depth)
-	line := pvLine{}
+	line := make([]board.Move, depth)
+	completePVLine := pvLine{}
+	completePVLine.alreadyUsed = make([]bool, depth)
+
 	start = time.Now()
-	eval2, move2 := negamax(-(1 << 30), 1<<30, depth, kiwipete2, depth, kiwipete2.HalfMoves, &line)
+	eval2, move2 := negamax(-(1 << 30), 1<<30, depth, kiwipete2, depth, kiwipete2.HalfMoves, &line, &completePVLine)
 	elapsed = time.Since(start)
 	fmt.Println("nega:", elapsed)
 
@@ -205,7 +210,7 @@ func TestIterativeDeepening(t *testing.T) {
 	if move1 != move2 {
 		t.Errorf("iter deep failed: %v != %v", move1, move2)
 	}
-	if eval1 != 1 { //eval2 {
+	if eval1 != eval2 {
 		kiwipete1.Print()
 		t.Errorf("iter deep failed: %d != %d", eval1, eval2)
 	}
