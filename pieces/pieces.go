@@ -749,8 +749,7 @@ func GetCheckingSquares(cb *board.Board) (uint64, int) {
 			attackerSquares := read1Bits(attacker)
 			attackerCount += len(attackerSquares)
 			if len(attackerSquares) > 1 {
-				if i == 0 && cb.PrevMove.From == cb.KingSqs[cb.WToMove]-8 &&
-					(cb.PrevMove.PromoteTo == ROOK || cb.PrevMove.PromoteTo == QUEEN) {
+				if i == 0 && (cb.PrevMove.PromoteTo == ROOK || cb.PrevMove.PromoteTo == QUEEN) {
 					// Two pieces can orthogonally check a king if one was just promoted
 					// from a pawn, with the other piece previously protecting the pawn
 				} else {
