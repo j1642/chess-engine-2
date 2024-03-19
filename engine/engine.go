@@ -7,10 +7,10 @@ import (
 )
 
 type TtEntry struct {
-	Hash      uint64
-	Eval      int
-	Move      board.Move
-	Node, Age uint8
+	Hash                 uint64
+	Eval                 int
+	Move                 board.Move
+	NodeType, Age, Depth uint8
 }
 
 const (
@@ -27,7 +27,7 @@ var emptyMove = board.Move{}
 
 func negamax(alpha, beta, depth int, cb *board.Board, orig_depth int, orig_age uint8, parentPartialPV *[]board.Move, completePV *pvLine) (int, board.Move) {
 	if depth == 0 {
-		return evaluate(cb), cb.PrevMove
+		return quiesce(alpha, beta, cb), cb.PrevMove
 	}
 	var bestMove board.Move
 	var score int
@@ -69,9 +69,10 @@ func negamax(alpha, beta, depth int, cb *board.Board, orig_depth int, orig_age u
 		pieces.MovePiece(move, cb)
 		// Check legality of pseudo-legal moves. King moves are strictly legal already
 		if move.Piece == pieces.KING || cb.Kings[1^cb.WToMove]&pieces.GetAttackedSquares(cb) == 0 {
-			if stored, ok := tTable[cb.Zobrist]; ok && stored.Hash == cb.Zobrist {
+			// TODO: add depth check, otherwise calculate new negamax at the new, deeper depth
+			if stored, ok := tTable[cb.Zobrist]; ok && stored.Hash == cb.Zobrist && stored.Depth >= uint8(depth) {
 				board.RestorePosition(pos, cb)
-				switch stored.Node {
+				switch stored.NodeType {
 				case CUT_NODE:
 					return stored.Eval, stored.Move
 				case ALL_NODE:
@@ -81,23 +82,37 @@ func negamax(alpha, beta, depth int, cb *board.Board, orig_depth int, orig_age u
 					} else if stored.Eval > alpha {
 						alpha = stored.Eval
 					}
+
+					// PV block
+					if len(*parentPartialPV) == 0 {
+						*parentPartialPV = append(*parentPartialPV, move)
+					} else {
+						(*parentPartialPV)[0] = move
+					}
+					for i := range line {
+						if len(*parentPartialPV) <= i+1 {
+							*parentPartialPV = append(*parentPartialPV, line[i])
+						} else {
+							(*parentPartialPV)[1+i] = line[i]
+						}
+					}
 				default:
 					panic("invalid node type")
 				}
 				continue
-			} else {
-				score, _ = negamax(-1*beta, -1*alpha, depth-1, cb, orig_depth, orig_age, &line, completePV)
-				score *= -1
 			}
+			score, _ = negamax(-1*beta, -1*alpha, depth-1, cb, orig_depth, orig_age, &line, completePV)
+			score *= -1
 
 			if score >= beta {
-				//tTable[cb.Zobrist] = TtEntry{Hash: cb.Zobrist, Eval: beta, Age: orig_age, Move: move, Node: CUT_NODE}
+				//tTable[cb.Zobrist] = TtEntry{Hash: cb.Zobrist, Eval: beta, Age: orig_age, Move: move, NodeType: CUT_NODE, Depth: uint8(depth)}
 				board.RestorePosition(pos, cb)
 				return beta, move
 			} else if score > alpha {
 				alpha = score
 				bestMove = move
-				//tTable[cb.Zobrist] = TtEntry{Hash: cb.Zobrist, Eval: score, Age: orig_age, Move: bestMove, Node: PV_NODE}
+				//tTable[cb.Zobrist] = TtEntry{Hash: cb.Zobrist, Eval: score, Age: orig_age, Move: bestMove, NodeType: PV_NODE, Depth: uint8(depth)}
+
 				// PV block
 				if len(*parentPartialPV) == 0 {
 					*parentPartialPV = append(*parentPartialPV, move)
@@ -112,7 +127,7 @@ func negamax(alpha, beta, depth int, cb *board.Board, orig_depth int, orig_age u
 					}
 				}
 			} else {
-				//tTable[cb.Zobrist] = TtEntry{Hash: cb.Zobrist, Eval: score, Age: orig_age, Move: bestMove, Node: ALL_NODE}
+				//tTable[cb.Zobrist] = TtEntry{Hash: cb.Zobrist, Eval: score, Age: orig_age, Move: bestMove, NodeType: ALL_NODE, Depth: uint8(depth)}
 			}
 		}
 		board.RestorePosition(pos, cb)
@@ -291,4 +306,83 @@ func iterativeDeepening(cb *board.Board, depth int) (int, board.Move) {
 	}
 
 	return eval, move
+}
+
+// Find an ideal, stable position with no critical captures or exchanges
+func quiesce(alpha, beta int, cb *board.Board) int {
+	score := evaluate(cb)
+	if score >= beta {
+		return beta
+	} else if score > alpha {
+		alpha = score
+	}
+
+	marginOfError := 20 // decipawns
+	pieceValues := [5]int{10, 30, 31, 50, 90}
+	oppPieces := [5]uint64{cb.Pawns[cb.WToMove^1], cb.Knights[cb.WToMove^1],
+		cb.Bishops[cb.WToMove^1], cb.Rooks[cb.WToMove^1], cb.Queens[cb.WToMove^1],
+	}
+	var capturedPieceValue int
+
+	// Prune if gaining a queen doesn't raise alpha
+	if alpha > score+pieceValues[4] {
+		return alpha
+	}
+
+	moves := pieces.GetAllMoves(cb)
+	// TODO: include other forcing moves like check and promotion?
+	// Discard non-capture moves
+	for i := 0; i < len(moves); i++ {
+		moveToBB := uint64(1 << moves[i].To)
+		isCapture := (moveToBB & cb.Pieces[cb.WToMove^1]) != 0
+		if !isCapture {
+			if i == len(moves)-1 {
+				moves = moves[:len(moves)-1]
+				break
+			} else {
+				moves[i], moves[len(moves)-1] = moves[len(moves)-1], moves[i]
+				moves = moves[:len(moves)-1]
+			}
+			// Re-examine this index because it holds a different move now
+			i--
+			continue
+		}
+		// Delta pruning of captures that are unlikely to improve alpha, 70% TestNegamax time reduction
+		for i, oppPieceType := range oppPieces {
+			if moveToBB&oppPieceType != 0 {
+				capturedPieceValue = pieceValues[i]
+				break
+			}
+		}
+		if alpha > score+capturedPieceValue+marginOfError {
+			// Prune move. Same as !isCapture block
+			if i == len(moves)-1 {
+				moves = moves[:len(moves)-1]
+				break
+			} else {
+				moves[i], moves[len(moves)-1] = moves[len(moves)-1], moves[i]
+				moves = moves[:len(moves)-1]
+			}
+			// Re-examine this index because it holds a different move now
+			i--
+		}
+	}
+
+	position := board.StorePosition(cb)
+	for _, capture := range moves {
+		pieces.MovePiece(capture, cb)
+
+		if capture.Piece == pieces.KING || cb.Kings[1^cb.WToMove]&pieces.GetAttackedSquares(cb) == 0 {
+			score = -quiesce(-beta, -alpha, cb)
+		}
+		board.RestorePosition(position, cb)
+
+		if score >= beta {
+			return beta
+		} else if score > alpha {
+			alpha = score
+		}
+	}
+
+	return alpha
 }
