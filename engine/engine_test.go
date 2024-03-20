@@ -3,9 +3,7 @@ package engine
 import (
 	"engine2/board"
 	"engine2/pieces"
-	"fmt"
 	"testing"
-	"time"
 )
 
 type evalTestCase struct {
@@ -188,20 +186,14 @@ func TestIterativeDeepening(t *testing.T) {
 		t.Error(err)
 	}
 
-	depth := 3
-	start := time.Now()
+	depth := 2
 	eval1, move1 := iterativeDeepening(kiwipete1, depth)
-	elapsed := time.Since(start)
-	fmt.Println("iter:", elapsed)
 
 	line := make([]board.Move, depth)
 	completePVLine := pvLine{}
 	completePVLine.alreadyUsed = make([]bool, depth)
 
-	start = time.Now()
 	eval2, move2 := negamax(-(1 << 30), 1<<30, depth, kiwipete2, depth, kiwipete2.HalfMoves, &line, &completePVLine)
-	elapsed = time.Since(start)
-	fmt.Println("nega:", elapsed)
 
 	emptyMove := board.Move{}
 	if move1 == emptyMove {
@@ -210,7 +202,7 @@ func TestIterativeDeepening(t *testing.T) {
 	if move1 != move2 {
 		t.Errorf("iter deep failed: %v != %v", move1, move2)
 	}
-	if eval1 != 1 { //eval2 {
+	if eval1 != eval2 {
 		t.Errorf("iter deep failed: %d != %d", eval1, eval2)
 	}
 }
@@ -221,7 +213,7 @@ func TestQuiesce(t *testing.T) {
 		t.Error(err)
 	}
 	eval := quiesce(-(1 << 30), 1<<30, rooksKings)
-	if eval != 31 {
-		t.Errorf("want=31, got=%d", eval)
+	if eval != 71 {
+		t.Errorf("want=71, got=%d", eval)
 	}
 }

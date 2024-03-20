@@ -170,40 +170,38 @@ func evaluate(cb *board.Board) int {
 // Return evaluation of doubled, blocked, and isolated pawns.
 func evalPawns(cb *board.Board) int {
 	eval := 0
-	var wPawnsInFile, bPawnsInFile [8]int
+	pawnsInFile := [2][8]int{} // first index is [black, white]
 
-	// TODO: replace counting doubled/isolated pawns with an intersection of a
-	// pre-calculated mask (masks[2][64]) and cb.Pawns[WToMove]
 	// Doubled
 	file := uint64(0x101010101010101)
 	for i := 0; i < 8; i++ {
-		wPawnsInFile[i] = bits.OnesCount64(file & cb.Pawns[1])
-		if wPawnsInFile[i] > 1 {
-			eval -= 5 * wPawnsInFile[i]
+		pawnsInFile[1][i] = bits.OnesCount64(file & cb.Pawns[1])
+		if pawnsInFile[1][i] > 1 {
+			eval -= 5 * pawnsInFile[1][i]
 		}
-		bPawnsInFile[i] = bits.OnesCount64(file & cb.Pawns[0])
-		if bPawnsInFile[i] > 1 {
-			eval += 5 * bPawnsInFile[i]
+		pawnsInFile[0][i] = bits.OnesCount64(file & cb.Pawns[0])
+		if pawnsInFile[0][i] > 1 {
+			eval += 5 * pawnsInFile[0][i]
 		}
-		file = file << 1
+		file <<= 1
 	}
 
 	// Isolated
-	delta := [2]int{-5, 5}
-	for i, colorPawns := range [2][8]int{wPawnsInFile, bPawnsInFile} {
-		for j, file := range colorPawns {
+	delta := [2]int{5, -5}
+	for i := range pawnsInFile {
+		for j, file := range pawnsInFile[i] {
 			switch j {
 			case 0:
 				// If pawn(s) are in the A file and no friendly pawns are in the B file
-				if file > 0 && colorPawns[1] == 0 {
+				if file > 0 && pawnsInFile[i][1] == 0 {
 					eval += delta[i]
 				}
 			case 7:
-				if file > 0 && colorPawns[6] == 0 {
+				if file > 0 && pawnsInFile[i][6] == 0 {
 					eval += delta[i]
 				}
 			default:
-				if file > 0 && colorPawns[j-1] == 0 && colorPawns[j+1] == 0 {
+				if file > 0 && pawnsInFile[i][j-1] == 0 && pawnsInFile[i][j+1] == 0 {
 					eval += delta[i]
 				}
 			}
@@ -212,15 +210,19 @@ func evalPawns(cb *board.Board) int {
 
 	// Blocked
 	occupied := cb.Pieces[0] | cb.Pieces[1]
-	for _, sq := range pieces.Read1BitsPawns(cb.Pawns[1]) {
-		if uint64(1<<(sq+8))&occupied != 0 {
+	wPawns := cb.Pawns[1]
+	for wPawns > 0 {
+		if uint64(1<<(bits.TrailingZeros64(wPawns)+8))&occupied != 0 {
 			eval -= 5
 		}
+		wPawns &= wPawns - 1
 	}
-	for _, sq := range pieces.Read1BitsPawns(cb.Pawns[0]) {
-		if uint64(1<<(sq-8))&occupied != 0 {
+	bPawns := cb.Pawns[0]
+	for bPawns > 0 {
+		if uint64(1<<(bits.TrailingZeros64(bPawns)-8))&occupied != 0 {
 			eval += 5
 		}
+		bPawns &= bPawns - 1
 	}
 
 	return eval
@@ -281,8 +283,6 @@ func evaluateMobility(cb *board.Board) int {
 	return mobilityEval
 }
 
-var IterativeDeepening = iterativeDeepening
-
 type pvLine struct {
 	moves       []board.Move
 	alreadyUsed []bool
@@ -334,35 +334,25 @@ func quiesce(alpha, beta int, cb *board.Board) int {
 	// Discard non-capture moves
 	for i := 0; i < len(moves); i++ {
 		moveToBB := uint64(1 << moves[i].To)
-		isCapture := (moveToBB & cb.Pieces[cb.WToMove^1]) != 0
-		if !isCapture {
-			if i == len(moves)-1 {
-				moves = moves[:len(moves)-1]
-				break
-			} else {
-				moves[i], moves[len(moves)-1] = moves[len(moves)-1], moves[i]
-				moves = moves[:len(moves)-1]
-			}
+		// if the move is not a capture
+		if (moveToBB & cb.Pieces[cb.WToMove^1]) == 0 {
+			moves[i], moves[len(moves)-1] = moves[len(moves)-1], moves[i]
+			moves = moves[:len(moves)-1]
 			// Re-examine this index because it holds a different move now
 			i--
 			continue
 		}
-		// Delta pruning of captures that are unlikely to improve alpha, 70% TestNegamax time reduction
-		for i, oppPieceType := range oppPieces {
-			if moveToBB&oppPieceType != 0 {
+		// Delta pruning of captures that are unlikely to improve alpha
+		for i := range oppPieces {
+			if moveToBB&oppPieces[i] != 0 {
 				capturedPieceValue = pieceValues[i]
 				break
 			}
 		}
 		if alpha > score+capturedPieceValue+marginOfError {
 			// Prune move. Same as !isCapture block
-			if i == len(moves)-1 {
-				moves = moves[:len(moves)-1]
-				break
-			} else {
-				moves[i], moves[len(moves)-1] = moves[len(moves)-1], moves[i]
-				moves = moves[:len(moves)-1]
-			}
+			moves[i], moves[len(moves)-1] = moves[len(moves)-1], moves[i]
+			moves = moves[:len(moves)-1]
 			// Re-examine this index because it holds a different move now
 			i--
 		}
