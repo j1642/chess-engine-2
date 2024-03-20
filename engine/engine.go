@@ -172,57 +172,60 @@ func evalPawns(cb *board.Board) int {
 	eval := 0
 	pawnsInFile := [2][8]int{} // first index is [black, white]
 
-	// Doubled
-	file := uint64(0x101010101010101)
-	for i := 0; i < 8; i++ {
-		pawnsInFile[1][i] = bits.OnesCount64(file & cb.Pawns[1])
-		if pawnsInFile[1][i] > 1 {
-			eval -= 5 * pawnsInFile[1][i]
-		}
-		pawnsInFile[0][i] = bits.OnesCount64(file & cb.Pawns[0])
-		if pawnsInFile[0][i] > 1 {
-			eval += 5 * pawnsInFile[0][i]
-		}
-		file <<= 1
-	}
-
-	// Isolated
-	delta := [2]int{5, -5}
-	for i := range pawnsInFile {
-		for j, file := range pawnsInFile[i] {
-			switch j {
-			case 0:
-				// If pawn(s) are in the A file and no friendly pawns are in the B file
-				if file > 0 && pawnsInFile[i][1] == 0 {
-					eval += delta[i]
-				}
-			case 7:
-				if file > 0 && pawnsInFile[i][6] == 0 {
-					eval += delta[i]
-				}
-			default:
-				if file > 0 && pawnsInFile[i][j-1] == 0 && pawnsInFile[i][j+1] == 0 {
-					eval += delta[i]
-				}
-			}
-		}
-	}
-
 	// Blocked
 	occupied := cb.Pieces[0] | cb.Pieces[1]
 	wPawns := cb.Pawns[1]
+	square := 0
 	for wPawns > 0 {
-		if uint64(1<<(bits.TrailingZeros64(wPawns)+8))&occupied != 0 {
+		square = bits.TrailingZeros64(wPawns)
+		pawnsInFile[1][square%8] += 1
+		if uint64(1<<(square+8))&occupied != 0 {
 			eval -= 5
 		}
 		wPawns &= wPawns - 1
 	}
 	bPawns := cb.Pawns[0]
 	for bPawns > 0 {
-		if uint64(1<<(bits.TrailingZeros64(bPawns)-8))&occupied != 0 {
+		square = bits.TrailingZeros64(bPawns)
+		pawnsInFile[0][square%8] += 1
+		if uint64(1<<(square-8))&occupied != 0 {
 			eval += 5
 		}
 		bPawns &= bPawns - 1
+	}
+
+	// Doubled
+	for i := 0; i < 8; i++ {
+		if pawnsInFile[1][i] > 1 {
+			eval -= 5 * pawnsInFile[1][i]
+		}
+		if pawnsInFile[0][i] > 1 {
+			eval += 5 * pawnsInFile[0][i]
+		}
+	}
+
+	// Isolated
+	delta := [2]int{5, -5}
+	for i := range pawnsInFile {
+		for j := range pawnsInFile[i] {
+			if pawnsInFile[i][j] > 0 {
+				switch j {
+				case 0:
+					// If pawn(s) are in the A file and no friendly pawns are in the B file
+					if pawnsInFile[i][1] == 0 {
+						eval += delta[i]
+					}
+				case 7:
+					if pawnsInFile[i][6] == 0 {
+						eval += delta[i]
+					}
+				default:
+					if pawnsInFile[i][j-1] == 0 && pawnsInFile[i][j+1] == 0 {
+						eval += delta[i]
+					}
+				}
+			}
+		}
 	}
 
 	return eval
