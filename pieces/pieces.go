@@ -3,8 +3,8 @@ package pieces
 
 import (
 	"bufio"
-	"engine2/board"
 	"fmt"
+	"github.com/j1642/chess-engine-2/board"
 	"log"
 	"math/bits"
 	"os"

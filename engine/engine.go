@@ -1,8 +1,8 @@
 package engine
 
 import (
-	"engine2/board"
-	"engine2/pieces"
+	"github.com/j1642/chess-engine-2/board"
+	"github.com/j1642/chess-engine-2/pieces"
 	"math/bits"
 )
 

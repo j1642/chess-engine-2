@@ -1,8 +1,8 @@
 package pieces
 
 import (
-	"engine2/board"
 	"fmt"
+	"github.com/j1642/chess-engine-2/board"
 	"strings"
 	"testing"
 )
