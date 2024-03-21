@@ -21,7 +21,7 @@ const (
 	CUT_NODE = uint8(2)
 )
 
-var tTable = make(map[uint64]TtEntry, 1_000_000)
+var tTable = make(map[uint64]TtEntry, 1<<20)
 var Negamax = negamax
 var emptyMove = board.Move{}
 
@@ -69,43 +69,47 @@ func negamax(alpha, beta, depth int, cb *board.Board, orig_depth int, orig_age u
 		pieces.MovePiece(move, cb)
 		// Check legality of pseudo-legal moves. King moves are strictly legal already
 		if move.Piece == pieces.KING || cb.Kings[1^cb.WToMove]&pieces.GetAttackedSquares(cb) == 0 {
-			// TODO: add depth check, otherwise calculate new negamax at the new, deeper depth
-			if stored, ok := tTable[cb.Zobrist]; ok && stored.Hash == cb.Zobrist && stored.Depth >= uint8(depth) {
-				board.RestorePosition(pos, cb)
-				switch stored.NodeType {
-				case CUT_NODE:
-					return stored.Eval, stored.Move
-				case ALL_NODE:
-				case PV_NODE:
-					if stored.Eval >= beta {
-						return beta, move
-					} else if stored.Eval > alpha {
-						alpha = stored.Eval
-					}
-
-					// PV block
-					if len(*parentPartialPV) == 0 {
-						*parentPartialPV = append(*parentPartialPV, move)
-					} else {
-						(*parentPartialPV)[0] = move
-					}
-					for i := range line {
-						if len(*parentPartialPV) <= i+1 {
-							*parentPartialPV = append(*parentPartialPV, line[i])
-						} else {
-							(*parentPartialPV)[1+i] = line[i]
+			if stored, ok := tTable[cb.Zobrist]; ok {
+				// TODO: Add a depth check here? stored.Depth >= uint8(depth)
+				if stored.Hash == cb.Zobrist {
+					board.RestorePosition(pos, cb)
+					switch stored.NodeType {
+					case CUT_NODE:
+						return stored.Eval, stored.Move
+					case ALL_NODE:
+					case PV_NODE:
+						if stored.Eval >= beta {
+							return beta, move
+						} else if stored.Eval > alpha {
+							alpha = stored.Eval
 						}
+
+						// PV block
+						if len(*parentPartialPV) == 0 {
+							*parentPartialPV = append(*parentPartialPV, move)
+						} else {
+							(*parentPartialPV)[0] = move
+						}
+						for i := range line {
+							if len(*parentPartialPV) <= i+1 {
+								*parentPartialPV = append(*parentPartialPV, line[i])
+							} else {
+								(*parentPartialPV)[1+i] = line[i]
+							}
+						}
+					default:
+						panic("invalid node type")
 					}
-				default:
-					panic("invalid node type")
+					continue
+				} else {
+					delete(tTable, cb.Zobrist)
 				}
-				continue
 			}
 			score, _ = negamax(-1*beta, -1*alpha, depth-1, cb, orig_depth, orig_age, &line, completePV)
 			score *= -1
 
 			if score >= beta {
-				//tTable[cb.Zobrist] = TtEntry{Hash: cb.Zobrist, Eval: beta, Age: orig_age, Move: move, NodeType: CUT_NODE, Depth: uint8(depth)}
+				tTable[cb.Zobrist] = TtEntry{Hash: cb.Zobrist, Eval: beta, Age: orig_age, Move: move, NodeType: CUT_NODE, Depth: uint8(depth)}
 				board.RestorePosition(pos, cb)
 				return beta, move
 			} else if score > alpha {
@@ -127,7 +131,7 @@ func negamax(alpha, beta, depth int, cb *board.Board, orig_depth int, orig_age u
 					}
 				}
 			} else {
-				//tTable[cb.Zobrist] = TtEntry{Hash: cb.Zobrist, Eval: score, Age: orig_age, Move: bestMove, NodeType: ALL_NODE, Depth: uint8(depth)}
+				tTable[cb.Zobrist] = TtEntry{Hash: cb.Zobrist, Eval: score, Age: orig_age, Move: bestMove, NodeType: ALL_NODE, Depth: uint8(depth)}
 			}
 		}
 		board.RestorePosition(pos, cb)
@@ -308,6 +312,8 @@ func iterativeDeepening(cb *board.Board, depth int) (int, board.Move) {
 		}
 	}
 
+	cleanTranspositionTable(cb.HalfMoves)
+
 	return eval, move
 }
 
@@ -345,6 +351,7 @@ func quiesce(alpha, beta int, cb *board.Board) int {
 			i--
 			continue
 		}
+
 		// Delta pruning of captures that are unlikely to improve alpha
 		for i := range oppPieces {
 			if moveToBB&oppPieces[i] != 0 {
@@ -378,4 +385,15 @@ func quiesce(alpha, beta int, cb *board.Board) int {
 	}
 
 	return alpha
+}
+
+// Remove cached nodes which were not just calculated
+func cleanTranspositionTable(currentHalfMoveAge uint8) {
+	if len(tTable) > 800_000 {
+		for key, stored := range tTable {
+			if stored.Age != currentHalfMoveAge {
+				delete(tTable, key)
+			}
+		}
+	}
 }

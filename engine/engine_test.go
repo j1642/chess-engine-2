@@ -186,7 +186,7 @@ func TestIterativeDeepening(t *testing.T) {
 		t.Error(err)
 	}
 
-	depth := 2
+	depth := 3
 	eval1, move1 := iterativeDeepening(kiwipete1, depth)
 
 	line := make([]board.Move, depth)
