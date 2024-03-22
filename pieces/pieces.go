@@ -283,11 +283,20 @@ func getUserInput() uint8 {
 // Use for user-submitted moves only?
 // Checks for blocking pieces and disallows captures of friendly pieces.
 // Does not consider check, pins, or legality of a pawn movement direction.
-func isValidMove(from, to int8, pieceType string, cb *board.Board) bool {
+func IsValidMove(from, to int8, pieceType uint8, cb *board.Board) bool {
 	if from < 0 || from > 63 || to < 0 || to > 63 || to == from {
 		return false
 	}
+	if pieceType == NO_PIECE {
+		log.Println("isValidMove: NO_PIECE has no valid moves")
+	}
+
 	toBB := uint64(1 << to)
+	// Friendly piece collision
+	if toBB&cb.Pieces[cb.WToMove] != 0 {
+		return false
+	}
+
 	diff := to - from
 	// to == from already excluded, no 0 move bugs from pawnDirections.
 	pawnDirections := [2][4]int8{{-7, -8, -9, -16},
@@ -295,27 +304,27 @@ func isValidMove(from, to int8, pieceType string, cb *board.Board) bool {
 	}
 
 	switch pieceType {
-	case "p":
+	case PAWN:
 		if !board.ContainsN(diff, pawnDirections[cb.WToMove]) {
 			return false
 		}
-	case "n":
+	case KNIGHT:
 		if toBB&cb.NAttacks[from] == 0 {
 			return false
 		}
-	case "b":
+	case BISHOP:
 		if toBB&lookupBishopMoves(from, cb) == 0 {
 			return false
 		}
-	case "r":
+	case ROOK:
 		if toBB&lookupRookMoves(from, cb) == 0 {
 			return false
 		}
-	case "q":
+	case QUEEN:
 		if toBB&(lookupRookMoves(from, cb)|lookupBishopMoves(from, cb)) == 0 {
 			return false
 		}
-	case "k":
+	case KING:
 		cb.Pieces[cb.WToMove] ^= uint64(1 << cb.KingSqs[cb.WToMove])
 		cb.WToMove ^= 1
 		attkSquares := GetAttackedSquares(cb)
@@ -326,11 +335,6 @@ func isValidMove(from, to int8, pieceType string, cb *board.Board) bool {
 		}
 	default:
 		// pieceType is not valid
-		return false
-	}
-
-	// Friendly piece collision
-	if toBB&cb.Pieces[cb.WToMove] != 0 {
 		return false
 	}
 

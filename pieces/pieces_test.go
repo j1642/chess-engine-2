@@ -139,99 +139,99 @@ func TestIsValidMove(t *testing.T) {
 			from: -1, to: 0,
 			cb:       cb,
 			expected: false,
-			actual:   isValidMove(-1, 0, "", cb),
+			actual:   IsValidMove(-1, 0, NO_PIECE, cb),
 		},
 		{
 			from: 0, to: 100,
 			cb:       cb,
 			expected: false,
-			actual:   isValidMove(0, 100, "r", cb),
+			actual:   IsValidMove(0, 100, ROOK, cb),
 		},
 		// No piece present
 		{
 			from: 20, to: 21,
 			cb:       cb,
 			expected: false,
-			actual:   isValidMove(20, 21, "", cb),
+			actual:   IsValidMove(20, 21, NO_PIECE, cb),
 		},
 		// Pawn
 		{
 			from: 8, to: 24,
 			cb:       cb,
 			expected: true,
-			actual:   isValidMove(8, 16, "p", cb),
+			actual:   IsValidMove(8, 16, PAWN, cb),
 		},
 		{
 			from: 8, to: 8,
 			cb:       cb,
 			expected: false,
-			actual:   isValidMove(8, 8, "p", cb),
+			actual:   IsValidMove(8, 8, PAWN, cb),
 		},
 		// Knight
 		{
 			from: 1, to: 18,
 			cb:       cb,
 			expected: true,
-			actual:   isValidMove(1, 18, "n", cb),
+			actual:   IsValidMove(1, 18, KNIGHT, cb),
 		},
 		{
 			from: 6, to: 22,
 			cb:       cb,
 			expected: false,
-			actual:   isValidMove(6, 22, "n", cb),
+			actual:   IsValidMove(6, 22, KNIGHT, cb),
 		},
 		// Bishop
 		{
 			from: 2, to: 47,
 			cb:       cb,
 			expected: false,
-			actual:   isValidMove(2, 47, "b", cb),
+			actual:   IsValidMove(2, 47, BISHOP, cb),
 		},
 		{
 			from: 2, to: 11,
 			cb:       cb,
 			expected: false,
-			actual:   isValidMove(2, 11, "b", cb),
+			actual:   IsValidMove(2, 11, BISHOP, cb),
 		},
 		// Bishop passing edge
 		{
 			from: 5, to: 32,
 			cb:       cb,
 			expected: false,
-			actual:   isValidMove(5, 32, "b", cb),
+			actual:   IsValidMove(5, 32, BISHOP, cb),
 		},
 		// Rook
 		{
 			from: 0, to: 7,
 			cb:       cb,
 			expected: false,
-			actual:   isValidMove(0, 7, "r", cb),
+			actual:   IsValidMove(0, 7, ROOK, cb),
 		},
 		{
 			from: 7, to: 15,
 			cb:       cb,
 			expected: false,
-			actual:   isValidMove(7, 15, "r", cb),
+			actual:   IsValidMove(7, 15, ROOK, cb),
 		},
 		// Rook/queen cannot wrap around the board edge
 		{
 			from: 7, to: 8,
 			cb:       cb,
 			expected: false,
-			actual:   isValidMove(7, 8, "r", cb),
+			actual:   IsValidMove(7, 8, ROOK, cb),
 		},
 		// King
 		{
 			from: 40, to: 39,
 			cb:       cb,
 			expected: false,
-			actual:   isValidMove(40, 39, "", cb),
+			actual:   IsValidMove(40, 39, NO_PIECE, cb),
 		},
 		{
 			from: 4, to: 13,
 			cb:       cb,
 			expected: false,
-			actual:   isValidMove(4, 13, "k", cb),
+			actual:   IsValidMove(4, 13, KING, cb),
 		},
 	}
 
