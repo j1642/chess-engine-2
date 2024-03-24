@@ -1,46 +1,25 @@
 package main
 
 import (
-	"engine2/board"
-	"engine2/pieces"
-	"fmt"
-	"math/bits"
-	"time"
+	/*
+		    "github.com/j1642/chess-engine-2/pieces"
+		    "math/bits"
+		    "github.com/j1642/chess-engine-2/board"
+	        "fmt"
+	        "time"
+	*/
+	"bufio"
+	"github.com/j1642/chess-engine-2/uci"
+	"os"
 )
 
-var rookMagics = [64]uint64{
-	0x2080020500400f0, 0x28444000400010, 0x20000a1004100014, 0x20010c090202006,
-	0x8408008200810004, 0x1746000808002, 0x2200098000808201, 0x12c0002080200041,
-	0x104000208e480804, 0x8084014008281008, 0x4200810910500410, 0x100014481c20400c,
-	0x4014a4040020808, 0x401002001010a4, 0x202000500010001, 0x8112808005810081,
-	0x40902108802020, 0x42002101008101, 0x459442200810c202, 0x81001103309808,
-	0x8110000080102, 0x8812806008080404, 0x104020000800101, 0x40a1048000028201,
-	0x4100ba0000004081, 0x44803a4003400109, 0xa010a00000030443, 0x91021a000100409,
-	0x4201e8040880a012, 0x22a000440201802, 0x30890a72000204, 0x10411402a0c482,
-	0x40004841102088, 0x40230000100040, 0x40100010000a0488, 0x1410100200050844,
-	0x100090808508411, 0x1410040024001142, 0x8840018001214002, 0x410201000098001,
-	0x8400802120088848, 0x2060080000021004, 0x82101002000d0022, 0x1001101001008241,
-	0x9040411808040102, 0x600800480009042, 0x1a020000040205, 0x4200404040505199,
-	0x2020081040080080, 0x40a3002000544108, 0x4501100800148402, 0x81440280100224,
-	0x88008000000804, 0x8084060000002812, 0x1840201000108312, 0x5080202000000141,
-	0x1042a180880281, 0x900802900c01040, 0x8205104104120, 0x9004220000440a,
-	0x8029510200708, 0x8008440100404241, 0x2420001111000bd, 0x4000882304000041,
-}
-
-// TODO: make reference tables (aka magic bbs)
-// 1 - attacked squares mask (excluding edges) & blocker pumutation = "masked blockers"
-// 2 - "masked blockers" * magics[attacker square] = "index mapping"
-// 3 - "index mapping" >> (64-n, n = bits in index mapping, bits.Len64()) = hash key for
-//
-//	that piece on that square with those blockers
-//
-// 4 - stored_attacks[hash key] = uint64(moves possible with those blockers)
-// attack():
-//
-//	1 - blockers = occupied & sliding_piece_attacks[square]
-//	2 - hash key = blockers magics[square] >> (64 - (WHAT IS THIS OBJ)[square])
-//	3 - return bishop_attacks[square][hash key]
-
 func main() {
-    // WIP: implement magic bitboards
+	reader := bufio.NewReader(os.Stdin)
+	for {
+		line, err := reader.ReadString('\n')
+		if err != nil {
+			panic(err)
+		}
+		uci.ProcessMessage(line)
+	}
 }
