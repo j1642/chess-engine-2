@@ -7,7 +7,6 @@ import (
 	"os"
 	"strconv"
 	"strings"
-	_ "time"
 
 	"github.com/j1642/chess-engine-2/board"
 	"github.com/j1642/chess-engine-2/engine"
@@ -18,7 +17,7 @@ var currentPosition = board.New()
 var stop chan bool
 
 // Receive a message from the chess GUI and return a response
-func processMessage(s string) {
+func ProcessMessage(s string) {
 	split := strings.Fields(s)
 	switch split[0] {
 	case "uci":
@@ -42,11 +41,12 @@ func processMessage(s string) {
 	case "position":
 		currentPosition = buildPosition(split)
 	case "go":
-		//go calculate(split)
-		calculate(split)
+		go calculate(split)
 	case "stop":
 		// Keep the best move and stop calculating
-		stop <- true
+		go func() {
+			stop <- true
+		}()
 	case "ponderhit":
 		// Ignore because ponder is not implemented
 	case "quit":
