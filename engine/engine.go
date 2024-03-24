@@ -299,19 +299,21 @@ type pvLine struct {
 
 // Successively call negamax() with increasing depth. It is generally faster than
 // one search to a given depth
-func IterativeDeepening(cb *board.Board, depth int) (int, board.Move) {
+func IterativeDeepening(cb *board.Board, depth int, stop ...chan bool) (int, board.Move) {
 	var eval int
 	var move board.Move
 	line := make([]board.Move, 0)
 	completePVLine := pvLine{}
 	completePVLine.alreadyUsed = make([]bool, depth)
 
+PlyLoop:
 	for ply := 1; ply <= depth; ply++ {
 		eval, move = negamax(-(1 << 30), 1<<30, ply, cb, ply, cb.HalfMoves, &line, &completePVLine)
 		completePVLine.moves = line
 		for i := range completePVLine.alreadyUsed {
 			completePVLine.alreadyUsed[i] = false
 		}
+
 		// UCI stdout. TODO: use ticker to reduce prints, if needed
 		fmt.Printf("info depth %d", ply)
 		if eval != MATE && eval != -MATE {
@@ -327,6 +329,15 @@ func IterativeDeepening(cb *board.Board, depth int) (int, board.Move) {
 			fmt.Printf(" %s", algebraicMove)
 		}
 		fmt.Println()
+
+		// UCI stop. TODO: stop inside the iterDeep recursion tree while keeping the PV moves
+		if len(stop) == 1 {
+			select {
+			case <-stop[0]:
+				break PlyLoop
+			default:
+			}
+		}
 	}
 
 	cleanTranspositionTable(cb.HalfMoves)

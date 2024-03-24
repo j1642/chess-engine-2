@@ -149,9 +149,10 @@ func identifyPieceOnSquare(square int8, cb *board.Board) (uint8, error) {
 // Search the current position for the best move
 func calculate(split []string) {
 	options := buildGoOptions(split)
-	// All move in options.searchmoves should be legal when they are appeded
-	// TODO: add stop channel for STOP command and ticker to control INFO prints
-	engine.IterativeDeepening(currentPosition, int(options.depth))
+	// All move in options.searchmoves should be legal when they are appended
+	// TODO: add stop channel for STOP command
+	// - use ticker in engine.go if needed, do not pass one in from here
+	engine.IterativeDeepening(currentPosition, int(options.depth), stop)
 }
 
 type goOptions struct {
