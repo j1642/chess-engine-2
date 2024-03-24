@@ -21,9 +21,11 @@ const (
 	PV_NODE  = uint8(0)
 	ALL_NODE = uint8(1)
 	CUT_NODE = uint8(2)
+
+	ORIG_HASH_CAP = 1 << 20
 )
 
-var tTable = make(map[uint64]TtEntry, 1<<20)
+var tTable = make(map[uint64]TtEntry, ORIG_HASH_CAP)
 var Negamax = negamax
 var emptyMove = board.Move{}
 
@@ -417,7 +419,7 @@ func quiesce(alpha, beta int, cb *board.Board) int {
 
 // Remove cached nodes which were not just calculated
 func cleanTranspositionTable(currentHalfMoveAge uint8) {
-	if len(tTable) > 800_000 {
+	if len(tTable) > ORIG_HASH_CAP/5*4 {
 		for key, stored := range tTable {
 			if stored.Age != currentHalfMoveAge {
 				delete(tTable, key)
