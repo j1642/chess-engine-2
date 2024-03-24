@@ -186,6 +186,9 @@ func TestIterativeDeepening(t *testing.T) {
 		t.Error(err)
 	}
 
+	// TODO: stockfish depth 30 takes at least 5 seconds, this takes less than 1
+	// without any depth check alongside the zobrist check. If both checks exist,
+	// depth 3 takes .8 sec, depth 4 takes >15 sec
 	depth := 3
 	eval1, move1 := IterativeDeepening(kiwipete1, depth)
 

@@ -75,7 +75,7 @@ func negamax(alpha, beta, depth int, cb *board.Board, orig_depth int, orig_age u
 		if move.Piece == pieces.KING || cb.Kings[1^cb.WToMove]&pieces.GetAttackedSquares(cb) == 0 {
 			if stored, ok := tTable[cb.Zobrist]; ok {
 				// TODO: Add a depth check here? stored.Depth >= uint8(depth)
-				if stored.Hash == cb.Zobrist {
+				if stored.Hash == cb.Zobrist && stored.Depth >= uint8(depth) {
 					board.RestorePosition(pos, cb)
 					switch stored.NodeType {
 					case CUT_NODE:
