@@ -9,7 +9,7 @@ import (
 	"github.com/j1642/chess-engine-2/pieces"
 )
 
-type testCase struct {
+type setPositionTestCase struct {
 	expected, actual *board.Board
 }
 
@@ -34,7 +34,7 @@ func TestSetPosition(t *testing.T) {
 	actual5 := buildPosition(strings.Fields(startFromFen + " moves e2e4 e7e5"))
 	actual6 := buildPosition(strings.Fields("position startpos moves e2e4 e7e5"))
 
-	tests := []testCase{
+	tests := []setPositionTestCase{
 		{
 			expected: newBoard,
 			actual:   actual1,
@@ -79,5 +79,70 @@ func TestSetPosition(t *testing.T) {
 		if *tt.actual != *tt.expected {
 			t.Errorf("i=%d, actual != expected", i)
 		}
+	}
+}
+
+type moveConversionTestCase struct {
+	expectedTo, expectedFrom int8
+	expectedPromoteTo        uint8
+	input                    string
+}
+
+func TestConvertLongAlgebraicMoveToSquares(t *testing.T) {
+	// TODO: add test cases where error != nil, test for != nil
+	tests := []moveConversionTestCase{
+		{
+			// Normal move
+			expectedFrom: 12, expectedTo: 28, expectedPromoteTo: pieces.NO_PIECE,
+			input: "e2e4",
+		},
+		{
+			// Promotion
+			expectedFrom: 52, expectedTo: 60, expectedPromoteTo: pieces.QUEEN,
+			input: "e7e8q",
+		},
+	}
+
+	for _, tt := range tests {
+		fromSq, toSq, promoteTo, err := convertLongAlgebraicMoveToSquares(tt.input)
+		if fromSq != tt.expectedFrom || toSq != tt.expectedTo || promoteTo != tt.expectedPromoteTo {
+			t.Errorf("from,to,promoteTo: want=%d,%d,%d, got=%d,%d,%d",
+				tt.expectedFrom, tt.expectedTo, tt.expectedPromoteTo,
+				fromSq, toSq, promoteTo,
+			)
+		}
+		if err != nil {
+			t.Error(err)
+		}
+	}
+}
+
+func TestBuildGoOptions(t *testing.T) {
+	split := strings.Fields("go infinite depth 5 searchmoves d2d3 nodes 1000")
+	actual := buildGoOptions(split)
+	expected := goOptions{
+		depth:       5,
+		nodes:       1000,
+		infinite:    true,
+		searchmoves: []board.Move{{From: 11, To: 19, Piece: pieces.PAWN, PromoteTo: pieces.NO_PIECE}},
+	}
+
+	if len(actual.searchmoves) != len(expected.searchmoves) {
+		t.Errorf("searchmoves lengths: %d != %d", len(actual.searchmoves), len(expected.searchmoves))
+	}
+	for i := range actual.searchmoves {
+		if actual.searchmoves[i] != expected.searchmoves[i] {
+			t.Errorf("moves[%d]: %v != %v", i, actual.searchmoves[i], expected.searchmoves[i])
+		}
+	}
+
+	if actual.infinite != expected.infinite {
+		t.Error("infinite")
+	}
+	if actual.depth != expected.depth {
+		t.Error("depth")
+	}
+	if actual.nodes != expected.nodes {
+		t.Error("nodes")
 	}
 }

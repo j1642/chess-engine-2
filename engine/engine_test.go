@@ -187,7 +187,7 @@ func TestIterativeDeepening(t *testing.T) {
 	}
 
 	depth := 3
-	eval1, move1 := iterativeDeepening(kiwipete1, depth)
+	eval1, move1 := IterativeDeepening(kiwipete1, depth)
 
 	line := make([]board.Move, depth)
 	completePVLine := pvLine{}

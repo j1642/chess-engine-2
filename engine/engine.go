@@ -297,7 +297,7 @@ type pvLine struct {
 
 // Successively call negamax() with increasing depth. It is generally faster than
 // one search to a given depth
-func iterativeDeepening(cb *board.Board, depth int) (int, board.Move) {
+func IterativeDeepening(cb *board.Board, depth int) (int, board.Move) {
 	var eval int
 	var move board.Move
 	line := make([]board.Move, 0)
