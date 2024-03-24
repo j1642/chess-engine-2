@@ -217,3 +217,18 @@ func TestQuiesce(t *testing.T) {
 		t.Errorf("want=71, got=%d", eval)
 	}
 }
+
+func TestConvertMovesToLongAlgebraic(t *testing.T) {
+	cb, err := board.FromFen("N7/1P6/8/8/8/8/8/8 w - - 0 1")
+	if err != nil {
+		t.Error(err)
+	}
+	boardMoves := pieces.GetAllMoves(cb)
+	actual := convertMovesToLongAlgebraic(boardMoves)
+	expected := []string{"b7b8n", "b7b8b", "b7b8r", "b7b8q", "a8b6", "a8c7"}
+	for i, actualAlgMove := range actual {
+		if expected[i] != actualAlgMove {
+			t.Errorf("algMoves[%d]: %s != %s", i, expected[i], actualAlgMove)
+		}
+	}
+}

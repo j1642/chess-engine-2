@@ -1,6 +1,8 @@
 package engine
 
 import (
+	"bytes"
+	"fmt"
 	"github.com/j1642/chess-engine-2/board"
 	"github.com/j1642/chess-engine-2/pieces"
 	"math/bits"
@@ -310,6 +312,21 @@ func IterativeDeepening(cb *board.Board, depth int) (int, board.Move) {
 		for i := range completePVLine.alreadyUsed {
 			completePVLine.alreadyUsed[i] = false
 		}
+		// UCI stdout. TODO: use ticker to reduce prints, if needed
+		fmt.Printf("info depth %d", ply)
+		if eval != MATE && eval != -MATE {
+			if cb.WToMove == 0 {
+				fmt.Printf(" score cp %d", eval*-10)
+			} else {
+				fmt.Printf(" score cp %d", eval*10)
+			}
+		}
+		fmt.Printf(" pv")
+		algebraicMoves := convertMovesToLongAlgebraic(completePVLine.moves)
+		for _, algebraicMove := range algebraicMoves {
+			fmt.Printf(" %s", algebraicMove)
+		}
+		fmt.Println()
 	}
 
 	cleanTranspositionTable(cb.HalfMoves)
@@ -396,4 +413,34 @@ func cleanTranspositionTable(currentHalfMoveAge uint8) {
 			}
 		}
 	}
+}
+
+func convertMovesToLongAlgebraic(moves []board.Move) []string {
+	algMoves := make([]string, len(moves))
+	chars := make([]byte, 0, 5)
+
+	for i, move := range moves {
+		chars = append(chars, (byte(move.From)%8)+'a')
+		chars = append(chars, (byte(move.From)/8)+'1')
+		chars = append(chars, (byte(move.To)%8)+'a')
+		chars = append(chars, (byte(move.To)/8)+'1')
+
+		if move.PromoteTo != pieces.NO_PIECE {
+			switch move.PromoteTo {
+			case pieces.KNIGHT:
+				chars = append(chars, 'n')
+			case pieces.BISHOP:
+				chars = append(chars, 'b')
+			case pieces.ROOK:
+				chars = append(chars, 'r')
+			case pieces.QUEEN:
+				chars = append(chars, 'q')
+			}
+		}
+		chars = bytes.TrimLeft(chars, "\x00")
+		algMoves[i] = string(chars)
+		clear(chars)
+	}
+
+	return algMoves
 }
