@@ -65,11 +65,11 @@ func runEvalTests(t *testing.T, tests []evalTestCase) {
 }
 
 func TestEvaluatePawns(t *testing.T) {
-	cbDoubled, err := board.FromFen("8/1pp5/8/2p5/5PP1/8/5PP1/8 w - - 0 1")
+	cbDoubled, err := board.FromFen("8/1pp5/8/2p5/5PP1/8/5PPP/8 w - - 0 1")
 	if err != nil {
 		t.Fatal(err)
 	}
-	cbIsolated, err := board.FromFen("8/pp6/8/8/8/8/1P4PP/8 w - - 0 1")
+	cbIsolated, err := board.FromFen("8/ppp5/8/8/8/8/1P4PP/8 w - - 0 1")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -84,7 +84,7 @@ func TestEvaluatePawns(t *testing.T) {
 		},
 		{
 			cb:       cbDoubled,
-			expected: -100,
+			expected: 100,
 		},
 		{
 			cb:       cbIsolated,

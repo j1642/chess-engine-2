@@ -17,13 +17,13 @@ type TtEntry struct {
 }
 
 const (
-	MATE = 1 << 20
+	MATE          = 1 << 20
+	ORIG_HASH_CAP = 1 << 20
+	MAX_PHASE     = 1000
 
 	PV_NODE  = uint8(0)
 	ALL_NODE = uint8(1)
 	CUT_NODE = uint8(2)
-
-	ORIG_HASH_CAP = 1 << 20
 )
 
 var tTable = make(map[uint64]TtEntry, ORIG_HASH_CAP)
@@ -158,22 +158,23 @@ func evaluate(cb *board.Board) int {
 	wQueens := bits.OnesCount64(cb.Queens[1])
 	bQueens := bits.OnesCount64(cb.Queens[0])
 
-	/*pieceCounts := [4]int{wKnights + bKnights, wBishops + bBishops,
-	      wRooks + bRooks, wQueens + bQueens,
-	  }
-	  gamePhase := calculatePhase(pieceCounts)
-	*/
-
-	eval := 100 * (bits.OnesCount64(cb.Pawns[1]) - bits.OnesCount64(cb.Pawns[0]))
-	eval += 300 * (wKnights - bKnights)
+	// Material
+	eval := 300 * (wKnights - bKnights)
 	eval += 310 * (wBishops - bBishops)
 	eval += 500 * (wRooks - bRooks)
 	eval += 900 * (wQueens - bQueens)
 
+	// Tapered piece-squares tables
+	/*mgPhase := calculatePhase([4]int{wKnights + bKnights, wBishops + bBishops,
+	      wRooks + bRooks, wQueens + bQueens},
+	  )
+	  egPhase := MAX_PHASE - mgPhase
+	*/
+
 	// TODO: outpost squares? Tapering required
 	// TODO: remove knight moves to squares attacked by enemy pawns
 
-	eval += evalPawns(cb)
+	eval += evalPawns(cb) // material and structure
 	mobilityEval := evaluateMobility(cb)
 	if mobilityEval == -MATE {
 		// checkmate or stalemate
@@ -193,6 +194,8 @@ func evaluate(cb *board.Board) int {
 func evalPawns(cb *board.Board) int {
 	eval := 0
 	pawnsInFile := [2][8]int{} // first index is [black, white]
+	wPawnCount := 0
+	bPawnCount := 0
 
 	// Blocked
 	occupied := cb.Pieces[0] | cb.Pieces[1]
@@ -204,6 +207,7 @@ func evalPawns(cb *board.Board) int {
 		if uint64(1<<(square+8))&occupied != 0 {
 			eval -= 50
 		}
+		wPawnCount += 1
 		wPawns &= wPawns - 1
 	}
 	bPawns := cb.Pawns[0]
@@ -213,8 +217,12 @@ func evalPawns(cb *board.Board) int {
 		if uint64(1<<(square-8))&occupied != 0 {
 			eval += 50
 		}
+		bPawnCount += 1
 		bPawns &= bPawns - 1
 	}
+
+	// Material
+	eval += 100 * (wPawnCount - bPawnCount)
 
 	// Doubled
 	for i := 0; i < 8; i++ {
