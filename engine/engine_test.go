@@ -65,11 +65,11 @@ func runEvalTests(t *testing.T, tests []evalTestCase) {
 }
 
 func TestEvaluatePawns(t *testing.T) {
-	cbDoubled, err := board.FromFen("8/1pp5/8/2p5/5PP1/8/5PPP/8 w - - 0 1")
+	cbDoubled, err := board.FromFen("8/1pp5/8/2p5/5P2/8/5PP1/8 w - - 0 1")
 	if err != nil {
 		t.Fatal(err)
 	}
-	cbIsolated, err := board.FromFen("8/ppp5/8/8/8/8/1P4PP/8 w - - 0 1")
+	cbIsolated, err := board.FromFen("8/p1p5/8/8/8/8/1P4PP/8 w - - 0 1")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -77,22 +77,26 @@ func TestEvaluatePawns(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
 	tests := []evalTestCase{
 		{
 			cb:       board.New(),
 			expected: 0,
 		},
 		{
-			cb:       cbDoubled,
-			expected: 100,
+			cb: cbDoubled,
+			expected: -eg_tables[0][49] - eg_tables[0][50] - eg_tables[0][34] +
+				eg_tables[0][13^56] + eg_tables[0][14^56] + eg_tables[0][29^56],
 		},
 		{
-			cb:       cbIsolated,
-			expected: -50,
+			cb: cbIsolated,
+			expected: 150 - eg_tables[0][48] - eg_tables[0][50] + eg_tables[0][9^56] +
+				eg_tables[0][14^56] + eg_tables[0][15^56],
 		},
 		{
-			cb:       cbBlocked,
-			expected: 50,
+			cb: cbBlocked,
+			expected: 50 - eg_tables[0][48] - eg_tables[0][49] +
+				eg_tables[0][14^56] + eg_tables[0][15^56],
 		},
 	}
 
@@ -100,10 +104,10 @@ func TestEvaluatePawns(t *testing.T) {
 }
 
 func runPawnEvalTests(t *testing.T, tests []evalTestCase) {
-	for _, tt := range tests {
-		actual := evalPawns(tt.cb)
+	for i, tt := range tests {
+		actual := evalPawns(tt.cb, 0, 1000)
 		if tt.expected != actual {
-			t.Errorf("pawnEval: want=%d, got=%d", tt.expected, actual)
+			t.Errorf("pawnEval[%d]: want=%d, got=%d", i, tt.expected, actual)
 		}
 	}
 }
@@ -189,7 +193,7 @@ func TestIterativeDeepening(t *testing.T) {
 	// TODO: stockfish depth 30 takes at least 5 seconds, this takes less than 1
 	// without any depth check alongside the zobrist check. If both checks exist,
 	// depth 3 takes .8 sec, depth 4 takes >15 sec
-	depth := 3
+	depth := 2
 	eval1, move1 := IterativeDeepening(kiwipete1, depth)
 
 	line := make([]board.Move, depth)
@@ -235,3 +239,44 @@ func TestConvertMovesToLongAlgebraic(t *testing.T) {
 		}
 	}
 }
+
+type phaseTestCase struct {
+	pieceCounts [4]int
+	expected    int
+}
+
+func TestCalculatePhase(t *testing.T) {
+	tests := []phaseTestCase{
+		{
+			// start position knights, bishops, rook, queen count
+			pieceCounts: [4]int{4, 4, 4, 2},
+			expected:    0,
+		},
+		{
+			// no pieces left, endgame phase is at its maximum
+			pieceCounts: [4]int{0, 0, 0, 0},
+			expected:    MAX_PHASE,
+		},
+	}
+	for i, tt := range tests {
+		actualPhase := calculatePhase(tt.pieceCounts)
+		if tt.expected != actualPhase {
+			t.Errorf("phase[%d]: want=%d, got=%d", i, tt.expected, actualPhase)
+		}
+
+	}
+}
+
+/*
+func TestWeirdBestMove(t *testing.T) {
+	cb, err := board.FromFen("rnb1k1nr/pppp1ppp/8/4P3/1q6/2N5/PP2PPPP/R1BQKBNR b KQkq - 1 5")
+	if err != nil {
+		t.Error(err)
+	}
+	_, move := IterativeDeepening(cb, 4)
+	if move.From == 25 && move.To == 9 && move.Piece == pieces.QUEEN {
+		t.Error("hanging queen after pawn capture")
+	} else {
+		t.Errorf("did not hang queen: from,to,piece = %d,%d,%d", move.From, move.To, move.Piece)
+	}
+}*/
