@@ -144,7 +144,7 @@ func buildZobristKeys() Zobrist {
 // Build a Board object from a Forsyth-Edwards notation (FEN) string
 // example: "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
 func FromFen(fen string) (*Board, error) {
-	// TODO: apply halfmove count
+	// TODO: apply halfmove count, move count
 	var color int
 	cb := &Board{}
 	square := int8(56)
@@ -159,11 +159,15 @@ func FromFen(fen string) (*Board, error) {
 		return cb, fmt.Errorf("invalid FEN slash count. want=7, got=%d", slashCount)
 	}
 
+	squaresInRank := 0
+
 	for _, char := range fen[:firstSpace] {
 		if 'A' <= char && char <= 'Z' {
 			color = 1
+			squaresInRank += 1
 		} else if 'a' <= char && char <= 'z' {
 			color = 0
+			squaresInRank += 1
 		} else {
 			color = 100 // placeholder value
 		}
@@ -172,9 +176,14 @@ func FromFen(fen string) (*Board, error) {
 		case '1' <= char && char <= '8':
 			// Negate the "square += 1" at the end of the loop
 			square += int8(char-'0') - 1
+			squaresInRank += int(char - '0')
 		case char == '/':
 			// Negate the "square += 1" at the end of the loop
 			square -= 17
+			if squaresInRank != 8 {
+				return cb, fmt.Errorf("invalid FEN: %d squares in rank", squaresInRank)
+			}
+			squaresInRank = 0
 		case char == 'p' || char == 'P':
 			cb.Pawns[color] += 1 << square
 		case char == 'n' || char == 'N':
@@ -193,7 +202,6 @@ func FromFen(fen string) (*Board, error) {
 		square += 1
 	}
 
-	// TODO: Include move count?
 	for i, char := range fen[firstSpace:] {
 		switch {
 		case char == 'b':

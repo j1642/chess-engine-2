@@ -357,6 +357,14 @@ func TestFromFen(t *testing.T) {
 		t.Errorf("cb.EpSquare: want=16, got=%d\n", cb.EpSquare)
 	}
 
+	_, err = FromFen("1p7/8/8/8/8/8/8/8 w - - 0 1")
+	if err == nil {
+		t.Error("the eighth rank is too long; should return error")
+	}
+	_, err = FromFen("p7/8/8 w - - 0 1")
+	if err == nil {
+		t.Error("only 2 slashes, not 7; should return error")
+	}
 }
 
 func TestResetZobrist(t *testing.T) {
