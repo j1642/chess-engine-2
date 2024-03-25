@@ -317,14 +317,17 @@ PlyLoop:
 		}
 
 		// UCI stdout. TODO: use ticker to reduce prints, if needed
+		// TODO: running 'go depth 30' returns a position with eval > MATE,
+		// which shouldn't happen
+		// TODO: finish. add the important spec fields
 		fmt.Printf("info depth %d", ply)
 		if eval != MATE && eval != -MATE {
-			if cb.WToMove == 0 {
-				fmt.Printf(" score cp %d", eval*-10)
-			} else {
-				fmt.Printf(" score cp %d", eval*10)
-			}
+			// Playtesting shows no negation needed here
+			fmt.Printf(" score cp %d", eval*10)
+		} else {
+			fmt.Printf(" score mate %d", len(completePVLine.moves))
 		}
+		fmt.Printf(" hashfull %d", len(tTable)*1000/ORIG_HASH_CAP)
 		fmt.Printf(" pv")
 		algebraicMoves := convertMovesToLongAlgebraic(completePVLine.moves)
 		for _, algebraicMove := range algebraicMoves {
@@ -341,6 +344,8 @@ PlyLoop:
 			}
 		}
 	}
+	bestmove := convertMovesToLongAlgebraic([]board.Move{move})[0]
+	fmt.Println("bestmove", bestmove)
 
 	cleanTranspositionTable(cb.HalfMoves)
 
