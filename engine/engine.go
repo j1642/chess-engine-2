@@ -1,3 +1,4 @@
+// Search and evaluation
 package engine
 
 import (
@@ -74,7 +75,6 @@ func negamax(alpha, beta, depth int, cb *board.Board, orig_depth int, orig_age u
 		// Check legality of pseudo-legal moves. King moves are strictly legal already
 		if move.Piece == pieces.KING || cb.Kings[1^cb.WToMove]&pieces.GetAttackedSquares(cb) == 0 {
 			if stored, ok := tTable[cb.Zobrist]; ok {
-				// TODO: Add a depth check here? stored.Depth >= uint8(depth)
 				if stored.Hash == cb.Zobrist && stored.Depth >= uint8(depth) {
 					board.RestorePosition(pos, cb)
 					switch stored.NodeType {
@@ -144,17 +144,31 @@ func negamax(alpha, beta, depth int, cb *board.Board, orig_depth int, orig_age u
 	return alpha, bestMove
 }
 
-// Return position evaluation in decipawns (0.1 pawns)
+// Return position evaluation in centipawns (0.01 pawns)
 func evaluate(cb *board.Board) int {
 	// TODO: piece square tables, evaluation tapering (middle to endgame),
 	//   king safety, rooks on (semi-)open files, bishop pair (>= 2),
 	//   endgame rooks/queens on 7th rank, connected rooks,
+	wKnights := bits.OnesCount64(cb.Knights[1])
+	bKnights := bits.OnesCount64(cb.Knights[0])
+	wBishops := bits.OnesCount64(cb.Bishops[1])
+	bBishops := bits.OnesCount64(cb.Bishops[0])
+	wRooks := bits.OnesCount64(cb.Rooks[1])
+	bRooks := bits.OnesCount64(cb.Rooks[0])
+	wQueens := bits.OnesCount64(cb.Queens[1])
+	bQueens := bits.OnesCount64(cb.Queens[0])
 
-	eval := 10 * (bits.OnesCount64(cb.Pawns[1]) - bits.OnesCount64(cb.Pawns[0]))
-	eval += 30 * (bits.OnesCount64(cb.Knights[1]) - bits.OnesCount64(cb.Knights[0]))
-	eval += 31 * (bits.OnesCount64(cb.Bishops[1]) - bits.OnesCount64(cb.Bishops[0]))
-	eval += 50 * (bits.OnesCount64(cb.Rooks[1]) - bits.OnesCount64(cb.Rooks[0]))
-	eval += 90 * (bits.OnesCount64(cb.Queens[1]) - bits.OnesCount64(cb.Queens[0]))
+	/*pieceCounts := [4]int{wKnights + bKnights, wBishops + bBishops,
+	      wRooks + bRooks, wQueens + bQueens,
+	  }
+	  gamePhase := calculatePhase(pieceCounts)
+	*/
+
+	eval := 100 * (bits.OnesCount64(cb.Pawns[1]) - bits.OnesCount64(cb.Pawns[0]))
+	eval += 300 * (wKnights - bKnights)
+	eval += 310 * (wBishops - bBishops)
+	eval += 500 * (wRooks - bRooks)
+	eval += 900 * (wQueens - bQueens)
 
 	// TODO: outpost squares? Tapering required
 	// TODO: remove knight moves to squares attacked by enemy pawns
@@ -188,7 +202,7 @@ func evalPawns(cb *board.Board) int {
 		square = bits.TrailingZeros64(wPawns)
 		pawnsInFile[1][square%8] += 1
 		if uint64(1<<(square+8))&occupied != 0 {
-			eval -= 5
+			eval -= 50
 		}
 		wPawns &= wPawns - 1
 	}
@@ -197,7 +211,7 @@ func evalPawns(cb *board.Board) int {
 		square = bits.TrailingZeros64(bPawns)
 		pawnsInFile[0][square%8] += 1
 		if uint64(1<<(square-8))&occupied != 0 {
-			eval += 5
+			eval += 50
 		}
 		bPawns &= bPawns - 1
 	}
@@ -205,15 +219,15 @@ func evalPawns(cb *board.Board) int {
 	// Doubled
 	for i := 0; i < 8; i++ {
 		if pawnsInFile[1][i] > 1 {
-			eval -= 5 * pawnsInFile[1][i]
+			eval -= 50 * pawnsInFile[1][i]
 		}
 		if pawnsInFile[0][i] > 1 {
-			eval += 5 * pawnsInFile[0][i]
+			eval += 50 * pawnsInFile[0][i]
 		}
 	}
 
 	// Isolated
-	delta := [2]int{5, -5}
+	delta := [2]int{50, -50}
 	for i := range pawnsInFile {
 		for j := range pawnsInFile[i] {
 			if pawnsInFile[i][j] > 0 {
@@ -287,9 +301,9 @@ func evaluateMobility(cb *board.Board) int {
 	}
 	mobilityEval := 0
 	if cb.WToMove == 1 {
-		mobilityEval += moveCount - oppMoveCount
+		mobilityEval += 10 * (moveCount - oppMoveCount)
 	} else {
-		mobilityEval += oppMoveCount - moveCount
+		mobilityEval += 10 * (oppMoveCount - moveCount)
 	}
 	return mobilityEval
 }
@@ -317,13 +331,10 @@ PlyLoop:
 		}
 
 		// UCI stdout. TODO: use ticker to reduce prints, if needed
-		// TODO: running 'go depth 30' returns a position with eval > MATE,
-		// which shouldn't happen
 		// TODO: finish. add the important spec fields
 		fmt.Printf("info depth %d", ply)
 		if eval != MATE && eval != -MATE {
-			// Playtesting shows no negation needed here
-			fmt.Printf(" score cp %d", eval*10)
+			fmt.Printf(" score cp %d", eval)
 		} else {
 			fmt.Printf(" score mate %d", len(completePVLine.moves))
 		}
@@ -361,8 +372,8 @@ func quiesce(alpha, beta int, cb *board.Board) int {
 		alpha = score
 	}
 
-	marginOfError := 20 // decipawns
-	pieceValues := [5]int{10, 30, 31, 50, 90}
+	marginOfError := 200 // centipawns
+	pieceValues := [5]int{100, 300, 310, 500, 900}
 	oppPieces := [5]uint64{cb.Pawns[cb.WToMove^1], cb.Knights[cb.WToMove^1],
 		cb.Bishops[cb.WToMove^1], cb.Rooks[cb.WToMove^1], cb.Queens[cb.WToMove^1],
 	}
