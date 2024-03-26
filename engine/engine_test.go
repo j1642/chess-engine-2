@@ -36,11 +36,11 @@ func TestEvaluate(t *testing.T) {
 		},
 		{
 			cb:       cbRooks,
-			expected: -60,
+			expected: -59,
 		},
 		{
 			cb:       cbLoneRook,
-			expected: 620,
+			expected: 635,
 		},
 		{
 			cb:       whiteMatesBlack,
@@ -56,15 +56,15 @@ func TestEvaluate(t *testing.T) {
 }
 
 func runEvalTests(t *testing.T, tests []evalTestCase) {
-	for _, tt := range tests {
+	for i, tt := range tests {
 		actual := evaluate(tt.cb)
 		if tt.expected != actual {
-			t.Errorf("eval: want=%d, got=%d", tt.expected, actual)
+			t.Errorf("eval[%d]: want=%d, got=%d", i, tt.expected, actual)
 		}
 	}
 }
 
-func TestEvaluatePawns(t *testing.T) {
+func TestEvalPawns(t *testing.T) {
 	cbDoubled, err := board.FromFen("8/1pp5/8/2p5/5P2/8/5PP1/8 w - - 0 1")
 	if err != nil {
 		t.Fatal(err)
@@ -105,7 +105,7 @@ func TestEvaluatePawns(t *testing.T) {
 
 func runPawnEvalTests(t *testing.T, tests []evalTestCase) {
 	for i, tt := range tests {
-		actual := evalPawns(tt.cb, 0, 1000)
+		actual := evalPawns(tt.cb, 0, MAX_PHASE)
 		if tt.expected != actual {
 			t.Errorf("pawnEval[%d]: want=%d, got=%d", i, tt.expected, actual)
 		}
@@ -152,8 +152,8 @@ func TestNegamax(t *testing.T) {
 	// TODO: Some of the expectEval might be wrong
 	// mate is detected when the side to move cannot move, so the depth arg needs an extra ply
 	tests := []searchTestCase{
-		{cb: wRookCapturesBRook, expectEval: 620, expectMove: board.Move{From: 0, To: 1, Piece: pieces.ROOK, PromoteTo: pieces.NO_PIECE}, depth: 1},
-		{cb: bRookCapturesWRook, expectEval: 620, expectMove: board.Move{From: 0, To: 1, Piece: pieces.ROOK, PromoteTo: pieces.NO_PIECE}, depth: 1},
+		{cb: wRookCapturesBRook, expectEval: 644, expectMove: board.Move{From: 0, To: 1, Piece: pieces.ROOK, PromoteTo: pieces.NO_PIECE}, depth: 1},
+		{cb: bRookCapturesWRook, expectEval: 608, expectMove: board.Move{From: 0, To: 1, Piece: pieces.ROOK, PromoteTo: pieces.NO_PIECE}, depth: 1},
 		{cb: mateDepth0, expectEval: -MATE, expectMove: board.Move{From: 0, To: 0, Piece: 0, PromoteTo: 0}, depth: 0},
 		{cb: mateDepth1, expectEval: -MATE, expectMove: board.Move{From: 0, To: 0, Piece: 0, PromoteTo: 0}, depth: 1},
 		{cb: mateIn2Ply, expectEval: MATE, expectMove: board.Move{From: 10, To: 46, Piece: pieces.BISHOP, PromoteTo: pieces.NO_PIECE}, depth: 2},
@@ -220,8 +220,9 @@ func TestQuiesce(t *testing.T) {
 		t.Error(err)
 	}
 	eval := quiesce(-(1 << 30), 1<<30, rooksKings)
-	if eval != 710 {
-		t.Errorf("want=71, got=%d", eval)
+	expected := 727
+	if eval != expected {
+		t.Errorf("want=%d, got=%d", expected, eval)
 	}
 }
 
@@ -241,34 +242,81 @@ func TestConvertMovesToLongAlgebraic(t *testing.T) {
 }
 
 type phaseTestCase struct {
-	pieceCounts [4]int
-	expected    int
+	cb                  *board.Board
+	expectedPhase       int
+	expectedEval        int
+	expectedPieceCounts [2][4]int
 }
 
-func TestCalculatePhase(t *testing.T) {
+func TestEvalPieceSquareTables(t *testing.T) {
+	oneRook, err := board.FromFen("r7/8/8/8/8/8/8/8 b - - 0 1")
+	if err != nil {
+		t.Error(err)
+	}
+
+	oneOfEachPiece, err := board.FromFen("8/rnbqk3/8/8/8/RNBQK3/8/8 w - - 0 1")
+	if err != nil {
+		t.Error(err)
+	}
+	egPhase := 8 * MAX_PHASE / 24
+	mgPhase := MAX_PHASE - egPhase
+	expEval := -(mgPhase*mg_tables[3][48] + egPhase*eg_tables[3][48]) / MAX_PHASE
+	expEval -= (mgPhase*mg_tables[1][49] + egPhase*eg_tables[1][49]) / MAX_PHASE
+	expEval -= (mgPhase*mg_tables[2][50] + egPhase*eg_tables[2][50]) / MAX_PHASE
+	expEval -= (mgPhase*mg_tables[4][51] + egPhase*eg_tables[4][51]) / MAX_PHASE
+	expEval -= (mgPhase*mg_tables[5][52] + egPhase*eg_tables[5][52]) / MAX_PHASE
+
+	expEval += (mgPhase*mg_tables[3][16^56] + egPhase*eg_tables[3][16^56]) / MAX_PHASE
+	expEval += (mgPhase*mg_tables[1][17^56] + egPhase*eg_tables[1][17^56]) / MAX_PHASE
+	expEval += (mgPhase*mg_tables[2][18^56] + egPhase*eg_tables[2][18^56]) / MAX_PHASE
+	expEval += (mgPhase*mg_tables[4][19^56] + egPhase*eg_tables[4][19^56]) / MAX_PHASE
+	expEval += (mgPhase*mg_tables[5][20^56] + egPhase*eg_tables[5][20^56]) / MAX_PHASE
+
 	tests := []phaseTestCase{
 		{
 			// start position knights, bishops, rook, queen count
-			pieceCounts: [4]int{4, 4, 4, 2},
-			expected:    0,
+			cb:                  board.New(),
+			expectedPhase:       0,
+			expectedPieceCounts: [2][4]int{{2, 2, 2, 1}, {2, 2, 2, 1}},
+			expectedEval:        0,
+		},
+		{
+			cb:                  oneRook,
+			expectedPhase:       22 * MAX_PHASE / 24,
+			expectedPieceCounts: [2][4]int{{0, 0, 1, 0}, {0, 0, 0, 0}},
+			expectedEval:        eg_tables[3][0] - 1 + eg_tables[5][0^56] - eg_tables[5][0],
 		},
 		{
 			// no pieces left, endgame phase is at its maximum
-			pieceCounts: [4]int{0, 0, 0, 0},
-			expected:    MAX_PHASE,
+			cb:                  &board.Board{},
+			expectedPhase:       MAX_PHASE,
+			expectedPieceCounts: [2][4]int{{0, 0, 0, 0}, {0, 0, 0, 0}},
+			expectedEval:        eg_tables[5][0^56] - eg_tables[5][0],
+		},
+		{
+			cb:                  oneOfEachPiece,
+			expectedPhase:       egPhase,
+			expectedPieceCounts: [2][4]int{{1, 1, 1, 1}, {1, 1, 1, 1}},
+			expectedEval:        expEval,
 		},
 	}
-	for i, tt := range tests {
-		actualPhase := calculatePhase(tt.pieceCounts)
-		if tt.expected != actualPhase {
-			t.Errorf("phase[%d]: want=%d, got=%d", i, tt.expected, actualPhase)
-		}
 
+	for i, tt := range tests {
+		eval, actualEgPhase, pieceCounts := evalPieceSquareTables(tt.cb)
+		if tt.expectedPhase != actualEgPhase {
+			t.Errorf("phase[%d]: want=%d, got=%d", i, tt.expectedPhase, actualEgPhase)
+		}
+		if tt.expectedPieceCounts != pieceCounts {
+			t.Errorf("pieceCounts[%d]: want=%d, got=%d", i, tt.expectedPieceCounts, pieceCounts)
+		}
+		if tt.expectedEval != eval {
+			t.Errorf("pstEval[%d]: want=%d, got=%d", i, tt.expectedEval, eval)
+		}
 	}
 }
 
 /*
-func TestWeirdBestMove(t *testing.T) {
+func TestDisastrousBestMove(t *testing.T) {
 	cb, err := board.FromFen("rnb1k1nr/pppp1ppp/8/4P3/1q6/2N5/PP2PPPP/R1BQKBNR b KQkq - 1 5")
 	if err != nil {
 		t.Error(err)
@@ -276,7 +324,9 @@ func TestWeirdBestMove(t *testing.T) {
 	_, move := IterativeDeepening(cb, 4)
 	if move.From == 25 && move.To == 9 && move.Piece == pieces.QUEEN {
 		t.Error("hanging queen after pawn capture")
+        cb.Print()
 	} else {
 		t.Errorf("did not hang queen: from,to,piece = %d,%d,%d", move.From, move.To, move.Piece)
 	}
-}*/
+}
+*/

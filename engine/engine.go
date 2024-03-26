@@ -19,7 +19,7 @@ type TtEntry struct {
 const (
 	MATE          = 1 << 20
 	ORIG_HASH_CAP = 1 << 20
-	MAX_PHASE     = 1000
+	MAX_PHASE     = 1024
 
 	PV_NODE  = uint8(0)
 	ALL_NODE = uint8(1)
@@ -75,6 +75,8 @@ func negamax(alpha, beta, depth int, cb *board.Board, orig_depth int, orig_age u
 		// Check legality of pseudo-legal moves. King moves are strictly legal already
 		if move.Piece == pieces.KING || cb.Kings[1^cb.WToMove]&pieces.GetAttackedSquares(cb) == 0 {
 			if stored, ok := tTable[cb.Zobrist]; ok {
+				// If no pv nodes are stored, is it ok to always used cached
+				// nodes regardless of relative depths?
 				if stored.Hash == cb.Zobrist && stored.Depth >= uint8(depth) {
 					board.RestorePosition(pos, cb)
 					switch stored.NodeType {
@@ -146,35 +148,23 @@ func negamax(alpha, beta, depth int, cb *board.Board, orig_depth int, orig_age u
 
 // Return position evaluation in centipawns (0.01 pawns)
 func evaluate(cb *board.Board) int {
-	// TODO: piece square tables, evaluation tapering (middle to endgame),
-	//   king safety, rooks on (semi-)open files, bishop pair (>= 2),
+	// TODO: king safety, rooks on (semi-)open files, bishop pair (>= 2),
 	//   endgame rooks/queens on 7th rank, connected rooks,
-	wKnights := bits.OnesCount64(cb.Knights[1])
-	bKnights := bits.OnesCount64(cb.Knights[0])
-	wBishops := bits.OnesCount64(cb.Bishops[1])
-	bBishops := bits.OnesCount64(cb.Bishops[0])
-	wRooks := bits.OnesCount64(cb.Rooks[1])
-	bRooks := bits.OnesCount64(cb.Rooks[0])
-	wQueens := bits.OnesCount64(cb.Queens[1])
-	bQueens := bits.OnesCount64(cb.Queens[0])
+
+	// Tapered piece-square tables (PST) for everything except pawns
+	eval, egPhase, pieceCounts := evalPieceSquareTables(cb)
 
 	// Material
-	eval := 300 * (wKnights - bKnights)
-	eval += 310 * (wBishops - bBishops)
-	eval += 500 * (wRooks - bRooks)
-	eval += 900 * (wQueens - bQueens)
-
-	// Tapered piece-squares tables (PST)
-	egPhase := calculatePhase([4]int{wKnights + bKnights, wBishops + bBishops,
-		wRooks + bRooks, wQueens + bQueens},
-	)
-	mgPhase := MAX_PHASE - egPhase
-	//TODO: add tapered PST for pieces besides pawns
+	eval += 300 * (pieceCounts[1][0] - pieceCounts[0][0])
+	eval += 310 * (pieceCounts[1][1] - pieceCounts[0][1])
+	eval += 500 * (pieceCounts[1][2] - pieceCounts[0][2])
+	eval += 900 * (pieceCounts[1][3] - pieceCounts[0][3])
 
 	// TODO: outpost squares? Tapering required
 	// TODO: remove knight moves to squares attacked by enemy pawns
 
-	eval += evalPawns(cb, mgPhase, egPhase) // material, structure, and PST
+	mgPhase := MAX_PHASE - egPhase
+	eval += evalPawns(cb, mgPhase, egPhase) // material, structure, and pawn PST
 	mobilityEval := evaluateMobility(cb)
 	if mobilityEval == -MATE {
 		// checkmate or stalemate
@@ -484,22 +474,62 @@ func convertMovesToLongAlgebraic(moves []board.Move) []string {
 	return algMoves
 }
 
-// Return the current phase of the game, from 0 (opening) to 100 (end game)
-func calculatePhase(pieceCounts [4]int) int {
-	nPhase := 1
-	bPhase := 1
-	rPhase := 2
-	qPhase := 4
+// Find the piece-square table evaluation of the position. Return:
+//   - evaluation of non-pawn pieces according to the piece-square tables
+//   - current phase of the game, from 0 (opening) to 100 (end game)
+//   - count of each piece on the board [black, white][n, b, r, q]
+func evalPieceSquareTables(cb *board.Board) (int, int, [2][4]int) {
+	// Find piece locations, exlucing pawns
+	pieceSquares := [2][4][]int{}
+	allPieces := [2][4]uint64{
+		{cb.Knights[0], cb.Bishops[0], cb.Rooks[0], cb.Queens[0]},
+		{cb.Knights[1], cb.Bishops[1], cb.Rooks[1], cb.Queens[1]},
+	}
+	for color := range allPieces {
+		for piece := range allPieces[color] {
+			squares := make([]int, 0, 2)
+			for allPieces[color][piece] > 0 {
+				squares = append(squares, bits.TrailingZeros64(allPieces[color][piece]))
+				allPieces[color][piece] &= allPieces[color][piece] - 1
+			}
+			pieceSquares[color][piece] = squares
+		}
+	}
 
-	maxPiecePhase := nPhase*4 + bPhase*4 + rPhase*4 + qPhase*2
-	curPhase := maxPiecePhase
+	// 24 = 1*initial knights + 1*initial bishops + 2*initial rooks + 4*initial queens
+	maxPiecePhase := 24
+	egPhase := maxPiecePhase
 
-	curPhase -= nPhase * pieceCounts[0]
-	curPhase -= bPhase * pieceCounts[1]
-	curPhase -= rPhase * pieceCounts[2]
-	curPhase -= qPhase * pieceCounts[3]
+	egPhase -= len(pieceSquares[0][0]) + len(pieceSquares[1][0])
+	egPhase -= len(pieceSquares[0][1]) + len(pieceSquares[1][1])
+	egPhase -= 2 * (len(pieceSquares[0][2]) + len(pieceSquares[1][2]))
+	egPhase -= 4 * (len(pieceSquares[0][3]) + len(pieceSquares[1][3]))
 
-	return curPhase / maxPiecePhase * MAX_PHASE
+	egPhase = egPhase * MAX_PHASE / maxPiecePhase
+	mgPhase := MAX_PHASE - egPhase
+
+	// PST eval
+	eval := (mgPhase*mg_tables[5][cb.KingSqs[1]^56] + egPhase*eg_tables[5][cb.KingSqs[1]^56]) / MAX_PHASE
+	eval -= (mgPhase*mg_tables[5][cb.KingSqs[0]] + egPhase*eg_tables[5][cb.KingSqs[0]]) / MAX_PHASE
+
+	// eg_tables: [p, n, b, r, q, k]
+	// pieceSquares: [n, b, r, q]
+	for piece := range pieceSquares[0] {
+		pstIdx := piece + 1
+		for square := range pieceSquares[0][piece] {
+			eval -= (mgPhase*mg_tables[pstIdx][pieceSquares[0][piece][square]] +
+				egPhase*eg_tables[pstIdx][pieceSquares[0][piece][square]]) / MAX_PHASE
+		}
+		for square := range pieceSquares[1][piece] {
+			eval += (mgPhase*mg_tables[pstIdx][pieceSquares[1][piece][square]^56] +
+				egPhase*eg_tables[pstIdx][pieceSquares[1][piece][square]^56]) / MAX_PHASE
+		}
+	}
+
+	return eval, egPhase, [2][4]int{
+		{len(pieceSquares[0][0]), len(pieceSquares[0][1]), len(pieceSquares[0][2]), len(pieceSquares[0][3])},
+		{len(pieceSquares[1][0]), len(pieceSquares[1][1]), len(pieceSquares[1][2]), len(pieceSquares[1][3])},
+	}
 }
 
 var pawnMG = [64]int{
