@@ -3,6 +3,7 @@ package pieces
 import (
 	"fmt"
 	"github.com/j1642/chess-engine-2/board"
+	"github.com/j1642/chess-engine-2/moves"
 	"strings"
 	"testing"
 )
@@ -74,47 +75,6 @@ func TestPawnMoves(t *testing.T) {
 
 	runMoveGenTests(t, wTests)
 	runMoveGenTests(t, bTests)
-}
-func TestRookMoves(t *testing.T) {
-	cb := board.New()
-	tests := []moveTestCase{
-		{
-			expected: uint64(1<<1 + 1<<8),
-			actual:   calculateRookMoves(0, cb),
-		},
-		{
-			expected: uint64(1<<62 + 1<<55),
-			actual:   calculateRookMoves(63, cb),
-		},
-		{
-			expected: uint64(1<<24) - 1 - (1<<16 - 1) - 1<<20 +
-				1<<12 + 1<<28 + 1<<36 + 1<<44 + 1<<52,
-			actual: calculateRookMoves(20, cb),
-		},
-	}
-
-	runMoveGenTests(t, tests)
-}
-
-func TestBishopMoves(t *testing.T) {
-	cb := board.New()
-	tests := []moveTestCase{
-		{
-			expected: uint64(1 << 9),
-			actual:   calculateBishopMoves(0, cb),
-		},
-		{
-			expected: uint64(1 + 1<<16 + 1<<2 + 1<<18 + 1<<27 + 1<<36 + 1<<45 + 1<<54),
-			actual:   calculateBishopMoves(9, cb),
-		},
-		{
-			expected: uint64(1<<10 + 1<<19 + 1<<37 + 1<<46 + 1<<55 +
-				1<<14 + 1<<21 + 1<<35 + 1<<42 + 1<<49),
-			actual: calculateBishopMoves(28, cb),
-		},
-	}
-
-	runMoveGenTests(t, tests)
 }
 
 type validMoveTestCase struct {
@@ -766,7 +726,7 @@ func TestSlidingPiecesMovesLookup(t *testing.T) {
 		if (1<<square)&kiwipete.Pieces[0] != 0 {
 			kiwipete.WToMove = 0
 		}
-		calcMoves := calculateRookMoves(int(square), kiwipete)
+		calcMoves := moves.CalculateRookMoves(int(square), kiwipete)
 		lookupMoves := lookupRookMoves(square, kiwipete)
 		if calcMoves != lookupMoves {
 			t.Errorf("for a rook on sq %d, calculated moves != magic BB moves, calc=%v, lookup=%v",
@@ -781,7 +741,7 @@ func TestSlidingPiecesMovesLookup(t *testing.T) {
 		if (1<<square)&kiwipete.Pieces[0] != 0 {
 			kiwipete.WToMove = 0
 		}
-		calcMoves := calculateBishopMoves(int(square), kiwipete)
+		calcMoves := moves.CalculateBishopMoves(int(square), kiwipete)
 		lookupMoves := lookupBishopMoves(square, kiwipete)
 		if calcMoves != lookupMoves {
 			t.Errorf("for a bishop on sq %d, calculated moves != magic BB moves, calc=%v, lookup=%v",

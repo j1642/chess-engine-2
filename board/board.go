@@ -20,11 +20,6 @@ type Board struct {
 	Queens  [2]uint64
 	Kings   [2]uint64
 
-	PAttacks       [2][64]uint64
-	NAttacks       [64]uint64
-	KAttacks       [64]uint64
-	SlidingAttacks [8][64]uint64
-
 	KingSqs      [2]int8
 	CastleRights [2][2]bool // [b, w][queenside, kingside]
 
@@ -46,11 +41,6 @@ type Zobrist struct {
 	EpFile       [8]uint64
 }
 
-var pawn_attack_bb = makePawnBBs()
-var knight_attack_bb = makeKnightBBs()
-var king_attack_bb = makeKingBBs()
-var sliding_attack_bb = makeSlidingAttackBBs()
-
 var ZobristKeys Zobrist = buildZobristKeys()
 
 func New() *Board {
@@ -64,11 +54,6 @@ func New() *Board {
 		Rooks:   [2]uint64{1<<56 + 1<<63, 1<<0 + 1<<7},
 		Queens:  [2]uint64{1 << 59, 1 << 3},
 		Kings:   [2]uint64{1 << 60, 1 << 4},
-
-		PAttacks:       pawn_attack_bb,
-		NAttacks:       knight_attack_bb,
-		KAttacks:       king_attack_bb,
-		SlidingAttacks: sliding_attack_bb,
 
 		KingSqs:      [2]int8{60, 4},
 		CastleRights: [2][2]bool{{true, true}, {true, true}},
@@ -232,10 +217,6 @@ func FromFen(fen string) (*Board, error) {
 	cb.Pieces[1] = cb.Pawns[1] | cb.Knights[1] | cb.Bishops[1] |
 		cb.Rooks[1] | cb.Queens[1] | cb.Kings[1]
 
-	cb.PAttacks = pawn_attack_bb
-	cb.NAttacks = knight_attack_bb
-	cb.KAttacks = king_attack_bb
-	cb.SlidingAttacks = sliding_attack_bb
 	cb.resetZobrist()
 
 	return cb, nil
@@ -266,138 +247,6 @@ func ContainsN[T IntArray](n int8, nums T) bool {
 		}
 	}
 	return false
-}
-
-// Return pawn attack bitboards, so attacks aren't repeatedly calculated on the fly
-func makePawnBBs() [2][64]uint64 {
-	// First index is cb.WToMove: 1 for white pawns, 0 for black pawns.
-	bbs := [2][64]uint64{}
-	for sq := 0; sq < 64; sq++ {
-		switch {
-		// Used in pieces.getCheckingSquares() for pawn checks on the black king on the eighth rank
-		// NOT FOR PAWN ATTACKS. Pawns on the first and eighth ranks checked in pieces.getPawnMoves()
-		case sq > 56:
-			if sq%8 == 0 {
-				bbs[0][sq] += 1 << (sq - 7)
-			} else if sq%8 == 7 {
-				bbs[0][sq] += 1 << (sq - 9)
-			} else {
-				bbs[0][sq] += 1<<(sq-7) + 1<<(sq-9)
-			}
-		// Used in pieces.getCheckingSquares() for pawn checks on the black king on the eighth rank
-		// NOT FOR PAWN ATTACKS. Pawns on the first and eighth ranks checked in pieces.getPawnMoves()
-		case sq < 8:
-			if sq%8 == 0 {
-				bbs[1][sq] += 1 << (sq + 9)
-			} else if sq%8 == 7 {
-				bbs[1][sq] += 1 << (sq + 7)
-			} else {
-				bbs[1][sq] += 1<<(sq+7) + 1<<(sq+9)
-			}
-		case sq%8 == 0:
-			bbs[1][sq] += 1 << (sq + 9)
-			bbs[0][sq] += 1 << (sq - 7)
-		case sq%8 == 7:
-			bbs[1][sq] += 1 << (sq + 7)
-			bbs[0][sq] += 1 << (sq - 9)
-		default:
-			bbs[1][sq] += 1<<(sq+7) + 1<<(sq+9)
-			bbs[0][sq] += 1<<(sq-7) + 1<<(sq-9)
-		}
-	}
-
-	return bbs
-}
-
-func makeKnightBBs() [64]uint64 {
-	bbs := [64]uint64{}
-	var directions []int8
-	files := GetFiles()
-
-	for sq := int8(0); sq < 64; sq++ {
-		switch {
-		case ContainsN(sq, files[0]):
-			directions = []int8{17, 10, -6, -15}
-		case ContainsN(sq, files[1]):
-			directions = []int8{17, 15, 10, -6, -17, -15}
-		case ContainsN(sq, files[2]):
-			directions = []int8{17, 15, -17, -15, 6, -10}
-		case ContainsN(sq, files[3]):
-			directions = []int8{15, -17, 6, -10}
-		default:
-			directions = []int8{17, 15, 10, -6, -17, -15, 6, -10}
-		}
-
-		for _, d := range directions {
-			if sq+d < 0 || sq+d > 63 {
-				continue
-			}
-			bbs[sq] += 1 << (sq + d)
-		}
-	}
-
-	return bbs
-}
-
-func makeKingBBs() [64]uint64 {
-	bbs := [64]uint64{}
-	var directions []int8
-	files := GetFiles()
-
-	for sq := int8(0); sq < 64; sq++ {
-		switch {
-		// file A
-		case ContainsN(sq, files[0]):
-			directions = []int8{8, 9, 1, -7, -8}
-		// file H
-		case ContainsN(sq, files[3]):
-			directions = []int8{8, 7, -1, -9, -8}
-		default:
-			directions = []int8{7, 8, 9, -1, 1, -9, -8, -7}
-		}
-
-		for _, d := range directions {
-			if sq+d < 0 || sq+d > 63 {
-				continue
-			}
-			bbs[sq] += 1 << (sq + d)
-		}
-	}
-
-	return bbs
-}
-
-func makeSlidingAttackBBs() [8][64]uint64 {
-	bbs := [8][64]uint64{}
-	files := GetFiles()
-	fileAForbidden := [3]int8{-9, -1, 7}
-	fileHForbidden := [3]int8{9, 1, -7}
-
-	// Movement directions are ordered clockwise, starting from north
-	for i, dir := range [8]int8{8, 9, 1, -7, -8, -9, -1, 7} {
-		for sq := int8(0); sq < 64; sq++ {
-			if ContainsN(sq, files[0]) && ContainsN(dir, fileAForbidden) {
-				continue
-			} else if ContainsN(sq, files[3]) && ContainsN(dir, fileHForbidden) {
-				continue
-			}
-
-			for j := int8(1); j < 8; j++ {
-				newSq := j*dir + sq
-				if newSq < 0 || newSq > 63 {
-					break
-				}
-				bbs[i][sq] += 1 << newSq
-				// Found board edge
-				if dir != 8 && dir != -8 &&
-					(ContainsN(newSq, files[0]) || ContainsN(newSq, files[3])) {
-					break
-				}
-			}
-		}
-	}
-
-	return bbs
 }
 
 type Position struct {
