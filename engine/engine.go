@@ -152,13 +152,9 @@ func evaluate(cb *board.Board) int {
 	//   endgame rooks/queens on 7th rank, connected rooks,
 
 	// Tapered piece-square tables (PST) for everything except pawns
-	eval, egPhase, pieceCounts := evalPieceSquareTables(cb)
+	eval, egPhase := evalPieceSquareTables(cb)
 
-	// Material
-	eval += 300 * (pieceCounts[1][0] - pieceCounts[0][0])
-	eval += 310 * (pieceCounts[1][1] - pieceCounts[0][1])
-	eval += 500 * (pieceCounts[1][2] - pieceCounts[0][2])
-	eval += 900 * (pieceCounts[1][3] - pieceCounts[0][3])
+	eval += cb.EvalMaterial
 
 	// TODO: outpost squares? Tapering required
 	// TODO: remove knight moves to squares attacked by enemy pawns

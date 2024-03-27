@@ -27,6 +27,8 @@ type Board struct {
 	PrevMove  Move
 	Zobrist   uint64
 	HalfMoves uint8
+
+	EvalMaterial int
 }
 
 type Move struct {
@@ -135,6 +137,7 @@ func FromFen(fen string) (*Board, error) {
 	square := int8(56)
 	firstSpace := strings.IndexByte(fen, ' ')
 	secondSpace := strings.IndexByte(fen[firstSpace+1:], ' ')
+	pieceValues := [5]int{100, 300, 310, 500, 900} // material
 
 	if firstSpace == -1 || secondSpace != 1 {
 		return cb, fmt.Errorf("invalid FEN string")
@@ -171,14 +174,39 @@ func FromFen(fen string) (*Board, error) {
 			squaresInRank = 0
 		case char == 'p' || char == 'P':
 			cb.Pawns[color] += 1 << square
+			if color == 1 {
+				cb.EvalMaterial += pieceValues[0]
+			} else {
+				cb.EvalMaterial -= pieceValues[0]
+			}
 		case char == 'n' || char == 'N':
 			cb.Knights[color] += 1 << square
+			if color == 1 {
+				cb.EvalMaterial += pieceValues[1]
+			} else {
+				cb.EvalMaterial -= pieceValues[1]
+			}
 		case char == 'b' || char == 'B':
 			cb.Bishops[color] += 1 << square
+			if color == 1 {
+				cb.EvalMaterial += pieceValues[2]
+			} else {
+				cb.EvalMaterial -= pieceValues[2]
+			}
 		case char == 'r' || char == 'R':
 			cb.Rooks[color] += 1 << square
+			if color == 1 {
+				cb.EvalMaterial += pieceValues[3]
+			} else {
+				cb.EvalMaterial -= pieceValues[3]
+			}
 		case char == 'q' || char == 'Q':
 			cb.Queens[color] += 1 << square
+			if color == 1 {
+				cb.EvalMaterial += pieceValues[4]
+			} else {
+				cb.EvalMaterial -= pieceValues[4]
+			}
 		case char == 'k' || char == 'K':
 			cb.Kings[color] += 1 << square
 			cb.KingSqs[color] = square
@@ -267,6 +295,8 @@ type Position struct {
 	PrevMove  Move
 	Zobrist   uint64
 	HalfMoves uint8
+
+	EvalMaterial int
 }
 
 func StorePosition(cb *Board) *Position {
@@ -283,10 +313,11 @@ func StorePosition(cb *Board) *Position {
 		KingSqs:      cb.KingSqs,
 		CastleRights: cb.CastleRights,
 
-		EpSquare:  cb.EpSquare,
-		PrevMove:  cb.PrevMove,
-		Zobrist:   cb.Zobrist,
-		HalfMoves: cb.HalfMoves,
+		EpSquare:     cb.EpSquare,
+		PrevMove:     cb.PrevMove,
+		Zobrist:      cb.Zobrist,
+		HalfMoves:    cb.HalfMoves,
+		EvalMaterial: cb.EvalMaterial,
 	}
 }
 
@@ -307,6 +338,8 @@ func RestorePosition(pos *Position, cb *Board) {
 	cb.PrevMove = pos.PrevMove
 	cb.Zobrist = pos.Zobrist
 	cb.HalfMoves = pos.HalfMoves
+
+	cb.EvalMaterial = pos.EvalMaterial
 }
 
 func (cb *Board) Print() {

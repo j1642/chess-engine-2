@@ -137,17 +137,21 @@ func capturePiece(squareBB uint64, square int8, cb *board.Board) {
 	opponent := 1 ^ cb.WToMove
 	cb.Pieces[opponent] ^= squareBB
 	cb.HalfMoves = 1
+	var capturedValue int
 
 	switch {
 	case squareBB&cb.Pawns[opponent] != 0:
 		cb.Pawns[opponent] ^= squareBB
 		cb.Zobrist ^= board.ZobristKeys.ColorPieceSq[opponent][0][square]
+		capturedValue = 100
 	case squareBB&cb.Knights[opponent] != 0:
 		cb.Knights[opponent] ^= squareBB
 		cb.Zobrist ^= board.ZobristKeys.ColorPieceSq[opponent][1][square]
+		capturedValue = 300
 	case squareBB&cb.Bishops[opponent] != 0:
 		cb.Bishops[opponent] ^= squareBB
 		cb.Zobrist ^= board.ZobristKeys.ColorPieceSq[opponent][2][square]
+		capturedValue = 310
 	case squareBB&cb.Rooks[opponent] != 0:
 		// int type mixing here seems ok based on investigation
 		if opponent == 0 && squareBB == 1<<56 {
@@ -165,11 +169,19 @@ func capturePiece(squareBB uint64, square int8, cb *board.Board) {
 		}
 		cb.Rooks[opponent] ^= squareBB
 		cb.Zobrist ^= board.ZobristKeys.ColorPieceSq[opponent][3][square]
+		capturedValue = 500
 	case squareBB&cb.Queens[opponent] != 0:
 		cb.Queens[opponent] ^= squareBB
 		cb.Zobrist ^= board.ZobristKeys.ColorPieceSq[opponent][4][square]
+		capturedValue = 900
 	default:
 		panic("no captured piece bitboard matches")
+	}
+
+	if cb.WToMove == 1 {
+		cb.EvalMaterial += capturedValue
+	} else {
+		cb.EvalMaterial -= capturedValue
 	}
 }
 
