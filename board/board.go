@@ -28,7 +28,8 @@ type Board struct {
 	Zobrist   uint64
 	HalfMoves uint8
 
-	EvalMaterial int
+	EvalMaterial  int
+	PiecePhaseSum int
 }
 
 type Move struct {
@@ -62,6 +63,8 @@ func New() *Board {
 
 		EpSquare: 100,
 		Zobrist:  0,
+
+		PiecePhaseSum: 24,
 	}
 	cb.resetZobrist()
 
@@ -148,6 +151,7 @@ func FromFen(fen string) (*Board, error) {
 	}
 
 	squaresInRank := 0
+	cb.PiecePhaseSum = 0
 
 	for _, char := range fen[:firstSpace] {
 		if 'A' <= char && char <= 'Z' {
@@ -181,6 +185,7 @@ func FromFen(fen string) (*Board, error) {
 			}
 		case char == 'n' || char == 'N':
 			cb.Knights[color] += 1 << square
+			cb.PiecePhaseSum += 1
 			if color == 1 {
 				cb.EvalMaterial += pieceValues[1]
 			} else {
@@ -188,6 +193,7 @@ func FromFen(fen string) (*Board, error) {
 			}
 		case char == 'b' || char == 'B':
 			cb.Bishops[color] += 1 << square
+			cb.PiecePhaseSum += 1
 			if color == 1 {
 				cb.EvalMaterial += pieceValues[2]
 			} else {
@@ -195,6 +201,7 @@ func FromFen(fen string) (*Board, error) {
 			}
 		case char == 'r' || char == 'R':
 			cb.Rooks[color] += 1 << square
+			cb.PiecePhaseSum += 2
 			if color == 1 {
 				cb.EvalMaterial += pieceValues[3]
 			} else {
@@ -202,6 +209,7 @@ func FromFen(fen string) (*Board, error) {
 			}
 		case char == 'q' || char == 'Q':
 			cb.Queens[color] += 1 << square
+			cb.PiecePhaseSum += 4
 			if color == 1 {
 				cb.EvalMaterial += pieceValues[4]
 			} else {
@@ -244,6 +252,13 @@ func FromFen(fen string) (*Board, error) {
 		cb.Rooks[0] | cb.Queens[0] | cb.Kings[0]
 	cb.Pieces[1] = cb.Pawns[1] | cb.Knights[1] | cb.Bishops[1] |
 		cb.Rooks[1] | cb.Queens[1] | cb.Kings[1]
+
+	// 24 is the max sum of piece phase values, as seen in the starting position
+	if cb.PiecePhaseSum < 0 {
+		panic("piece phase < 0")
+	} else if 24 < cb.PiecePhaseSum {
+		panic("piece phase > 24")
+	}
 
 	cb.resetZobrist()
 
@@ -296,7 +311,8 @@ type Position struct {
 	Zobrist   uint64
 	HalfMoves uint8
 
-	EvalMaterial int
+	EvalMaterial  int
+	PiecePhaseSum int
 }
 
 func StorePosition(cb *Board) *Position {
@@ -313,11 +329,12 @@ func StorePosition(cb *Board) *Position {
 		KingSqs:      cb.KingSqs,
 		CastleRights: cb.CastleRights,
 
-		EpSquare:     cb.EpSquare,
-		PrevMove:     cb.PrevMove,
-		Zobrist:      cb.Zobrist,
-		HalfMoves:    cb.HalfMoves,
-		EvalMaterial: cb.EvalMaterial,
+		EpSquare:      cb.EpSquare,
+		PrevMove:      cb.PrevMove,
+		Zobrist:       cb.Zobrist,
+		HalfMoves:     cb.HalfMoves,
+		EvalMaterial:  cb.EvalMaterial,
+		PiecePhaseSum: cb.PiecePhaseSum,
 	}
 }
 
@@ -340,6 +357,7 @@ func RestorePosition(pos *Position, cb *Board) {
 	cb.HalfMoves = pos.HalfMoves
 
 	cb.EvalMaterial = pos.EvalMaterial
+	cb.PiecePhaseSum = pos.PiecePhaseSum
 }
 
 func (cb *Board) Print() {

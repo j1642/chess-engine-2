@@ -89,6 +89,21 @@ func TestFromFen(t *testing.T) {
 		t.Errorf("cb.EpSquare: want=16, got=%d\n", cb.EpSquare)
 	}
 
+	// Test cb.PiecePhaseSum
+	expected := 0
+	if cb.PiecePhaseSum != expected {
+		t.Errorf("egPhase: want=%d, got=%d", expected, cb.PiecePhaseSum)
+	}
+	cb, err = FromFen("8/8/8/8/8/8/8/RNBQKBNR w KQkq - 0 1")
+	if err != nil {
+		t.Error(err)
+	}
+	expected = 12
+	if cb.PiecePhaseSum != expected {
+		t.Errorf("egPhase: want=%d, got=%d", expected, cb.PiecePhaseSum)
+	}
+
+	// Test errors
 	_, err = FromFen("1p7/8/8/8/8/8/8/8 w - - 0 1")
 	if err == nil {
 		t.Error("the eighth rank is too long; should return error")

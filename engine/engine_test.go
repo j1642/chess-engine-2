@@ -105,7 +105,7 @@ func TestEvalPawns(t *testing.T) {
 
 func runPawnEvalTests(t *testing.T, tests []evalTestCase) {
 	for i, tt := range tests {
-		actual := evalPawns(tt.cb, 0, MAX_PHASE)
+		actual := evalPawns(tt.cb, MAX_PHASE)
 		if tt.expected != actual {
 			t.Errorf("pawnEval[%d]: want=%d, got=%d", i, tt.expected, actual)
 		}
@@ -316,27 +316,6 @@ func TestEvalPieceSquareTables(t *testing.T) {
 			t.Errorf("pstEval[%d]: want=%d, got=%d", i, tt.expectedEval, eval)
 		}
 	}
-}
-
-func TestEvalMaterialIncrementalUpdate(t *testing.T) {
-    rooksKings, err := board.FromFen("r3k2r/8/8/8/8/8/8/R3k2R w KQkq - 0 1")
-    if err != nil {
-        t.Error(err)
-    }
-
-    expected := 0
-    if rooksKings.EvalMaterial != expected {
-        t.Errorf("evalMaterial: want=%d, got=%d", expected, rooksKings.EvalMaterial)
-    }
-
-    pieces.MovePiece(
-        board.Move{From: 0, To: 56, Piece: pieces.ROOK, PromoteTo: pieces.NO_PIECE},
-        rooksKings,
-    )
-    expected = 500
-    if rooksKings.EvalMaterial != expected {
-        t.Errorf("evalMaterial: want=%d, got=%d", expected, rooksKings.EvalMaterial)
-    }
 }
 
 type disastrousMoveTestCase struct {

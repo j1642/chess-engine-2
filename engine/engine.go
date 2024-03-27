@@ -159,8 +159,7 @@ func evaluate(cb *board.Board) int {
 	// TODO: outpost squares? Tapering required
 	// TODO: remove knight moves to squares attacked by enemy pawns
 
-	mgPhase := MAX_PHASE - egPhase
-	eval += evalPawns(cb, mgPhase, egPhase) // material, structure, and pawn PST
+	eval += evalPawns(cb, egPhase) // material, structure, and pawn PST
 	mobilityEval := evaluateMobility(cb)
 	if mobilityEval == -MATE {
 		// checkmate or stalemate
@@ -177,7 +176,8 @@ func evaluate(cb *board.Board) int {
 }
 
 // Return evaluation of doubled, blocked, and isolated pawns.
-func evalPawns(cb *board.Board, mgPhase, egPhase int) int {
+func evalPawns(cb *board.Board, egPhase int) int {
+	mgPhase := MAX_PHASE - egPhase
 	eval := 0
 	pawnsInFile := [2][8]int{} // first index is [black, white]
 	wPawnCount := 0
@@ -474,58 +474,39 @@ func convertMovesToLongAlgebraic(moves []board.Move) []string {
 //   - evaluation of non-pawn pieces according to the piece-square tables
 //   - current phase of the game, from 0 (opening) to 100 (end game)
 //   - count of each piece on the board [black, white][n, b, r, q]
-func evalPieceSquareTables(cb *board.Board) (int, int, [2][4]int) {
-	// Find piece locations, exlucing pawns
-	pieceSquares := [2][4][]int{}
+func evalPieceSquareTables(cb *board.Board) (int, int) {
+	// 24 = 1*initial knights + 1*initial bishops + 2*initial rooks + 4*initial queens
+	maxPiecePhase := 24
+	egPhase := maxPiecePhase - cb.PiecePhaseSum
+	egPhase = egPhase * MAX_PHASE / maxPiecePhase
+	mgPhase := MAX_PHASE - egPhase
+
 	allPieces := [2][4]uint64{
 		{cb.Knights[0], cb.Bishops[0], cb.Rooks[0], cb.Queens[0]},
 		{cb.Knights[1], cb.Bishops[1], cb.Rooks[1], cb.Queens[1]},
 	}
+	eval := 0
+
+	// Find piece locations, exlucing pawns
 	for color := range allPieces {
 		for piece := range allPieces[color] {
-			squares := make([]int, 0, 2)
 			for allPieces[color][piece] > 0 {
-				squares = append(squares, bits.TrailingZeros64(allPieces[color][piece]))
+				square := bits.TrailingZeros64(allPieces[color][piece])
+				if color == 0 {
+					eval -= (mgPhase*mg_tables[piece+1][square] +
+						egPhase*eg_tables[piece+1][square]) / MAX_PHASE
+				} else {
+					eval += (mgPhase*mg_tables[piece+1][square^56] +
+						egPhase*eg_tables[piece+1][square^56]) / MAX_PHASE
+				}
 				allPieces[color][piece] &= allPieces[color][piece] - 1
 			}
-			pieceSquares[color][piece] = squares
 		}
 	}
-
-	// 24 = 1*initial knights + 1*initial bishops + 2*initial rooks + 4*initial queens
-	maxPiecePhase := 24
-	egPhase := maxPiecePhase
-
-	egPhase -= len(pieceSquares[0][0]) + len(pieceSquares[1][0])
-	egPhase -= len(pieceSquares[0][1]) + len(pieceSquares[1][1])
-	egPhase -= 2 * (len(pieceSquares[0][2]) + len(pieceSquares[1][2]))
-	egPhase -= 4 * (len(pieceSquares[0][3]) + len(pieceSquares[1][3]))
-
-	egPhase = egPhase * MAX_PHASE / maxPiecePhase
-	mgPhase := MAX_PHASE - egPhase
-
-	// PST eval
-	eval := (mgPhase*mg_tables[5][cb.KingSqs[1]^56] + egPhase*eg_tables[5][cb.KingSqs[1]^56]) / MAX_PHASE
+	eval += (mgPhase*mg_tables[5][cb.KingSqs[1]^56] + egPhase*eg_tables[5][cb.KingSqs[1]^56]) / MAX_PHASE
 	eval -= (mgPhase*mg_tables[5][cb.KingSqs[0]] + egPhase*eg_tables[5][cb.KingSqs[0]]) / MAX_PHASE
 
-	// eg_tables: [p, n, b, r, q, k]
-	// pieceSquares: [n, b, r, q]
-	for piece := range pieceSquares[0] {
-		pstIdx := piece + 1
-		for square := range pieceSquares[0][piece] {
-			eval -= (mgPhase*mg_tables[pstIdx][pieceSquares[0][piece][square]] +
-				egPhase*eg_tables[pstIdx][pieceSquares[0][piece][square]]) / MAX_PHASE
-		}
-		for square := range pieceSquares[1][piece] {
-			eval += (mgPhase*mg_tables[pstIdx][pieceSquares[1][piece][square]^56] +
-				egPhase*eg_tables[pstIdx][pieceSquares[1][piece][square]^56]) / MAX_PHASE
-		}
-	}
-
-	return eval, egPhase, [2][4]int{
-		{len(pieceSquares[0][0]), len(pieceSquares[0][1]), len(pieceSquares[0][2]), len(pieceSquares[0][3])},
-		{len(pieceSquares[1][0]), len(pieceSquares[1][1]), len(pieceSquares[1][2]), len(pieceSquares[1][3])},
-	}
+	return eval, egPhase
 }
 
 var pawnMG = [64]int{

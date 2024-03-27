@@ -796,3 +796,32 @@ func TestZobristHashing(t *testing.T) {
 		t.Errorf("zobrist: want=%d, got=%d", curZobrist, cb.Zobrist)
 	}
 }
+
+func TestEvalMaterialIncrementalUpdate(t *testing.T) {
+	rooksKings, err := board.FromFen("r3k2r/8/8/8/8/8/8/R3k2R w KQkq - 0 1")
+	if err != nil {
+		t.Error(err)
+	}
+
+	expected := 0
+	if rooksKings.EvalMaterial != expected {
+		t.Errorf("evalMaterial: want=%d, got=%d", expected, rooksKings.EvalMaterial)
+	}
+	expected = 8
+	if rooksKings.PiecePhaseSum != expected {
+		t.Errorf("piecePhaseSum: want=%d, got=%d", expected, rooksKings.PiecePhaseSum)
+	}
+
+	MovePiece(
+		board.Move{From: 0, To: 56, Piece: ROOK, PromoteTo: NO_PIECE},
+		rooksKings,
+	)
+	expected = 500
+	if rooksKings.EvalMaterial != expected {
+		t.Errorf("evalMaterial: want=%d, got=%d", expected, rooksKings.EvalMaterial)
+	}
+	expected = 6
+	if rooksKings.PiecePhaseSum != expected {
+		t.Errorf("piecePhaseSum: want=%d, got=%d", expected, rooksKings.PiecePhaseSum)
+	}
+}
