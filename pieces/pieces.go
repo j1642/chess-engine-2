@@ -73,7 +73,6 @@ const (
 )
 
 func MovePiece(move board.Move, cb *board.Board) {
-	// TODO: Refactor to remove switch?
 	fromBB := uint64(1 << move.From)
 	toBB := uint64(1 << move.To)
 	if cb.EpSquare != 100 {
@@ -220,8 +219,6 @@ func capturePiece(squareBB uint64, square int8, cb *board.Board) {
 }
 
 func promotePawn(toBB uint64, square int8, cb *board.Board, promoteTo ...uint8) {
-	// TODO: Else never triggers b/c move.promoteTo always has a string
-	// Change to 'if promotoTo != ""'
 	if len(promoteTo) == 1 {
 		switch {
 		case promoteTo[0] == QUEEN:
@@ -263,7 +260,7 @@ func getUserInput() uint8 {
 		log.Println("failed to get input:", err)
 		return getUserInput()
 	}
-	// TODO: make sure this returns the first rune, not the first byte
+
 	var piece uint8
 	switch strings.ToLower(scanner.Text())[0] {
 	case byte('n'):
@@ -724,7 +721,6 @@ func GetCheckingSquares(cb *board.Board) (uint64, int) {
 	orthogAttackers := lookupRookMoves(cb.KingSqs[cb.WToMove], cb) &
 		(cb.Rooks[opponent] | cb.Queens[opponent])
 
-		// TODO: Remove king check?
 	if cb.Kings[opponent]&cb.KAttacks[cb.KingSqs[cb.WToMove]] != 0 {
 		fmt.Println(cb.KingSqs)
 		cb.Print()
@@ -823,32 +819,4 @@ func read1Bits(bb uint64) []int8 {
 		bb &= bb - 1
 	}
 	return squares
-}
-
-func Read1BitsPawns(bb uint64) []int {
-	squares := make([]int, 0, 8)
-	for bb > 0 {
-		squares = append(squares, bits.TrailingZeros64(bb))
-		bb &= bb - 1
-	}
-	return squares
-}
-
-func binSearch(n int, nums [8]int) bool {
-	l := 0
-	r := len(nums) - 1
-	var mid int
-	for l <= r {
-		mid = (l + r) / 2
-		switch {
-		case n > nums[mid]:
-			l = mid + 1
-		case n < nums[mid]:
-			r = mid - 1
-		default:
-			return true
-		}
-	}
-
-	return false
 }
