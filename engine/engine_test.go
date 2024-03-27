@@ -193,7 +193,7 @@ func TestIterativeDeepening(t *testing.T) {
 	// TODO: stockfish depth 30 takes at least 5 seconds, this takes less than 1
 	// without any depth check alongside the zobrist check. If both checks exist,
 	// depth 3 takes .8 sec, depth 4 takes >15 sec
-	depth := 2
+	depth := 4
 	eval1, move1 := IterativeDeepening(kiwipete1, depth)
 
 	line := make([]board.Move, depth)
@@ -315,18 +315,68 @@ func TestEvalPieceSquareTables(t *testing.T) {
 	}
 }
 
-/*
+type disastrousMoveTestCase struct {
+	cb     *board.Board
+	fromSq int8
+	toSq   int8
+}
+
 func TestDisastrousBestMove(t *testing.T) {
-	cb, err := board.FromFen("rnb1k1nr/pppp1ppp/8/4P3/1q6/2N5/PP2PPPP/R1BQKBNR b KQkq - 1 5")
+	hangingQueen, err := board.FromFen("rnb1k1nr/pppp1ppp/8/4P3/1q6/2N5/PP2PPPP/R1BQKBNR b KQkq - 1 5")
 	if err != nil {
 		t.Error(err)
 	}
-	_, move := IterativeDeepening(cb, 4)
-	if move.From == 25 && move.To == 9 && move.Piece == pieces.QUEEN {
-		t.Error("hanging queen after pawn capture")
-        cb.Print()
-	} else {
-		t.Errorf("did not hang queen: from,to,piece = %d,%d,%d", move.From, move.To, move.Piece)
+	hangingRook, err := board.FromFen("rn1qk1nr/pp2pp1p/2p3p1/3pP3/1P1Q4/P7/R4PPP/1b2KBNR w KQK - 0 1")
+	if err != nil {
+		t.Error(err)
+	}
+	tests := []disastrousMoveTestCase{
+		{
+			cb:     hangingQueen,
+			fromSq: 25,
+			toSq:   9,
+		},
+		{
+			cb:     hangingRook,
+			fromSq: 36,
+			toSq:   44,
+		},
+	}
+	for i, tt := range tests {
+		_, move := IterativeDeepening(tt.cb, 4)
+		if move.From == tt.fromSq && move.To == tt.toSq {
+			t.Errorf("disastrous[%d]: hanging piece, move=%d,%d,%d (f,t,p)", i, move.From, move.To, move.Piece)
+			tt.cb.Print()
+		} else {
+			t.Errorf("disastrous[%d]: all good, move=%d,%d,%d (f,t,p)", i, move.From, move.To, move.Piece)
+			tt.cb.Print()
+		}
 	}
 }
-*/
+
+func TestEngineTurnedOff(t *testing.T) {
+	cb, err := board.FromFen("1k5r/ppp2ppp/2n2n2/P1br4/5Q2/2P2P1P/1P2p1P1/1qB1K2R w K - 0 22")
+	if err != nil {
+		t.Error(err)
+	}
+
+	eval, move := IterativeDeepening(cb, 4)
+	t.Error(eval, move)
+	cb.WToMove ^= 1
+	eval, move = IterativeDeepening(cb, 4)
+	t.Error(eval, move)
+}
+
+func TestEngineDetectsMateInOne(t *testing.T) {
+	mateInOne, err := board.FromFen("rnbqkbnr/2ppp1pp/1p6/p4Q2/2B1P3/8/PPPP1PPP/RNB1K1NR w KQkq - 0 5")
+	if err != nil {
+		t.Error(err)
+	}
+	eval, move := IterativeDeepening(mateInOne, 4)
+	if eval != MATE {
+		t.Errorf("mateInOne eval: want=%d, got=%d", MATE, eval)
+	}
+	if move.From != 37 || move.To != 53 || move.Piece != pieces.QUEEN {
+		t.Errorf("mateInOne move: want=37,53,4 got=%d,%d,%d (f,t,p)", move.From, move.To, move.Piece)
+	}
+}
