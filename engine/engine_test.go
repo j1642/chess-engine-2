@@ -138,19 +138,19 @@ func TestNegamax(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
+	mateIn2Ply, err := board.FromFen("r2qk2r/pb4p1/1n2Pbp1/2B5/p1p5/2P5/2B2PPP/RN2R1K1 w - - 1 0")
+	if err != nil {
+		t.Error(err)
+	}
 	/*
-		mateIn2Ply, err := board.FromFen("r2qk2r/pb4p1/1n2Pbp1/2B5/p1p5/2P5/2B2PPP/RN2R1K1 w - - 1 0")
-		if err != nil {
-			t.Error(err)
-		}
 		mateIn3Ply, err := board.FromFen("r2qk2r/pb4pp/1n2PbQ1/2B5/p1p5/2P5/2B2PPP/RN2R1K1 b - - 1 0")
 		if err != nil {
 			t.Error(err)
 		}
-		mateIn4Ply, err := board.FromFen("r2qk2r/pb4pp/1n2Pb2/2B2Q2/p1p5/2P5/2B2PPP/RN2R1K1 w - - 1 0")
-		if err != nil {
-			t.Error(err)
-		}
+			mateIn4Ply, err := board.FromFen("r2qk2r/pb4pp/1n2Pb2/2B2Q2/p1p5/2P5/2B2PPP/RN2R1K1 w - - 1 0")
+			if err != nil {
+				t.Error(err)
+			}
 	*/
 
 	// TODO: Some of the expectEval might be wrong
@@ -160,10 +160,10 @@ func TestNegamax(t *testing.T) {
 		{cb: bRookCapturesWRook, expectEval: 608, expectMove: board.Move{From: 0, To: 1, Piece: pieces.ROOK, PromoteTo: pieces.NO_PIECE}, depth: 1},
 		{cb: mateDepth0, expectEval: -MATE, expectMove: board.Move{From: 0, To: 0, Piece: 0, PromoteTo: 0}, depth: 0},
 		{cb: mateDepth1, expectEval: -MATE, expectMove: board.Move{From: 0, To: 0, Piece: 0, PromoteTo: 0}, depth: 1},
+		{cb: mateIn2Ply, expectEval: MATE, expectMove: board.Move{From: 10, To: 46, Piece: pieces.BISHOP, PromoteTo: pieces.NO_PIECE}, depth: 2},
 		/*
-			{cb: mateIn2Ply, expectEval: MATE, expectMove: board.Move{From: 10, To: 46, Piece: pieces.BISHOP, PromoteTo: pieces.NO_PIECE}, depth: 2},
 			{cb: mateIn3Ply, expectEval: -MATE, expectMove: board.Move{From: 55, To: 46, Piece: pieces.PAWN, PromoteTo: pieces.NO_PIECE}, depth: 3},
-			{cb: mateIn4Ply, expectEval: MATE, expectMove: board.Move{From: 37, To: 46, Piece: pieces.QUEEN, PromoteTo: pieces.NO_PIECE}, depth: 4},
+				{cb: mateIn4Ply, expectEval: MATE, expectMove: board.Move{From: 37, To: 46, Piece: pieces.QUEEN, PromoteTo: pieces.NO_PIECE}, depth: 4},
 		*/
 	}
 
