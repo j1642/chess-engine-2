@@ -393,6 +393,7 @@ func GetKingMoves(square int8, oppAttackedSquares uint64, cb *board.Board) uint6
 // Return the set of squares attacked by color cb.WToMove
 func GetAttackedSquares(cb *board.Board) uint64 {
 	GetAttackedSquaresCalls++
+    fmt.Println(GetAttackedSquaresCalls, cb.Zobrist)
 	// TODO: Is there a way to avoid reading 1 bits when accumulating moves?
 	attackSquares := uint64(0)
 
