@@ -26,11 +26,18 @@ const (
 	CUT_NODE = uint8(2)
 )
 
+var negamaxCalls int
+var quiesceCalls int
+
+var cacheHits int
+var cacheCollisions int
+
 var tTable = make(map[uint64]TtEntry, ORIG_HASH_CAP)
 var Negamax = negamax
 var emptyMove = board.Move{}
 
 func negamax(alpha, beta, depth int, cb *board.Board, orig_depth int, orig_age uint8, parentPartialPV *[]board.Move, completePV *pvLine) (int, board.Move) {
+	negamaxCalls++
 	if depth == 0 {
 		return quiesce(alpha, beta, cb), cb.PrevMove
 	}
@@ -78,6 +85,7 @@ func negamax(alpha, beta, depth int, cb *board.Board, orig_depth int, orig_age u
 				// If no pv nodes are stored, is it ok to always used cached
 				// nodes regardless of relative depths?
 				if stored.Hash == cb.Zobrist && stored.Depth >= uint8(depth) {
+					cacheHits++
 					board.RestorePosition(pos, cb)
 					switch stored.NodeType {
 					case CUT_NODE:
@@ -109,6 +117,7 @@ func negamax(alpha, beta, depth int, cb *board.Board, orig_depth int, orig_age u
 					continue
 				} else {
 					delete(tTable, cb.Zobrist)
+					cacheCollisions++
 				}
 			}
 			score, _ = negamax(-1*beta, -1*alpha, depth-1, cb, orig_depth, orig_age, &line, completePV)
@@ -361,6 +370,7 @@ PlyLoop:
 
 // Find an ideal, stable position with no critical captures or exchanges
 func quiesce(alpha, beta int, cb *board.Board) int {
+	quiesceCalls++
 	score := evaluate(cb)
 	if score >= beta {
 		return beta
@@ -474,7 +484,7 @@ func convertMovesToLongAlgebraic(moves []board.Move) []string {
 //   - evaluation of non-pawn pieces according to the piece-square tables
 //   - current phase of the game, from 0 (opening) to 100 (end game)
 //   - count of each piece on the board [black, white][n, b, r, q]
-func evalPieceSquareTables(cb *board.Board) (int, int, [2][4]int) {
+func evalPieceSquareTables(cb *board.Board) (int, int) {
 	// Find piece locations, exlucing pawns
 	pieceSquares := [2][4][]int{}
 	allPieces := [2][4]uint64{
@@ -522,10 +532,10 @@ func evalPieceSquareTables(cb *board.Board) (int, int, [2][4]int) {
 		}
 	}
 
-	return eval, egPhase, [2][4]int{
-		{len(pieceSquares[0][0]), len(pieceSquares[0][1]), len(pieceSquares[0][2]), len(pieceSquares[0][3])},
-		{len(pieceSquares[1][0]), len(pieceSquares[1][1]), len(pieceSquares[1][2]), len(pieceSquares[1][3])},
-	}
+	return eval, egPhase //, [2][4]int{
+	//{len(pieceSquares[0][0]), len(pieceSquares[0][1]), len(pieceSquares[0][2]), len(pieceSquares[0][3])},
+	//{len(pieceSquares[1][0]), len(pieceSquares[1][1]), len(pieceSquares[1][2]), len(pieceSquares[1][3])},
+	//}
 }
 
 var pawnMG = [64]int{

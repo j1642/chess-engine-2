@@ -1,6 +1,7 @@
 package engine
 
 import (
+	"fmt"
 	"github.com/j1642/chess-engine-2/board"
 	"github.com/j1642/chess-engine-2/pieces"
 	"testing"
@@ -178,6 +179,14 @@ func TestNegamax(t *testing.T) {
 			t.Errorf("negamax eval[%d]: want=%d, got=%d", i, tt.expectEval, eval)
 		}
 	}
+	fmt.Println("cacheHits       =", cacheHits)
+	fmt.Println("cacheCollisions =", cacheCollisions)
+	fmt.Println("x")
+	fmt.Println("negamaxCalls =", negamaxCalls)
+	fmt.Println("quiesceCalls =", quiesceCalls)
+	fmt.Println("x")
+	fmt.Println("AttackSquaresCalls =", pieces.GetAttackedSquaresCalls)
+	fmt.Println("GetAllMovesCalls   =", pieces.GetAllMovesCalls)
 }
 
 func TestIterativeDeepening(t *testing.T) {
@@ -319,24 +328,24 @@ func TestEvalPieceSquareTables(t *testing.T) {
 }
 
 func TestEvalMaterialIncrementalUpdate(t *testing.T) {
-    rooksKings, err := board.FromFen("r3k2r/8/8/8/8/8/8/R3k2R w KQkq - 0 1")
-    if err != nil {
-        t.Error(err)
-    }
+	rooksKings, err := board.FromFen("r3k2r/8/8/8/8/8/8/R3k2R w KQkq - 0 1")
+	if err != nil {
+		t.Error(err)
+	}
 
-    expected := 0
-    if rooksKings.EvalMaterial != expected {
-        t.Errorf("evalMaterial: want=%d, got=%d", expected, rooksKings.EvalMaterial)
-    }
+	expected := 0
+	if rooksKings.EvalMaterial != expected {
+		t.Errorf("evalMaterial: want=%d, got=%d", expected, rooksKings.EvalMaterial)
+	}
 
-    pieces.MovePiece(
-        board.Move{From: 0, To: 56, Piece: pieces.ROOK, PromoteTo: pieces.NO_PIECE},
-        rooksKings,
-    )
-    expected = 500
-    if rooksKings.EvalMaterial != expected {
-        t.Errorf("evalMaterial: want=%d, got=%d", expected, rooksKings.EvalMaterial)
-    }
+	pieces.MovePiece(
+		board.Move{From: 0, To: 56, Piece: pieces.ROOK, PromoteTo: pieces.NO_PIECE},
+		rooksKings,
+	)
+	expected = 500
+	if rooksKings.EvalMaterial != expected {
+		t.Errorf("evalMaterial: want=%d, got=%d", expected, rooksKings.EvalMaterial)
+	}
 }
 
 type disastrousMoveTestCase struct {
