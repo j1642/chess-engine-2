@@ -11,6 +11,7 @@ type Board struct {
 	// TODO: move occupancies into one array? Possible memory speed boost
 	// White to move. 1=true, 0=false. Use uint because bools cannot be xor'd
 	WToMove uint
+	Zobrist uint64
 
 	Pieces  [2]uint64
 	Pawns   [2]uint64
@@ -25,7 +26,6 @@ type Board struct {
 
 	EpSquare  int8
 	PrevMove  Move
-	Zobrist   uint64
 	HalfMoves uint8
 
 	EvalMaterial   int
@@ -298,6 +298,7 @@ func ContainsN[T IntArray](n int8, nums T) bool {
 
 type Position struct {
 	WToMove uint
+	Zobrist uint64
 
 	Pieces  [2]uint64
 	Pawns   [2]uint64
@@ -312,7 +313,6 @@ type Position struct {
 
 	EpSquare  int8
 	PrevMove  Move
-	Zobrist   uint64
 	HalfMoves uint8
 
 	EvalMaterial   int
