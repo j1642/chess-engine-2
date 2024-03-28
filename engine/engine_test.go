@@ -1,6 +1,7 @@
 package engine
 
 import (
+	"fmt"
 	"github.com/j1642/chess-engine-2/board"
 	"github.com/j1642/chess-engine-2/pieces"
 	"testing"
@@ -170,6 +171,8 @@ func TestNegamax(t *testing.T) {
 			t.Errorf("negamax eval[%d]: want=%d, got=%d", i, tt.expectEval, eval)
 		}
 	}
+	fmt.Println("engine.negamaxCalls =", negamaxCalls)
+	fmt.Println("engine.cacheHits =", cacheHits)
 }
 
 func TestIterativeDeepening(t *testing.T) {
