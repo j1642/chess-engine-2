@@ -17,6 +17,9 @@ bb = bitboard, cb = chessboard
 Magic numbers 0, ..., 63 and 1<<0, ..., 1<<63 are squares of the chessboard.
 */
 
+var GetAllMovesCalls int
+var GetAttackedSquaresCalls int
+
 const (
 	PAWN     = uint8(0)
 	KNIGHT   = uint8(1)
@@ -377,6 +380,7 @@ func GetKingMoves(square int8, oppAttackedSquares uint64, cb *board.Board) uint6
 
 // Return the set of squares attacked by color cb.WToMove
 func GetAttackedSquares(cb *board.Board) uint64 {
+	GetAttackedSquaresCalls++
 	// TODO: Is there a way to avoid reading 1 bits when accumulating moves?
 	attackSquares := uint64(0)
 
@@ -417,6 +421,7 @@ type moveGenFunc func(int8, *board.Board) uint64
 // moves are strictly legal. However, if the king is in check, only legal moves
 // are returned
 func GetAllMoves(cb *board.Board) []board.Move {
+	GetAllMovesCalls++
 	cb.Pieces[cb.WToMove] ^= 1 << cb.KingSqs[cb.WToMove]
 	cb.WToMove ^= 1
 	attackedSquares := GetAttackedSquares(cb)

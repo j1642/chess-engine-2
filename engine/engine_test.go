@@ -1,9 +1,11 @@
 package engine
 
 import (
+	"fmt"
+	"testing"
+
 	"github.com/j1642/chess-engine-2/board"
 	"github.com/j1642/chess-engine-2/pieces"
-	"testing"
 )
 
 type evalTestCase struct {
@@ -178,6 +180,16 @@ func TestNegamax(t *testing.T) {
 			t.Errorf("negamax eval[%d]: want=%d, got=%d", i, tt.expectEval, eval)
 		}
 	}
+	fmt.Println("cacheHits          =", cacheHits)
+	fmt.Println("cacheCollisions    =", cacheCollisions)
+	fmt.Println("x")
+	fmt.Println("negamaxCalls       =", negamaxCalls)
+	fmt.Println("quiesceCalls       =", quiesceCalls)
+	fmt.Println("evalCalls          =", evalCalls)
+	fmt.Println("x")
+	fmt.Println("AttackSquaresCalls =", pieces.GetAttackedSquaresCalls)
+	fmt.Println("GetAllMovesCalls   =", pieces.GetAllMovesCalls)
+
 }
 
 func TestIterativeDeepening(t *testing.T) {

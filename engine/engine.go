@@ -26,11 +26,18 @@ const (
 	CUT_NODE = uint8(2)
 )
 
+var cacheHits int
+var cacheCollisions int
+var negamaxCalls int
+var evalCalls int
+var quiesceCalls int
+
 var tTable = make(map[uint64]TtEntry, ORIG_HASH_CAP)
 var Negamax = negamax
 var emptyMove = board.Move{}
 
 func negamax(alpha, beta, depth int, cb *board.Board, orig_depth int, orig_age uint8, parentPartialPV *[]board.Move, completePV *pvLine) (int, board.Move) {
+	negamaxCalls++
 	if depth == 0 {
 		return quiesce(alpha, beta, cb), cb.PrevMove
 	}
@@ -78,6 +85,7 @@ func negamax(alpha, beta, depth int, cb *board.Board, orig_depth int, orig_age u
 				// If no pv nodes are stored, is it ok to always used cached
 				// nodes regardless of relative depths?
 				if stored.Hash == cb.Zobrist && stored.Depth >= uint8(depth) {
+					cacheHits++
 					board.RestorePosition(pos, cb)
 					switch stored.NodeType {
 					case CUT_NODE:
@@ -108,6 +116,7 @@ func negamax(alpha, beta, depth int, cb *board.Board, orig_depth int, orig_age u
 					}
 					continue
 				} else {
+					cacheCollisions++
 					delete(tTable, cb.Zobrist)
 				}
 			}
@@ -148,6 +157,7 @@ func negamax(alpha, beta, depth int, cb *board.Board, orig_depth int, orig_age u
 
 // Return position evaluation in centipawns (0.01 pawns)
 func evaluate(cb *board.Board) int {
+	evalCalls++
 	// TODO: king safety, rooks on (semi-)open files, bishop pair (>= 2),
 	//   endgame rooks/queens on 7th rank, connected rooks,
 
@@ -365,6 +375,7 @@ PlyLoop:
 
 // Find an ideal, stable position with no critical captures or exchanges
 func quiesce(alpha, beta int, cb *board.Board) int {
+	quiesceCalls++
 	score := evaluate(cb)
 	if score >= beta {
 		return beta
