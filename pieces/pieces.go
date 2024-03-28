@@ -25,6 +25,8 @@ const (
 	QUEEN    = uint8(4)
 	KING     = uint8(5)
 	NO_PIECE = uint8(9)
+
+	MAX_PHASE = 1024
 )
 
 func MovePiece(move board.Move, cb *board.Board) {
@@ -127,6 +129,20 @@ func MovePiece(move board.Move, cb *board.Board) {
 		panic("empty or invalid piece type")
 	}
 
+	if cb.WToMove == 1 {
+		cb.EvalMidGamePST -= board.MgTables[move.Piece][move.From^56]
+		cb.EvalEndGamePST -= board.EgTables[move.Piece][move.From^56]
+
+		cb.EvalMidGamePST += board.MgTables[move.Piece][move.To^56]
+		cb.EvalEndGamePST += board.EgTables[move.Piece][move.To^56]
+	} else {
+		cb.EvalMidGamePST += board.MgTables[move.Piece][move.From]
+		cb.EvalEndGamePST += board.EgTables[move.Piece][move.From]
+
+		cb.EvalMidGamePST -= board.MgTables[move.Piece][move.To]
+		cb.EvalEndGamePST -= board.EgTables[move.Piece][move.To]
+	}
+
 	cb.PrevMove = move
 	cb.WToMove ^= 1
 	cb.Zobrist ^= board.ZobristKeys.BToMove
@@ -138,22 +154,26 @@ func capturePiece(squareBB uint64, square int8, cb *board.Board) {
 	cb.Pieces[opponent] ^= squareBB
 	cb.HalfMoves = 1
 	var capturedMaterial int
+	var capturedType int
 
 	switch {
 	case squareBB&cb.Pawns[opponent] != 0:
 		cb.Pawns[opponent] ^= squareBB
 		cb.Zobrist ^= board.ZobristKeys.ColorPieceSq[opponent][0][square]
 		capturedMaterial = 100
+		capturedType = 0
 	case squareBB&cb.Knights[opponent] != 0:
 		cb.Knights[opponent] ^= squareBB
 		cb.Zobrist ^= board.ZobristKeys.ColorPieceSq[opponent][1][square]
 		capturedMaterial = 300
 		cb.PiecePhaseSum -= 1
+		capturedType = 1
 	case squareBB&cb.Bishops[opponent] != 0:
 		cb.Bishops[opponent] ^= squareBB
 		cb.Zobrist ^= board.ZobristKeys.ColorPieceSq[opponent][2][square]
 		capturedMaterial = 310
 		cb.PiecePhaseSum -= 1
+		capturedType = 2
 	case squareBB&cb.Rooks[opponent] != 0:
 		// int type mixing here seems ok based on investigation
 		if opponent == 0 && squareBB == 1<<56 {
@@ -173,11 +193,13 @@ func capturePiece(squareBB uint64, square int8, cb *board.Board) {
 		cb.Zobrist ^= board.ZobristKeys.ColorPieceSq[opponent][3][square]
 		capturedMaterial = 500
 		cb.PiecePhaseSum -= 2
+		capturedType = 3
 	case squareBB&cb.Queens[opponent] != 0:
 		cb.Queens[opponent] ^= squareBB
 		cb.Zobrist ^= board.ZobristKeys.ColorPieceSq[opponent][4][square]
 		capturedMaterial = 900
 		cb.PiecePhaseSum -= 4
+		capturedType = 4
 	default:
 		panic("no captured piece bitboard matches")
 	}
@@ -186,6 +208,16 @@ func capturePiece(squareBB uint64, square int8, cb *board.Board) {
 		cb.EvalMaterial += capturedMaterial
 	} else {
 		cb.EvalMaterial -= capturedMaterial
+	}
+
+	if cb.WToMove == 1 {
+		// capturing black piece
+		cb.EvalMidGamePST += board.MgTables[capturedType][square]
+		cb.EvalEndGamePST += board.EgTables[capturedType][square]
+	} else {
+		// capturing white piece
+		cb.EvalMidGamePST -= board.MgTables[capturedType][square^56]
+		cb.EvalEndGamePST -= board.EgTables[capturedType][square^56]
 	}
 }
 

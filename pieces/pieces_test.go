@@ -797,8 +797,10 @@ func TestZobristHashing(t *testing.T) {
 	}
 }
 
-func TestEvalMaterialIncrementalUpdate(t *testing.T) {
-	rooksKings, err := board.FromFen("r3k2r/8/8/8/8/8/8/R3k2R w KQkq - 0 1")
+// Movepiece() updates cb.EvalMaterial, cb.PiecePhaseSum, cb.EvalMidGamePST,
+// cb.EvalEndGamePST so they don't need to be evaluated for every node
+func TestIncrementalUpdate(t *testing.T) {
+	rooksKings, err := board.FromFen("r3k2r/8/8/8/8/8/8/R3K2R w KQkq - 0 1")
 	if err != nil {
 		t.Error(err)
 	}
@@ -811,11 +813,20 @@ func TestEvalMaterialIncrementalUpdate(t *testing.T) {
 	if rooksKings.PiecePhaseSum != expected {
 		t.Errorf("piecePhaseSum: want=%d, got=%d", expected, rooksKings.PiecePhaseSum)
 	}
+	initialEvalMidGamePST := 0
+	if rooksKings.EvalMidGamePST != initialEvalMidGamePST {
+		t.Errorf("midGamePST: want=%d, got=%d", initialEvalMidGamePST, rooksKings.EvalMidGamePST)
+	}
+	initialEvalEndGamePST := 0
+	if rooksKings.EvalEndGamePST != initialEvalEndGamePST {
+		t.Errorf("endGamePST: want=%d, got=%d", initialEvalEndGamePST, rooksKings.EvalEndGamePST)
+	}
 
 	MovePiece(
 		board.Move{From: 0, To: 56, Piece: ROOK, PromoteTo: NO_PIECE},
 		rooksKings,
 	)
+
 	expected = 500
 	if rooksKings.EvalMaterial != expected {
 		t.Errorf("evalMaterial: want=%d, got=%d", expected, rooksKings.EvalMaterial)
@@ -823,5 +834,13 @@ func TestEvalMaterialIncrementalUpdate(t *testing.T) {
 	expected = 6
 	if rooksKings.PiecePhaseSum != expected {
 		t.Errorf("piecePhaseSum: want=%d, got=%d", expected, rooksKings.PiecePhaseSum)
+	}
+	finalMidGamePST := -board.MgTables[3][0^56] + board.MgTables[3][56^56] + board.MgTables[3][56]
+	if rooksKings.EvalMidGamePST != finalMidGamePST {
+		t.Errorf("midGamePST: want=%d, got=%d", finalMidGamePST, rooksKings.EvalMidGamePST)
+	}
+	finalEndGamePST := -board.EgTables[3][0^56] + board.EgTables[3][56^56] + board.EgTables[3][56]
+	if rooksKings.EvalEndGamePST != finalEndGamePST {
+		t.Errorf("endGamePST: want=%d, got=%d", finalEndGamePST, rooksKings.EvalEndGamePST)
 	}
 }

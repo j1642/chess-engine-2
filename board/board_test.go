@@ -131,3 +131,27 @@ func TestResetZobrist(t *testing.T) {
 		t.Errorf("resetZobrist: want=%d, got=%d", expected, cb.Zobrist)
 	}
 }
+
+func TestResetMidGameEndGamePST(t *testing.T) {
+	cb, err := FromFen("rnbqkp2/8/8/8/8/8/RNBQKP2/8 w Qq - 0 1")
+	if err != nil {
+		t.Error(err)
+	}
+
+	expectedEvalMidGamePST := MgTables[3][8^56] + MgTables[1][9^56] +
+		MgTables[2][10^56] + MgTables[4][11^56] + MgTables[5][12^56] + MgTables[0][13^56]
+	expectedEvalMidGamePST -= MgTables[3][56] + MgTables[1][57] + MgTables[2][58] +
+		MgTables[4][59] + MgTables[5][60] + MgTables[0][61]
+
+	expectedEvalEndGamePST := EgTables[3][8^56] + EgTables[1][9^56] +
+		EgTables[2][10^56] + EgTables[4][11^56] + EgTables[5][12^56] + EgTables[0][13^56]
+	expectedEvalEndGamePST -= EgTables[3][56] + EgTables[1][57] + EgTables[2][58] +
+		EgTables[4][59] + EgTables[5][60] + EgTables[0][61]
+
+	if cb.EvalMidGamePST != expectedEvalMidGamePST {
+		t.Errorf("EvalMidGamePST: want=%d, got=%d", expectedEvalMidGamePST, cb.EvalMidGamePST)
+	}
+	if cb.EvalEndGamePST != expectedEvalEndGamePST {
+		t.Errorf("EvalEndGamePST: want=%d, got=%d", expectedEvalEndGamePST, cb.EvalEndGamePST)
+	}
+}

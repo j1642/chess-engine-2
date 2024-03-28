@@ -36,11 +36,11 @@ func TestEvaluate(t *testing.T) {
 		},
 		{
 			cb:       cbRooks,
-			expected: -59,
+			expected: -60,
 		},
 		{
 			cb:       cbLoneRook,
-			expected: 635,
+			expected: 633,
 		},
 		{
 			cb:       whiteMatesBlack,
@@ -84,28 +84,21 @@ func TestEvalPawns(t *testing.T) {
 			expected: 0,
 		},
 		{
-			cb: cbDoubled,
-			expected: -eg_tables[0][49] - eg_tables[0][50] - eg_tables[0][34] +
-				eg_tables[0][13^56] + eg_tables[0][14^56] + eg_tables[0][29^56],
+			cb:       cbDoubled,
+			expected: 0,
 		},
 		{
-			cb: cbIsolated,
-			expected: 150 - eg_tables[0][48] - eg_tables[0][50] + eg_tables[0][9^56] +
-				eg_tables[0][14^56] + eg_tables[0][15^56],
+			cb:       cbIsolated,
+			expected: 150,
 		},
 		{
-			cb: cbBlocked,
-			expected: 50 - eg_tables[0][48] - eg_tables[0][49] +
-				eg_tables[0][14^56] + eg_tables[0][15^56],
+			cb:       cbBlocked,
+			expected: 50,
 		},
 	}
 
-	runPawnEvalTests(t, tests)
-}
-
-func runPawnEvalTests(t *testing.T, tests []evalTestCase) {
 	for i, tt := range tests {
-		actual := evalPawns(tt.cb, MAX_PHASE)
+		actual := evalPawns(tt.cb)
 		if tt.expected != actual {
 			t.Errorf("pawnEval[%d]: want=%d, got=%d", i, tt.expected, actual)
 		}
@@ -153,7 +146,7 @@ func TestNegamax(t *testing.T) {
 	// mate is detected when the side to move cannot move, so the depth arg needs an extra ply
 	tests := []searchTestCase{
 		{cb: wRookCapturesBRook, expectEval: 644, expectMove: board.Move{From: 0, To: 1, Piece: pieces.ROOK, PromoteTo: pieces.NO_PIECE}, depth: 1},
-		{cb: bRookCapturesWRook, expectEval: 608, expectMove: board.Move{From: 0, To: 1, Piece: pieces.ROOK, PromoteTo: pieces.NO_PIECE}, depth: 1},
+		{cb: bRookCapturesWRook, expectEval: 610, expectMove: board.Move{From: 0, To: 1, Piece: pieces.ROOK, PromoteTo: pieces.NO_PIECE}, depth: 1},
 		{cb: mateDepth0, expectEval: -MATE, expectMove: board.Move{From: 0, To: 0, Piece: 0, PromoteTo: 0}, depth: 0},
 		{cb: mateDepth1, expectEval: -MATE, expectMove: board.Move{From: 0, To: 0, Piece: 0, PromoteTo: 0}, depth: 1},
 		{cb: mateIn2Ply, expectEval: MATE, expectMove: board.Move{From: 10, To: 46, Piece: pieces.BISHOP, PromoteTo: pieces.NO_PIECE}, depth: 2},
@@ -163,7 +156,6 @@ func TestNegamax(t *testing.T) {
 
 	for i, tt := range tests {
 		// Unexplained bug: using math.MinInt, math.MaxInt as args breaks negamax
-		//line := make([]board.Move, 0, tt.depth)
 		line := make([]board.Move, tt.depth)
 		completePVLine := pvLine{}
 		completePVLine.alreadyUsed = make([]bool, tt.depth)
@@ -260,17 +252,17 @@ func TestEvalPieceSquareTables(t *testing.T) {
 	}
 	egPhase := 8 * MAX_PHASE / 24
 	mgPhase := MAX_PHASE - egPhase
-	expEval := -(mgPhase*mg_tables[3][48] + egPhase*eg_tables[3][48]) / MAX_PHASE
-	expEval -= (mgPhase*mg_tables[1][49] + egPhase*eg_tables[1][49]) / MAX_PHASE
-	expEval -= (mgPhase*mg_tables[2][50] + egPhase*eg_tables[2][50]) / MAX_PHASE
-	expEval -= (mgPhase*mg_tables[4][51] + egPhase*eg_tables[4][51]) / MAX_PHASE
-	expEval -= (mgPhase*mg_tables[5][52] + egPhase*eg_tables[5][52]) / MAX_PHASE
+	expEval := -(mgPhase*mgTables[3][48] + egPhase*egTables[3][48]) / MAX_PHASE
+	expEval -= (mgPhase*mgTables[1][49] + egPhase*egTables[1][49]) / MAX_PHASE
+	expEval -= (mgPhase*mgTables[2][50] + egPhase*egTables[2][50]) / MAX_PHASE
+	expEval -= (mgPhase*mgTables[4][51] + egPhase*egTables[4][51]) / MAX_PHASE
+	expEval -= (mgPhase*mgTables[5][52] + egPhase*egTables[5][52]) / MAX_PHASE
 
-	expEval += (mgPhase*mg_tables[3][16^56] + egPhase*eg_tables[3][16^56]) / MAX_PHASE
-	expEval += (mgPhase*mg_tables[1][17^56] + egPhase*eg_tables[1][17^56]) / MAX_PHASE
-	expEval += (mgPhase*mg_tables[2][18^56] + egPhase*eg_tables[2][18^56]) / MAX_PHASE
-	expEval += (mgPhase*mg_tables[4][19^56] + egPhase*eg_tables[4][19^56]) / MAX_PHASE
-	expEval += (mgPhase*mg_tables[5][20^56] + egPhase*eg_tables[5][20^56]) / MAX_PHASE
+	expEval += (mgPhase*mgTables[3][16^56] + egPhase*egTables[3][16^56]) / MAX_PHASE
+	expEval += (mgPhase*mgTables[1][17^56] + egPhase*egTables[1][17^56]) / MAX_PHASE
+	expEval += (mgPhase*mgTables[2][18^56] + egPhase*egTables[2][18^56]) / MAX_PHASE
+	expEval += (mgPhase*mgTables[4][19^56] + egPhase*egTables[4][19^56]) / MAX_PHASE
+	expEval += (mgPhase*mgTables[5][20^56] + egPhase*egTables[5][20^56]) / MAX_PHASE
 
 	tests := []phaseTestCase{
 		{
@@ -284,14 +276,14 @@ func TestEvalPieceSquareTables(t *testing.T) {
 			cb:                  oneRook,
 			expectedPhase:       22 * MAX_PHASE / 24,
 			expectedPieceCounts: [2][4]int{{0, 0, 1, 0}, {0, 0, 0, 0}},
-			expectedEval:        eg_tables[3][0] - 1 + eg_tables[5][0^56] - eg_tables[5][0],
+			expectedEval:        egTables[3][0] - 1 + egTables[5][0^56] - egTables[5][0],
 		},
 		{
 			// no pieces left, endgame phase is at its maximum
 			cb:                  &board.Board{},
 			expectedPhase:       MAX_PHASE,
 			expectedPieceCounts: [2][4]int{{0, 0, 0, 0}, {0, 0, 0, 0}},
-			expectedEval:        eg_tables[5][0^56] - eg_tables[5][0],
+			expectedEval:        egTables[5][0^56] - egTables[5][0],
 		},
 		{
 			cb:                  oneOfEachPiece,
@@ -303,10 +295,12 @@ func TestEvalPieceSquareTables(t *testing.T) {
 
 	for i, tt := range tests {
 		//eval, actualEgPhase, pieceCounts := evalPieceSquareTables(tt.cb)
-		eval, actualEgPhase := evalPieceSquareTables(tt.cb)
-		if tt.expectedPhase != actualEgPhase {
-			t.Errorf("phase[%d]: want=%d, got=%d", i, tt.expectedPhase, actualEgPhase)
-		}
+		eval := evalPieceSquareTables(tt.cb)
+		/*
+			if tt.expectedPhase != actualEgPhase {
+				t.Errorf("phase[%d]: want=%d, got=%d", i, tt.expectedPhase, actualEgPhase)
+			}
+		*/
 		/*
 			if tt.expectedPieceCounts != pieceCounts {
 				t.Errorf("pieceCounts[%d]: want=%d, got=%d", i, tt.expectedPieceCounts, pieceCounts)
