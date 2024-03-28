@@ -28,6 +28,7 @@ const (
 
 var negamaxCalls int
 var quiesceCalls int
+var evalCalls int
 
 var cacheHits int
 var cacheCollisions int
@@ -157,6 +158,7 @@ func negamax(alpha, beta, depth int, cb *board.Board, orig_depth int, orig_age u
 
 // Return position evaluation in centipawns (0.01 pawns)
 func evaluate(cb *board.Board) int {
+	evalCalls++
 	// TODO: king safety, rooks on (semi-)open files, bishop pair (>= 2),
 	//   endgame rooks/queens on 7th rank, connected rooks,
 
