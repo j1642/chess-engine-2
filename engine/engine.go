@@ -27,15 +27,11 @@ const (
 	CUT_NODE = uint8(2)
 )
 
-var negamaxCalls int
-var cacheHits int
-
 var tTable = make(map[uint64]TtEntry, ORIG_HASH_CAP)
 var Negamax = negamax
 var emptyMove = board.Move{}
 
 func negamax(alpha, beta, depth int, cb *board.Board, orig_depth int, orig_age uint8, parentPartialPV *[]board.Move, completePV *pvLine) (int, board.Move) {
-	negamaxCalls++
 	if depth == 0 {
 		return quiesce(alpha, beta, cb), cb.PrevMove
 	}
@@ -83,7 +79,6 @@ func negamax(alpha, beta, depth int, cb *board.Board, orig_depth int, orig_age u
 				// If no pv nodes are stored, is it ok to always used cached
 				// nodes regardless of relative depths?
 				if stored.Hash == cb.Zobrist && stored.Depth >= uint8(depth) {
-					cacheHits++
 					board.RestorePosition(pos, cb)
 					switch stored.NodeType {
 					case CUT_NODE:
@@ -159,14 +154,14 @@ func evaluate(cb *board.Board) int {
 	// TODO: outpost squares? Tapering required
 	// TODO: remove knight moves to squares attacked by enemy pawns
 
-	// Tapered piece-square tables (PST) for everything except pawns
+	// Tapered piece-square tables (PST)
 	egPhase := MAX_PIECE_PHASE_SUM - cb.PiecePhaseSum
 	egPhase = egPhase * MAX_PHASE / MAX_PIECE_PHASE_SUM
 	mgPhase := MAX_PHASE - egPhase
 	eval := (mgPhase*cb.EvalMidGamePST + egPhase*cb.EvalEndGamePST) / MAX_PHASE
 
 	eval += cb.EvalMaterial
-	eval += evalPawns(cb) // material and structure, no PST
+	eval += evalPawns(cb) // structure only, no material or PST
 
 	mobilityEval := evaluateMobility(cb)
 	if mobilityEval == -MATE {
@@ -187,8 +182,6 @@ func evaluate(cb *board.Board) int {
 func evalPawns(cb *board.Board) int {
 	eval := 0
 	pawnsInFile := [2][8]int{} // first index is [black, white]
-	wPawnCount := 0
-	bPawnCount := 0
 
 	// Blocked pawns and tapered pawn piece-square table
 	occupied := cb.Pieces[0] | cb.Pieces[1]
@@ -200,7 +193,6 @@ func evalPawns(cb *board.Board) int {
 		if uint64(1<<(square+8))&occupied != 0 {
 			eval -= 50
 		}
-		wPawnCount += 1
 		wPawns &= wPawns - 1
 	}
 	bPawns := cb.Pawns[0]
@@ -210,12 +202,8 @@ func evalPawns(cb *board.Board) int {
 		if uint64(1<<(square-8))&occupied != 0 {
 			eval += 50
 		}
-		bPawnCount += 1
 		bPawns &= bPawns - 1
 	}
-
-	// Material
-	eval += 100 * (wPawnCount - bPawnCount)
 
 	// Doubled
 	for i := 0; i < 8; i++ {

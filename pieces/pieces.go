@@ -53,14 +53,19 @@ func MovePiece(move board.Move, cb *board.Board) {
 			promotePawn(toBB, move.To, cb, move.PromoteTo)
 			cb.EpSquare = 100
 		} else if move.To == cb.EpSquare {
-			captureSq := move.To + 8
+			var captureSq int8
 			if cb.WToMove == 1 {
+				cb.EvalMaterial += 100
 				captureSq = move.To - 8
+			} else {
+				cb.EvalMaterial -= 100
+				captureSq = move.To + 8
 			}
 			cb.Pawns[1^cb.WToMove] ^= uint64(1 << captureSq)
 			cb.Pieces[1^cb.WToMove] ^= uint64(1 << captureSq)
 			cb.EpSquare = 100
 			cb.Zobrist ^= board.ZobristKeys.ColorPieceSq[cb.WToMove][0][move.To]
+
 		} else {
 			cb.EpSquare = 100
 			cb.Zobrist ^= board.ZobristKeys.ColorPieceSq[cb.WToMove][0][move.To]
@@ -222,20 +227,25 @@ func capturePiece(squareBB uint64, square int8, cb *board.Board) {
 }
 
 func promotePawn(toBB uint64, square int8, cb *board.Board, promoteTo ...uint8) {
+	var promoteValue int
 	if len(promoteTo) == 1 {
 		switch {
 		case promoteTo[0] == QUEEN:
 			cb.Queens[cb.WToMove] ^= toBB
 			cb.Zobrist ^= board.ZobristKeys.ColorPieceSq[cb.WToMove][4][square]
+			promoteValue = 800 // 900 (queen) - 100 (pawn)
 		case promoteTo[0] == KNIGHT:
 			cb.Knights[cb.WToMove] ^= toBB
 			cb.Zobrist ^= board.ZobristKeys.ColorPieceSq[cb.WToMove][1][square]
+			promoteValue = 200
 		case promoteTo[0] == BISHOP:
 			cb.Bishops[cb.WToMove] ^= toBB
 			cb.Zobrist ^= board.ZobristKeys.ColorPieceSq[cb.WToMove][2][square]
+			promoteValue = 210
 		case promoteTo[0] == ROOK:
 			cb.Rooks[cb.WToMove] ^= toBB
 			cb.Zobrist ^= board.ZobristKeys.ColorPieceSq[cb.WToMove][3][square]
+			promoteValue = 400
 		default:
 			panic("invalid promoteTo")
 		}
@@ -252,6 +262,11 @@ func promotePawn(toBB uint64, square int8, cb *board.Board, promoteTo ...uint8) 
 		}
 	}
 
+	if cb.WToMove == 1 {
+		cb.EvalMaterial += promoteValue
+	} else {
+		cb.EvalMaterial -= promoteValue
+	}
 	cb.Pawns[cb.WToMove] ^= toBB
 }
 

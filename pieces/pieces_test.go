@@ -843,4 +843,40 @@ func TestIncrementalUpdate(t *testing.T) {
 	if rooksKings.EvalEndGamePST != finalEndGamePST {
 		t.Errorf("endGamePST: want=%d, got=%d", finalEndGamePST, rooksKings.EvalEndGamePST)
 	}
+
+	// Promotion and capture updates cb.EvalMaterial
+	capturePromote, err := board.FromFen("1r6/P7/8/8/8/8/8/8 w - - 0 1")
+	if err != nil {
+		t.Error(err)
+	}
+	expected = -400
+	if capturePromote.EvalMaterial != expected {
+		t.Errorf("capturePromote: want=%d, got=%d", expected, capturePromote.EvalMaterial)
+	}
+	MovePiece(
+		board.Move{From: 48, To: 57, Piece: PAWN, PromoteTo: QUEEN},
+		capturePromote,
+	)
+	expected = 900
+	if capturePromote.EvalMaterial != expected {
+		t.Errorf("capturePromote: want=%d, got=%d", expected, capturePromote.EvalMaterial)
+	}
+
+	// En-passant updates cb.EvalMaterial
+	epCapture, err := board.FromFen("8/4p1pp/8/5pP1/8/8/8/8 w - f6 0 1")
+	if err != nil {
+		t.Error(err)
+	}
+	expected = -300
+	if epCapture.EvalMaterial != expected {
+		t.Errorf("capturePromote: want=%d, got=%d", expected, epCapture.EvalMaterial)
+	}
+	MovePiece(
+		board.Move{From: 38, To: 45, Piece: PAWN, PromoteTo: NO_PIECE},
+		epCapture,
+	)
+	expected = -200
+	if epCapture.EvalMaterial != expected {
+		t.Errorf("capturePromote: want=%d, got=%d", expected, epCapture.EvalMaterial)
+	}
 }

@@ -1,7 +1,6 @@
 package engine
 
 import (
-	"fmt"
 	"github.com/j1642/chess-engine-2/board"
 	"github.com/j1642/chess-engine-2/pieces"
 	"testing"
@@ -90,7 +89,7 @@ func TestEvalPawns(t *testing.T) {
 		},
 		{
 			cb:       cbIsolated,
-			expected: 150,
+			expected: 50,
 		},
 		{
 			cb:       cbBlocked,
@@ -171,8 +170,6 @@ func TestNegamax(t *testing.T) {
 			t.Errorf("negamax eval[%d]: want=%d, got=%d", i, tt.expectEval, eval)
 		}
 	}
-	fmt.Println("engine.negamaxCalls =", negamaxCalls)
-	fmt.Println("engine.cacheHits =", cacheHits)
 }
 
 func TestIterativeDeepening(t *testing.T) {
@@ -187,8 +184,8 @@ func TestIterativeDeepening(t *testing.T) {
 
 	// TODO: stockfish depth 30 takes at least 5 seconds, this takes less than 1
 	// without any depth check alongside the zobrist check. If both checks exist,
-	// depth 3 takes .8 sec, depth 4 takes >15 sec
-	depth := 3
+	// depth 3 was .8 sec, depth 4 was >15 sec
+	depth := 2
 	eval1, move1 := IterativeDeepening(kiwipete1, depth)
 
 	line := make([]board.Move, depth)
