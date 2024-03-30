@@ -373,20 +373,10 @@ func quiesce(alpha, beta int, cb *board.Board) int {
 		return alpha
 	}
 
-	moves := pieces.GetAllMoves(cb)
+	captures := pieces.GetAllCaptures(cb)
 	// TODO: include other forcing moves like check and promotion?
-	// Discard non-capture moves
-	for i := 0; i < len(moves); i++ {
-		moveToBB := uint64(1 << moves[i].To)
-		// if the move is not a capture
-		if (moveToBB & cb.Pieces[cb.WToMove^1]) == 0 {
-			moves[i], moves[len(moves)-1] = moves[len(moves)-1], moves[i]
-			moves = moves[:len(moves)-1]
-			// Re-examine this index because it holds a different move now
-			i--
-			continue
-		}
-
+	for i := 0; i < len(captures); i++ {
+		moveToBB := uint64(1 << captures[i].To)
 		// Delta pruning of captures that are unlikely to improve alpha
 		for i := range oppPieces {
 			if moveToBB&oppPieces[i] != 0 {
@@ -395,16 +385,15 @@ func quiesce(alpha, beta int, cb *board.Board) int {
 			}
 		}
 		if alpha > score+capturedPieceValue+marginOfError {
-			// Prune move. Same as !isCapture block
-			moves[i], moves[len(moves)-1] = moves[len(moves)-1], moves[i]
-			moves = moves[:len(moves)-1]
+			captures[i], captures[len(captures)-1] = captures[len(captures)-1], captures[i]
+			captures = captures[:len(captures)-1]
 			// Re-examine this index because it holds a different move now
 			i--
 		}
 	}
 
 	position := board.StorePosition(cb)
-	for _, capture := range moves {
+	for _, capture := range captures {
 		pieces.MovePiece(capture, cb)
 
 		if capture.Piece == pieces.KING || cb.Kings[1^cb.WToMove]&pieces.GetAttackedSquares(cb) == 0 {

@@ -546,6 +546,78 @@ func GetAllMoves(cb *board.Board) []board.Move {
 	return allMoves
 }
 
+// Return slice of all pseudo-legal captures for color cb.WToMove, where any king
+// moves are strictly legal. However, if the king is in check, only legal moves
+// are returned
+func GetAllCaptures(cb *board.Board) []board.Move {
+	// TODO: convert this GetAllMoves() copy to storing captures
+	cb.Pieces[cb.WToMove] ^= 1 << cb.KingSqs[cb.WToMove]
+	cb.WToMove ^= 1
+	attackedSquares := GetAttackedSquares(cb)
+	cb.WToMove ^= 1
+	cb.Pieces[cb.WToMove] ^= 1 << cb.KingSqs[cb.WToMove]
+
+	var attackerCount int
+	var capturesBlks uint64
+	if cb.Kings[cb.WToMove]&attackedSquares != 0 {
+		capturesBlks, attackerCount = GetCheckingSquares(cb)
+		_, attackerCount = GetCheckingSquares(cb)
+	}
+
+	captures := make([]board.Move, 0, 10)
+	kingSq := cb.KingSqs[cb.WToMove]
+	kingCapturesBB := GetKingMoves(kingSq, attackedSquares, cb) & cb.Pieces[cb.WToMove^1]
+
+	var toSq int8
+	for kingCapturesBB > 0 {
+		toSq = int8(bits.TrailingZeros64(kingCapturesBB))
+		captures = append(captures, board.Move{From: kingSq, To: toSq, Piece: KING, PromoteTo: NO_PIECE})
+		kingCapturesBB &= kingCapturesBB - 1
+	}
+
+	// If attackerCount > 1 and king has no moves, it is checkmate
+	if attackerCount > 1 {
+		return captures
+	}
+
+	pieces := [5]uint64{cb.Pawns[cb.WToMove], cb.Knights[cb.WToMove],
+		cb.Bishops[cb.WToMove], cb.Rooks[cb.WToMove], cb.Queens[cb.WToMove],
+	}
+	moveFuncs := [5]moveGenFunc{GetPawnMoves, getKnightMoves, lookupBishopMoves,
+		lookupRookMoves, getQueenMoves,
+	}
+	symbols := [5]uint8{PAWN, KNIGHT, BISHOP, ROOK, QUEEN}
+
+	opponentPiecesMinusKing := cb.Pieces[cb.WToMove^1] ^ cb.Kings[cb.WToMove^1]
+
+	var fromSq int8
+	for i, pieceBB := range pieces {
+		for pieceBB > 0 {
+			fromSq = int8(bits.TrailingZeros64(pieceBB))
+			pieceBB &= pieceBB - 1
+
+			capturesBB := moveFuncs[i](fromSq, cb) & opponentPiecesMinusKing
+			for capturesBB > 0 {
+				toSq = int8(bits.TrailingZeros64(capturesBB))
+				capturesBB &= capturesBB - 1
+
+				if capturesBlks == 0 || uint64(1<<toSq)&capturesBlks != 0 {
+					if i != 0 || (7 < toSq && toSq < 56) {
+						captures = append(captures, board.Move{From: fromSq, To: toSq, Piece: symbols[i], PromoteTo: NO_PIECE})
+					} else {
+						captures = append(captures, board.Move{From: fromSq, To: toSq, Piece: symbols[i], PromoteTo: QUEEN})
+						captures = append(captures, board.Move{From: fromSq, To: toSq, Piece: symbols[i], PromoteTo: ROOK})
+						captures = append(captures, board.Move{From: fromSq, To: toSq, Piece: symbols[i], PromoteTo: KNIGHT})
+						captures = append(captures, board.Move{From: fromSq, To: toSq, Piece: symbols[i], PromoteTo: BISHOP})
+					}
+				}
+			}
+		}
+	}
+
+	return captures
+}
+
 // Return the set of squares of pieces checking the king and interposition
 // squares, and the number of checking pieces.
 func GetCheckingSquares(cb *board.Board) (uint64, int) {
