@@ -533,10 +533,10 @@ func GetAllMoves(cb *board.Board) []board.Move {
 					if i != 0 || (7 < toSq && toSq < 56) {
 						allMoves = append(allMoves, board.Move{From: fromSq, To: toSq, Piece: symbols[i], PromoteTo: NO_PIECE})
 					} else {
+						allMoves = append(allMoves, board.Move{From: fromSq, To: toSq, Piece: symbols[i], PromoteTo: QUEEN})
+						allMoves = append(allMoves, board.Move{From: fromSq, To: toSq, Piece: symbols[i], PromoteTo: ROOK})
 						allMoves = append(allMoves, board.Move{From: fromSq, To: toSq, Piece: symbols[i], PromoteTo: KNIGHT})
 						allMoves = append(allMoves, board.Move{From: fromSq, To: toSq, Piece: symbols[i], PromoteTo: BISHOP})
-						allMoves = append(allMoves, board.Move{From: fromSq, To: toSq, Piece: symbols[i], PromoteTo: ROOK})
-						allMoves = append(allMoves, board.Move{From: fromSq, To: toSq, Piece: symbols[i], PromoteTo: QUEEN})
 					}
 				}
 			}
