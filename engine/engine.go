@@ -322,10 +322,12 @@ PlyLoop:
 		// UCI stdout. TODO: use ticker to reduce prints, if needed
 		// TODO: finish. add the important spec fields
 		fmt.Printf("info depth %d", ply)
-		if eval != MATE && eval != -MATE {
-			fmt.Printf(" score cp %d", eval)
-		} else {
+		if eval == MATE {
 			fmt.Printf(" score mate %d", len(completePVLine.moves))
+		} else if eval == -MATE {
+			fmt.Printf(" score mate -%d", len(completePVLine.moves))
+		} else {
+			fmt.Printf(" score cp %d", eval)
 		}
 		fmt.Printf(" hashfull %d", len(tTable)*1000/ORIG_HASH_CAP)
 		fmt.Printf(" pv")
