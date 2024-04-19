@@ -1,8 +1,12 @@
 My first [bitboard](https://www.chessprogramming.org/Bitboards)-based engine.
 
 
+### How to Use
+Obtain a third-party UCI-compatible chess GUI. Build this module's binary file locally (`go build`). In the GUI settings, set the binary file as the "engine to use."
+
+
 ### Perft Milestones
-[Perft](https://www.chessprogramming.org/Perft) is a debugging function that compares a move tree's leaf node count against an accepted value. The largest performance gains so far are from setting non-zero initial slice capacities in specific inlined functions.
+[Perft](https://www.chessprogramming.org/Perft) is a debugging function that compares a move tree's leaf node count against an accepted value. The largest performance gains were from reducing memory allocations and the associated GC time.
 
 | Depth | Time | Speed (million leaves/s) |
 |---|---|---|
